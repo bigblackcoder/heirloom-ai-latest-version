@@ -9,7 +9,8 @@ import QuickActions from "@/components/quick-actions";
 import ActiveConnections from "@/components/active-connections";
 import ActivityFeed from "@/components/activity-feed";
 import NavigationBar from "@/components/navigation-bar";
-import SuccessModal from "@/components/success-modal";
+import VerificationSuccessPopup from "@/components/verification-success-popup";
+import CapsuleSetupPopup from "@/components/capsule-setup-popup";
 
 // Define types for our API responses
 interface User {
@@ -44,6 +45,7 @@ export default function Dashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showVerificationSuccess, setShowVerificationSuccess] = useState(false);
+  const [showCapsuleSetupPopup, setShowCapsuleSetupPopup] = useState(false);
 
   // Get current user data
   const { data: userData, isLoading: userLoading } = useQuery<User>({
@@ -65,17 +67,17 @@ export default function Dashboard() {
     navigate("/notifications");
   };
 
-  // Show verification success modal if the user just verified
+  // Show verification success popup if the user just verified
   useEffect(() => {
     const justVerified = sessionStorage.getItem("justVerified");
     if (justVerified === "true") {
       setShowVerificationSuccess(true);
       sessionStorage.removeItem("justVerified");
-
-      // Hide modal after a delay
+      
+      // Show capsule setup notification after verification success closes
       setTimeout(() => {
-        setShowVerificationSuccess(false);
-      }, 3000);
+        setShowCapsuleSetupPopup(true);
+      }, 6000); // 6 seconds (5s display + 1s transition)
     }
   }, []);
 
@@ -186,15 +188,17 @@ export default function Dashboard() {
       {/* Bottom Navigation */}
       <NavigationBar currentPath="/dashboard" />
 
-      {/* Success Modal */}
-      {showVerificationSuccess && (
-        <SuccessModal 
-          title="Verification Successful!" 
-          message="Your identity has been securely verified. Welcome to the Heirloom ecosystem."
-          buttonText="Continue to Dashboard"
-          onButtonClick={() => setShowVerificationSuccess(false)}
-        />
-      )}
+      {/* Verification Success Popup */}
+      <VerificationSuccessPopup 
+        isOpen={showVerificationSuccess}
+        onClose={() => setShowVerificationSuccess(false)}
+      />
+
+      {/* Capsule Setup Popup */}
+      <CapsuleSetupPopup 
+        isOpen={showCapsuleSetupPopup}
+        onClose={() => setShowCapsuleSetupPopup(false)}
+      />
     </div>
   );
 }

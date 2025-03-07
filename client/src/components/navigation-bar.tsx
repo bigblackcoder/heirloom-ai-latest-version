@@ -100,13 +100,16 @@ export default function NavigationBar({ currentPath }: NavigationBarProps) {
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-10 max-w-md mx-auto">
+    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-10 max-w-md mx-auto overflow-hidden">
+      {/* Green Vector Background */}
+      <div className="absolute bottom-0 left-0 right-0 h-16 bg-[#1e3c0d]/10 rounded-t-3xl z-0"></div>
+      
       {/* Home indicator line for iPhone */}
-      <div className="w-full flex justify-center pb-1 pt-2">
+      <div className="w-full flex justify-center pb-1 pt-2 relative z-10">
         <div className="w-10 h-1 bg-gray-300 rounded-full"></div>
       </div>
       
-      <div className="grid grid-cols-5 px-2 py-1">
+      <div className="grid grid-cols-5 px-2 py-1 relative z-10">
         {navItems.map((item) => {
           const isActive = currentPath === item.path;
           return (
