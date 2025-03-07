@@ -37,15 +37,15 @@ export default function IdentityCapsuleCard({
   const defaultAvatar = "https://api.dicebear.com/7.x/avataaars/svg?seed=user";
 
   return (
-    <div className="mx-4 p-4 rounded-xl bg-[#1e3c0d] text-white">
-      <div className="flex justify-between items-center mb-2">
-        <div className="flex items-center px-3 py-1 bg-[#2a5414] rounded-full text-xs">
-          <span className="w-2 h-2 bg-[#4caf50] rounded-full mr-2"></span>
-          <span>Secure | 2FA Enabled</span>
+    <div className="mx-4 mb-4 p-5 rounded-3xl bg-[#1e3c0d] text-white shadow-lg">
+      {/* Security status indicator */}
+      <div className="flex justify-between items-center mb-3">
+        <div className="flex items-center">
+          <div className="w-2 h-2 bg-[#4caf50] rounded-full mr-2"></div>
+          <span className="text-xs text-white/70">Secure | 2FA Enabled</span>
         </div>
         <svg
-          className="w-5 h-5"
-          xmlns="http://www.w3.org/2000/svg"
+          className="w-5 h-5 text-white/70"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -53,15 +53,15 @@ export default function IdentityCapsuleCard({
           strokeLinecap="round"
           strokeLinejoin="round"
         >
-          <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
-          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
         </svg>
       </div>
       
-      <p className="text-white/60 text-sm mb-2">Identity Capsule Snapshot</p>
+      <p className="text-white/70 text-xs mb-2">Identity Capsule Snapshot</p>
       
-      <div className="flex items-center mb-3">
-        <div className="w-10 h-10 rounded-full bg-gray-300 overflow-hidden mr-3">
+      {/* User profile section */}
+      <div className="flex items-center mb-4">
+        <div className="w-12 h-12 rounded-full bg-gray-300 overflow-hidden mr-3">
           <img
             src={avatar || defaultAvatar}
             alt={userName}
@@ -69,39 +69,40 @@ export default function IdentityCapsuleCard({
           />
         </div>
         <div>
-          <h3 className="font-medium">{userName}</h3>
+          <h3 className="font-medium text-lg">{userName}</h3>
           <p className="text-xs text-white/60">Member Since {memberSince}</p>
         </div>
       </div>
       
-      <div className="flex justify-between mb-4">
+      {/* Stats section */}
+      <div className="flex justify-between mb-5">
         <div>
-          <p className="text-white/60 text-sm">AI Connections:</p>
-          <p className="text-[#4caf50]">{aiConnections}</p>
+          <h4 className="text-white text-sm mb-0.5">AI Connections:</h4>
+          <p className="text-[#4caf50] font-medium">{aiConnections}</p>
         </div>
         <div>
-          <p className="text-white/60 text-sm">Verified Data:</p>
-          <p className="text-white">{verifiedData}</p>
+          <h4 className="text-white text-sm mb-0.5">Verified Data:</h4>
+          <p className="text-[#4caf50] font-medium">{verifiedData}</p>
         </div>
       </div>
       
+      {/* Action buttons */}
       <div className="flex justify-between">
         <Button 
-          className={`flex-1 py-2 px-4 rounded-full mr-2 flex items-center justify-center ${
+          className={`py-2 px-5 rounded-full flex items-center justify-center ${
             isVerified 
-              ? "bg-[#2a5414] text-[#4caf50]" 
-              : "bg-white/10 text-white"
+              ? "bg-[#2a5414] text-[#4caf50] hover:bg-[#2a5414]/80" 
+              : "bg-white/10 text-white hover:bg-white/20"
           }`}
           disabled={!isVerified}
           onClick={() => navigate("/verification")}
         >
           <svg
-            className="w-4 h-4 mr-1"
-            xmlns="http://www.w3.org/2000/svg"
+            className="w-4 h-4 mr-1.5"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2"
+            strokeWidth="2.5"
             strokeLinecap="round"
             strokeLinejoin="round"
           >
@@ -115,12 +116,11 @@ export default function IdentityCapsuleCard({
         </Button>
         
         <Button 
-          className="flex-1 py-2 px-4 rounded-full bg-white/10 text-white mr-2 flex items-center justify-center"
+          className="py-2 px-5 rounded-full bg-white/10 text-white hover:bg-white/20 flex items-center justify-center"
           onClick={handleAddData}
         >
           <svg
-            className="w-4 h-4 mr-1"
-            xmlns="http://www.w3.org/2000/svg"
+            className="w-4 h-4 mr-1.5"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -134,12 +134,12 @@ export default function IdentityCapsuleCard({
         </Button>
         
         <Button 
-          className="w-10 h-10 rounded-full bg-[#f0b73e] flex items-center justify-center"
+          className="w-10 h-10 rounded-full bg-[#d4a166] hover:bg-[#d4a166]/80 flex items-center justify-center"
           onClick={handleMoreOptions}
+          variant="ghost"
         >
           <svg
             className="w-5 h-5"
-            xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -147,9 +147,9 @@ export default function IdentityCapsuleCard({
             strokeLinecap="round"
             strokeLinejoin="round"
           >
-            <circle cx="12" cy="12" r="1" />
-            <circle cx="19" cy="12" r="1" />
-            <circle cx="5" cy="12" r="1" />
+            <circle cx="12" cy="12" r="1" fill="currentColor" />
+            <circle cx="19" cy="12" r="1" fill="currentColor" />
+            <circle cx="5" cy="12" r="1" fill="currentColor" />
           </svg>
         </Button>
       </div>

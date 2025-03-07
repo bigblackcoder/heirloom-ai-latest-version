@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 // Simulated face detection results
 interface DetectionFrame {
@@ -11,6 +11,24 @@ export function useFaceVerification() {
   const [isDetecting, setIsDetecting] = useState(false);
   const [verificationProgress, setVerificationProgress] = useState(0);
   const [detectedFrames, setDetectedFrames] = useState<DetectionFrame[]>([]);
+  
+  // Use refs to avoid dependency cycles
+  const framesRef = useRef<DetectionFrame[]>([]);
+  const isDetectingRef = useRef(false);
+  const progressRef = useRef(0);
+  
+  // Update refs when state changes
+  useEffect(() => {
+    framesRef.current = detectedFrames;
+  }, [detectedFrames]);
+  
+  useEffect(() => {
+    isDetectingRef.current = isDetecting;
+  }, [isDetecting]);
+  
+  useEffect(() => {
+    progressRef.current = verificationProgress;
+  }, [verificationProgress]);
   
   // Simulate face detection algorithm
   const simulateDetection = useCallback((video: HTMLVideoElement): DetectionFrame => {
@@ -32,19 +50,23 @@ export function useFaceVerification() {
   const processDetection = useCallback((frame: DetectionFrame) => {
     if (frame.success) {
       // Add the frame to our collection
-      setDetectedFrames(prev => [...prev, frame]);
+      setDetectedFrames(prev => {
+        const newFrames = [...prev, frame];
+        framesRef.current = newFrames;
+        return newFrames;
+      });
       
       // Calculate progress based on number of successful frames
       // This is a simple implementation - in a real app, you would
       // want to ensure the face is detected from multiple angles
       const newProgress = Math.min(
-        Math.floor((detectedFrames.length / 30) * 100), 
+        Math.floor((framesRef.current.length / 30) * 100), 
         100
       );
       
       setVerificationProgress(newProgress);
     }
-  }, [detectedFrames]);
+  }, []);
   
   // Start the detection process
   const startDetection = useCallback((videoElement: HTMLVideoElement) => {
@@ -53,10 +75,13 @@ export function useFaceVerification() {
     setIsDetecting(true);
     setVerificationProgress(0);
     setDetectedFrames([]);
+    isDetectingRef.current = true;
+    progressRef.current = 0;
+    framesRef.current = [];
     
-    // Set up detection interval
+    // Set up detection interval - using a timeout instead would be better in production
     const intervalId = setInterval(() => {
-      if (!isDetecting) {
+      if (!isDetectingRef.current) {
         clearInterval(intervalId);
         return;
       }
@@ -70,11 +95,12 @@ export function useFaceVerification() {
       clearInterval(intervalId);
       setIsDetecting(false);
     };
-  }, [isDetecting, processDetection, simulateDetection]);
+  }, [simulateDetection, processDetection]);
   
   // Stop the detection process
   const stopDetection = useCallback(() => {
     setIsDetecting(false);
+    isDetectingRef.current = false;
   }, []);
   
   // Artificial progress increase to simulate verification
@@ -82,15 +108,19 @@ export function useFaceVerification() {
     if (!isDetecting) return;
     
     const progressInterval = setInterval(() => {
-      if (verificationProgress < 100) {
-        setVerificationProgress(prev => Math.min(prev + 1, 100));
+      if (progressRef.current < 100) {
+        setVerificationProgress(prev => {
+          const newProgress = Math.min(prev + 1, 100);
+          progressRef.current = newProgress;
+          return newProgress;
+        });
       } else {
         clearInterval(progressInterval);
       }
     }, 150);
     
     return () => clearInterval(progressInterval);
-  }, [isDetecting, verificationProgress]);
+  }, [isDetecting]);
   
   return {
     isDetecting,
