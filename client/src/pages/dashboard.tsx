@@ -10,6 +10,34 @@ import ActiveConnections from "@/components/active-connections";
 import NavigationBar from "@/components/navigation-bar";
 import SuccessModal from "@/components/success-modal";
 
+// Define types for our API responses
+interface User {
+  id: number;
+  firstName: string;
+  lastName: string;
+  username: string;
+  email: string;
+  memberSince: string;
+  isVerified: boolean;
+  avatar?: string;
+}
+
+interface Connection {
+  id: number;
+  userId: number;
+  aiServiceName: string;
+  isActive: boolean;
+  createdAt: string;
+  lastUsed?: string;
+}
+
+interface Capsule {
+  id: number;
+  userId: number;
+  name: string;
+  createdAt: string;
+}
+
 export default function Dashboard() {
   const [_, navigate] = useLocation();
   const { toast } = useToast();
@@ -17,17 +45,17 @@ export default function Dashboard() {
   const [showVerificationSuccess, setShowVerificationSuccess] = useState(false);
 
   // Get current user data
-  const { data: userData, isLoading: userLoading } = useQuery({
+  const { data: userData, isLoading: userLoading } = useQuery<User>({
     queryKey: ["/api/auth/me"],
   });
 
   // Get user's identity capsules
-  const { data: capsules, isLoading: capsulesLoading } = useQuery({
+  const { data: capsules, isLoading: capsulesLoading } = useQuery<Capsule[]>({
     queryKey: ["/api/capsules"],
   });
 
   // Get user's AI connections
-  const { data: connections, isLoading: connectionsLoading } = useQuery({
+  const { data: connections, isLoading: connectionsLoading } = useQuery<Connection[]>({
     queryKey: ["/api/connections"],
   });
 
@@ -53,7 +81,7 @@ export default function Dashboard() {
   // Calculate stats for the identity capsule card
   const getStats = () => {
     return {
-      llms: connections?.filter(c => c.isActive).length || 0,
+      llms: connections ? connections.filter((c: Connection) => c.isActive).length : 0,
       agents: 7, // Mock data
       verifiedAssets: 5 // Mock data
     };
@@ -138,34 +166,7 @@ export default function Dashboard() {
       />
 
       {/* Quick Actions */}
-      <div className="px-4 mt-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-3">Quick Actions</h2>
-        <div className="grid grid-cols-2 gap-3">
-          <button className="flex items-center p-4 bg-white rounded-2xl shadow-sm border border-gray-100">
-            <div className="w-10 h-10 rounded-full bg-[#d4a166]/10 flex items-center justify-center mr-3">
-              <svg className="w-5 h-5 text-[#d4a166]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M12 5v14M5 12h14" />
-              </svg>
-            </div>
-            <div className="text-left">
-              <h3 className="text-sm font-medium">Add Data</h3>
-              <p className="text-xs text-gray-500">To Capsule</p>
-            </div>
-          </button>
-          
-          <button className="flex items-center p-4 bg-white rounded-2xl shadow-sm border border-gray-100">
-            <div className="w-10 h-10 rounded-full bg-[#4caf50]/10 flex items-center justify-center mr-3">
-              <svg className="w-5 h-5 text-[#4caf50]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-              </svg>
-            </div>
-            <div className="text-left">
-              <h3 className="text-sm font-medium">Security</h3>
-              <p className="text-xs text-gray-500">& Privacy</p>
-            </div>
-          </button>
-        </div>
-      </div>
+      <QuickActions />
 
       {/* Active Connections */}
       <div className="px-4 mt-6">
