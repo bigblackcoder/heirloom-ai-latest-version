@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
+import HeirloomLogo from "@/components/heirloom-logo";
 
 export default function Home() {
   const [_, navigate] = useLocation();
@@ -27,18 +28,8 @@ export default function Home() {
       {/* Logo and brand */}
       <div className="pt-8 pb-6 px-6">
         <div className="flex items-center">
-          <div className="w-14 h-14 rounded-2xl bg-[#d4a166] flex items-center justify-center shadow-lg">
-            <svg
-              className="w-8 h-8 text-white"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-            </svg>
+          <div className="w-14 h-14 rounded-2xl bg-[#8ccc5c] flex items-center justify-center shadow-lg">
+            <HeirloomLogo className="w-8 h-8 text-white" />
           </div>
           <div className="ml-4">
             <h1 className="text-2xl font-bold text-white">Heirloom</h1>
@@ -138,9 +129,7 @@ export default function Home() {
           <div className="relative mx-auto w-48 h-48 border-4 border-white/20 rounded-3xl overflow-hidden backdrop-blur-sm bg-white/5 flex items-center justify-center">
             <div className="text-center">
               <div className="w-16 h-16 mx-auto rounded-full bg-[#2a5414] flex items-center justify-center mb-3">
-                <svg className="w-8 h-8 text-[#4caf50]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                </svg>
+                <HeirloomLogo className="w-8 h-8 text-[#4caf50]" />
               </div>
               <p className="text-white/80 text-sm leading-tight px-2">Your identity capsule<br />awaits activation</p>
             </div>

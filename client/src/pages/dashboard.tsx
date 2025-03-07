@@ -11,6 +11,7 @@ import ActivityFeed from "@/components/activity-feed";
 import NavigationBar from "@/components/navigation-bar";
 import VerificationSuccessPopup from "@/components/verification-success-popup";
 import CapsuleSetupPopup from "@/components/capsule-setup-popup";
+import HeirloomLogo from "@/components/heirloom-logo";
 
 // Define types for our API responses
 interface User {
@@ -113,18 +114,8 @@ export default function Dashboard() {
       <header className="px-5 pt-6 pb-4 bg-white border-b border-gray-100">
         <div className="flex justify-between items-center">
           <div className="flex items-center">
-            <div className="w-10 h-10 rounded-xl bg-[#d4a166] flex items-center justify-center shadow mr-3">
-              <svg
-                className="w-6 h-6 text-white"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-              </svg>
+            <div className="w-10 h-10 rounded-xl bg-[#8ccc5c] flex items-center justify-center shadow mr-3">
+              <HeirloomLogo className="w-6 h-6 text-white" />
             </div>
             <div>
               <h1 className="text-lg font-semibold text-gray-900">
@@ -184,6 +175,23 @@ export default function Dashboard() {
         older={[]} 
         isLoading={false} 
       />
+
+      {/* Test buttons - Remove in production */}
+      <div className="fixed bottom-24 right-4 z-30 flex flex-col gap-2">
+        <button 
+          className="bg-[#8ccc5c] text-white text-xs py-2 px-3 rounded-full shadow-lg"
+          onClick={() => {
+            setShowVerificationSuccess(true);
+            
+            // Show capsule setup after verification success closes
+            setTimeout(() => {
+              setShowCapsuleSetupPopup(true);
+            }, 6000); // 6 seconds (5s display + 1s transition)
+          }}
+        >
+          Test Popups
+        </button>
+      </div>
 
       {/* Bottom Navigation */}
       <NavigationBar currentPath="/dashboard" />
