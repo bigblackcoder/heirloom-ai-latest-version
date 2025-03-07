@@ -58,13 +58,13 @@ export default function Notifications() {
   return (
     <div className="min-h-screen bg-background pb-20">
       {/* Header */}
-      <header className="px-5 pt-12 pb-4 flex items-center">
+      <header className="px-4 sm:px-5 pt-10 sm:pt-12 pb-3 sm:pb-4 flex items-center">
         <button 
           onClick={handleBackClick}
-          className="mr-4"
+          className="mr-3 sm:mr-4"
         >
           <svg
-            className="w-6 h-6"
+            className="w-5 h-5 sm:w-6 sm:h-6"
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 24 24"
             fill="none"
@@ -76,11 +76,11 @@ export default function Notifications() {
             <path d="M15 18l-6-6 6-6" />
           </svg>
         </button>
-        <h1 className="text-xl font-semibold">Identity Capsule</h1>
+        <h1 className="text-lg sm:text-xl font-semibold">Identity Capsule</h1>
         <div className="ml-auto">
           <button onClick={handleSettingsClick}>
             <svg
-              className="w-6 h-6"
+              className="w-5 h-5 sm:w-6 sm:h-6"
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
               fill="none"
@@ -97,21 +97,21 @@ export default function Notifications() {
       </header>
       
       {/* Tabs */}
-      <div className="flex border-b px-4">
+      <div className="flex border-b px-2 sm:px-4">
         <button 
-          className={`px-6 py-2 ${activeTab === "activity" ? "border-b-2 border-[#1e3c0d] text-[#1e3c0d] font-medium" : "text-gray-500"}`}
+          className={`px-3 sm:px-6 py-2 text-sm sm:text-base ${activeTab === "activity" ? "border-b-2 border-[#1e3c0d] text-[#1e3c0d] font-medium" : "text-gray-500"}`}
           onClick={() => handleTabChange("activity")}
         >
           Activity
         </button>
         <button 
-          className={`px-6 py-2 ${activeTab === "updates" ? "border-b-2 border-[#1e3c0d] text-[#1e3c0d] font-medium" : "text-gray-500"}`}
+          className={`px-3 sm:px-6 py-2 text-sm sm:text-base ${activeTab === "updates" ? "border-b-2 border-[#1e3c0d] text-[#1e3c0d] font-medium" : "text-gray-500"}`}
           onClick={() => handleTabChange("updates")}
         >
           Updates
         </button>
         <button 
-          className={`px-6 py-2 ${activeTab === "tips" ? "border-b-2 border-[#1e3c0d] text-[#1e3c0d] font-medium" : "text-gray-500"}`}
+          className={`px-3 sm:px-6 py-2 text-sm sm:text-base ${activeTab === "tips" ? "border-b-2 border-[#1e3c0d] text-[#1e3c0d] font-medium" : "text-gray-500"}`}
           onClick={() => handleTabChange("tips")}
         >
           Tips

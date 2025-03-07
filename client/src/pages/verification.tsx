@@ -95,12 +95,12 @@ export default function Verification() {
       </div>
 
       {/* Face Scanner Component */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6">
+      <div className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6">
         {/* Verification info card */}
-        <div className="w-full max-w-xs bg-white/10 backdrop-blur-sm rounded-2xl px-5 py-4 mb-8">
-          <div className="flex items-center mb-3">
-            <div className="w-8 h-8 bg-[#2a5414] rounded-full flex items-center justify-center mr-3">
-              <svg className="w-4 h-4 text-[#4caf50]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <div className="w-full max-w-xs bg-white/10 backdrop-blur-sm rounded-2xl px-4 py-3 sm:px-5 sm:py-4 mb-6 sm:mb-8">
+          <div className="flex items-center mb-2 sm:mb-3">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 bg-[#2a5414] rounded-full flex items-center justify-center mr-3">
+              <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#4caf50]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
               </svg>
             </div>
@@ -121,18 +121,18 @@ export default function Verification() {
           isComplete={isVerificationComplete}
         />
         
-        <div className="text-[#d4a166] text-3xl font-bold mt-6">
+        <div className="text-[#d4a166] text-2xl sm:text-3xl font-bold mt-4 sm:mt-6">
           {verificationProgress}%
         </div>
-        <p className="text-white/80 text-center mt-1 mb-3 max-w-xs">
+        <p className="text-white/80 text-center text-sm sm:text-base mt-1 mb-3 max-w-[280px] sm:max-w-xs">
           Follow the guidance and move your head slowly to complete the verification.
         </p>
         
         {/* Step indicators */}
-        <div className="flex justify-center items-center gap-2 mt-3 mb-6">
-          <div className="w-12 h-1.5 rounded-full bg-[#d4a166]"></div>
-          <div className="w-3 h-1.5 rounded-full bg-white/30"></div>
-          <div className="w-3 h-1.5 rounded-full bg-white/30"></div>
+        <div className="flex justify-center items-center gap-2 mt-2 sm:mt-3 mb-4 sm:mb-6">
+          <div className="w-10 sm:w-12 h-1.5 rounded-full bg-[#d4a166]"></div>
+          <div className="w-2.5 sm:w-3 h-1.5 rounded-full bg-white/30"></div>
+          <div className="w-2.5 sm:w-3 h-1.5 rounded-full bg-white/30"></div>
         </div>
       </div>
 

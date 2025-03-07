@@ -142,3 +142,85 @@ export default function NavigationBar({ currentPath }: NavigationBarProps) {
     </div>
   );
 }
+import { Link } from "wouter";
+import { useIsMobile } from "@/hooks/use-mobile";
+
+interface NavigationBarProps {
+  currentPath: string;
+}
+
+export default function NavigationBar({ currentPath }: NavigationBarProps) {
+  const isMobile = useIsMobile();
+  
+  return (
+    <nav className="fixed bottom-0 left-0 right-0 border-t bg-white py-2 px-4">
+      <div className="max-w-md mx-auto flex justify-between items-center">
+        <Link href="/dashboard">
+          <a className={`flex flex-col items-center ${currentPath === "/dashboard" ? "text-[#1e3c0d]" : "text-gray-500"}`}>
+            <svg 
+              className={`w-6 h-6 ${isMobile ? 'mb-1' : 'mb-1.5'}`} 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="2"
+            >
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+              <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
+            <span className={`${isMobile ? 'text-xs' : 'text-sm'}`}>Home</span>
+          </a>
+        </Link>
+        
+        <Link href="/capsule">
+          <a className={`flex flex-col items-center ${currentPath === "/capsule" ? "text-[#1e3c0d]" : "text-gray-500"}`}>
+            <svg 
+              className={`w-6 h-6 ${isMobile ? 'mb-1' : 'mb-1.5'}`} 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="2"
+            >
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="3" y1="9" x2="21" y2="9"></line>
+              <line x1="9" y1="21" x2="9" y2="9"></line>
+            </svg>
+            <span className={`${isMobile ? 'text-xs' : 'text-sm'}`}>Capsule</span>
+          </a>
+        </Link>
+        
+        <Link href="/verification">
+          <a className={`flex flex-col items-center ${currentPath === "/verification" ? "text-[#1e3c0d]" : "text-gray-500"}`}>
+            <svg 
+              className={`w-6 h-6 ${isMobile ? 'mb-1' : 'mb-1.5'}`} 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="2"
+            >
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+            <span className={`${isMobile ? 'text-xs' : 'text-sm'}`}>Verify</span>
+          </a>
+        </Link>
+        
+        <Link href="/notifications">
+          <a className={`flex flex-col items-center ${currentPath === "/notifications" ? "text-[#1e3c0d]" : "text-gray-500"}`}>
+            <svg 
+              className={`w-6 h-6 ${isMobile ? 'mb-1' : 'mb-1.5'}`} 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="2"
+            >
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+            </svg>
+            <span className={`${isMobile ? 'text-xs' : 'text-sm'}`}>Alerts</span>
+          </a>
+        </Link>
+      </div>
+    </nav>
+  );
+}

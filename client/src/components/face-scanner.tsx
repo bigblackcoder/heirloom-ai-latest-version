@@ -171,3 +171,81 @@ export default function FaceScanner({ onProgress, onComplete, isComplete }: Face
     </div>
   );
 }
+import { useState, useEffect, useRef } from "react";
+import Webcam from "react-webcam";
+import { useIsMobile } from "@/hooks/use-mobile";
+
+interface FaceScannerProps {
+  onProgress: (progress: number) => void;
+  onComplete: () => void;
+  isComplete: boolean;
+}
+
+export default function FaceScanner({ onProgress, onComplete, isComplete }: FaceScannerProps) {
+  const webcamRef = useRef<Webcam>(null);
+  const [isReady, setIsReady] = useState(false);
+  const [frames, setFrames] = useState(0);
+  const isMobile = useIsMobile();
+  
+  useEffect(() => {
+    if (isReady && !isComplete) {
+      const interval = setInterval(() => {
+        if (frames < 100) {
+          const newFrames = frames + 1;
+          setFrames(newFrames);
+          onProgress(newFrames);
+          
+          if (newFrames >= 100) {
+            onComplete();
+            clearInterval(interval);
+          }
+        }
+      }, 100);
+      
+      return () => clearInterval(interval);
+    }
+  }, [isReady, frames, onProgress, onComplete, isComplete]);
+
+  const videoConstraints = {
+    width: isMobile ? 280 : 400,
+    height: isMobile ? 350 : 400,
+    facingMode: "user"
+  };
+
+  return (
+    <div className="relative flex flex-col items-center justify-center">
+      <div className={`relative rounded-2xl overflow-hidden ${isMobile ? 'w-[280px] h-[350px]' : 'w-[400px] h-[400px]'} bg-black`}>
+        <Webcam
+          audio={false}
+          ref={webcamRef}
+          screenshotFormat="image/jpeg"
+          videoConstraints={videoConstraints}
+          onUserMedia={() => setIsReady(true)}
+          className="w-full h-full object-cover"
+        />
+        
+        {/* Face outline guide */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className={`border-2 border-[#d4a166] rounded-full ${isMobile ? 'w-48 h-64' : 'w-64 h-80'}`}></div>
+        </div>
+        
+        {/* Scanning effect */}
+        {isReady && !isComplete && (
+          <div className="absolute inset-0">
+            <div className="w-full h-12 bg-[#d4a166]/20 animate-scan"></div>
+          </div>
+        )}
+        
+        {/* Complete overlay */}
+        {isComplete && (
+          <div className="absolute inset-0 bg-[#1e3c0d]/50 flex items-center justify-center">
+            <svg className="w-16 h-16 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+              <polyline points="22 4 12 14.01 9 11.01" />
+            </svg>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
