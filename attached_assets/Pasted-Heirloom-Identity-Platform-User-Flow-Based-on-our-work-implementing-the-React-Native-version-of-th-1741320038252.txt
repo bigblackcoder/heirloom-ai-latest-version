@@ -1,0 +1,73 @@
+Heirloom Identity Platform - User Flow
+Based on our work implementing the React Native version of the Heirloom Identity Platform, here's a summary of the user flow and the purpose of each screen:
+
+1. Home Screen (/app/(tabs)/index.tsx)
+Purpose: Entry point to the application
+
+Welcomes users to the Heirloom Identity Platform
+Features the Heirloom branding with the dark green color theme (#1e3c0d)
+Contains a prominent "Verify Identity" button that directs users to begin the verification process
+Provides a brief introduction to the concept of identity verification and data sovereignty
+2. Face Verification Screen (/app/verification/index.tsx)
+Purpose: Securely verify the user's identity through facial recognition
+
+Requests camera permissions and provides camera access
+Features a face-scanning UI with alignment guides for proper positioning
+Displays real-time feedback and progress during the verification process
+Includes error handling for permission issues and verification failures
+Visual indicators show the progress of the verification process
+On successful verification, directs users to the Dashboard
+3. Dashboard Screen (/app/dashboard/index.tsx)
+Purpose: Central hub for managing identity information
+
+Shows a personalized greeting based on time of day ("Good morning/afternoon/evening, [Name]")
+Displays security status with an identity score percentage
+Lists recent connections with third-party services
+Shows identity capsules the user has created
+Features a recent activity feed tracking identity-related events
+Provides tab navigation for different dashboard sections
+Includes a verification success modal for first-time visitors
+4. Capsule Setup Screen (/app/capsule-setup/index.tsx)
+Purpose: Completing the setup of identity capsules
+
+Shows a success message upon capsule creation
+Displays key features of the capsule (secure storage, selective disclosure, etc.)
+Contains collapsible sections for blockchain information
+Includes social sharing options for public aspects of identity
+Provides buttons to continue to dashboard or create additional capsules
+Features visual indicators of the capsule's status and completeness
+5. Notifications Screen (/app/notifications/index.tsx)
+Purpose: Track activity and manage notification preferences
+
+Divided into "Activity" and "Settings" tabs
+The Activity tab shows a chronological list of identity-related events:
+Connection establishment/revocation
+Identity verification events
+Capsule creation and updates
+Access requests from third parties
+The Settings tab allows users to configure notification preferences:
+Toggle push notifications
+Toggle email alerts
+Set privacy and security notification levels
+6. Capsules Screen (/app/(tabs)/capsules.tsx)
+Purpose: Manage multiple identity capsules
+
+Lists all created identity capsules (e.g., Professional, Personal)
+Shows status indicators for each capsule (Active, Pending)
+Displays usage statistics (connections, verifications)
+Provides edit and share functionality for each capsule
+Features a "Create New Capsule" button
+Navigation System
+Uses a tab-based navigation with bottom tabs
+Home, Dashboard, Verification, Capsules, and Notifications tabs
+Special emphasis on the Verification button in the center
+Smooth transitions between screens
+Consistent branding throughout
+Overall User Flow
+User opens the app and lands on the Home screen
+User initiates identity verification process
+After successful verification, user is directed to the Dashboard
+User can create and manage identity capsules
+User can view and respond to notifications
+User can navigate between sections using the tab bar
+The app emphasizes security, user data control, and a seamless mobile experience. The design maintains the brand identity from the web version while adopting native mobile UI/UX patterns.
