@@ -150,7 +150,7 @@ export default function NavigationBar({ currentPath }: NavigationBarProps) {
       </div>
     );
   } else {
-    // Simpler 4-item navigation
+    // Simpler 5-item navigation
     return (
       <nav className="fixed bottom-0 left-0 right-0 border-t bg-white py-2 px-4">
         <div className="max-w-md mx-auto flex justify-between items-center">
@@ -217,6 +217,22 @@ export default function NavigationBar({ currentPath }: NavigationBarProps) {
                 <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
               </svg>
               <span className={`${isMobile ? 'text-xs' : 'text-sm'}`}>Alerts</span>
+            </a>
+          </Link>
+          
+          <Link href="/profile">
+            <a className={`flex flex-col items-center ${currentPath === "/profile" ? "text-[#1e3c0d]" : "text-gray-500"}`}>
+              <svg 
+                className={`w-6 h-6 ${isMobile ? 'mb-1' : 'mb-1.5'}`} 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2"
+              >
+                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
+              </svg>
+              <span className={`${isMobile ? 'text-xs' : 'text-sm'}`}>Profile</span>
             </a>
           </Link>
         </div>
