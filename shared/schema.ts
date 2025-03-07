@@ -46,7 +46,9 @@ export const verifiedData = pgTable("verified_data", {
   capsuleId: integer("capsule_id").notNull().references(() => identityCapsules.id),
   dataType: text("data_type").notNull(), // e.g., "employment", "income", "identity", etc.
   value: text("value").notNull(),
-  isVerified: boolean("is_verified").default(false).notNull(),
+  isVerified: boolean("is_verified").default(true).notNull(),
+  verificationMethod: text("verification_method"), // e.g., "face-scan", "document", etc.
+  issuanceDate: timestamp("issuance_date"),
   verifiedAt: timestamp("verified_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -55,6 +57,8 @@ export const insertVerifiedDataSchema = createInsertSchema(verifiedData).pick({
   capsuleId: true,
   dataType: true,
   value: true,
+  verificationMethod: true,
+  issuanceDate: true,
 });
 
 export type InsertVerifiedData = z.infer<typeof insertVerifiedDataSchema>;

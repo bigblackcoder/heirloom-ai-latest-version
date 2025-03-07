@@ -161,7 +161,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               dataType: "age",
               value: String(age),
               verificationMethod: "face-scan",
-              issuanceDate: new Date().toISOString()
+              issuanceDate: new Date()
             });
           }
           
@@ -171,7 +171,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               dataType: "gender",
               value: gender,
               verificationMethod: "face-scan",
-              issuanceDate: new Date().toISOString()
+              issuanceDate: new Date()
             });
           }
         }

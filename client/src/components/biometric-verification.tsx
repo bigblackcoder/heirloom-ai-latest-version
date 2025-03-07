@@ -29,9 +29,23 @@ export default function BiometricVerification({
     onComplete(activeMethod);
   };
   
-  // Calculate the progress offset
-  const calculateOffset = (progress: number): number => {
-    return isComplete ? 0 : 892 * (1 - (progress / 100));
+  // Calculate the progress offset - convert callback to current progress
+  const calculateOffset = (currentProgress: number | ((progress: number) => void)): number => {
+    // If it's a callback, we're in an animation, use current stored progress
+    if (typeof currentProgress === 'function') {
+      return isComplete ? 0 : 892 * (1 - (verificationProgress / 100));
+    }
+    // Otherwise it's the actual progress number
+    return isComplete ? 0 : 892 * (1 - (currentProgress / 100));
+  };
+  
+  // Keep track of verification progress locally
+  const [verificationProgress, setVerificationProgress] = useState(0);
+  
+  // Update local progress when parent progress changes
+  const handleProgressUpdate = (progress: number) => {
+    setVerificationProgress(progress);
+    onProgress(progress);
   };
   
   return (
@@ -80,7 +94,7 @@ export default function BiometricVerification({
         
         <TabsContent value="face" className="flex flex-col items-center justify-center mt-0">
           <FaceScanner
-            onProgress={onProgress}
+            onProgress={handleProgressUpdate}
             onComplete={handleComplete}
             isComplete={isComplete}
           />
