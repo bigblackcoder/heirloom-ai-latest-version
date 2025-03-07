@@ -13,8 +13,7 @@ export default function NavigationBar({ currentPath }: NavigationBarProps) {
       path: "/dashboard",
       icon: (
         <svg
-          className="w-5 h-5"
-          xmlns="http://www.w3.org/2000/svg"
+          className="w-6 h-6"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -32,8 +31,7 @@ export default function NavigationBar({ currentPath }: NavigationBarProps) {
       path: "/notifications",
       icon: (
         <svg
-          className="w-5 h-5"
-          xmlns="http://www.w3.org/2000/svg"
+          className="w-6 h-6"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -41,17 +39,16 @@ export default function NavigationBar({ currentPath }: NavigationBarProps) {
           strokeLinecap="round"
           strokeLinejoin="round"
         >
-          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+          <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
         </svg>
       )
     },
     {
-      name: "Capsule",
+      name: "Identity",
       path: "/capsule",
       icon: (
         <svg
-          className="w-5 h-5"
-          xmlns="http://www.w3.org/2000/svg"
+          className="w-6 h-6"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -59,9 +56,7 @@ export default function NavigationBar({ currentPath }: NavigationBarProps) {
           strokeLinecap="round"
           strokeLinejoin="round"
         >
-          <path d="M20 11.08V8l-6-6H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2v-3.08" />
-          <path d="M14 3v5h5" />
-          <rect x="8" y="12" width="8" height="4" rx="1" />
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
         </svg>
       )
     },
@@ -70,8 +65,7 @@ export default function NavigationBar({ currentPath }: NavigationBarProps) {
       path: "/profile",
       icon: (
         <svg
-          className="w-5 h-5"
-          xmlns="http://www.w3.org/2000/svg"
+          className="w-6 h-6"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -89,8 +83,7 @@ export default function NavigationBar({ currentPath }: NavigationBarProps) {
       path: "/more",
       icon: (
         <svg
-          className="w-5 h-5"
-          xmlns="http://www.w3.org/2000/svg"
+          className="w-6 h-6"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -107,20 +100,41 @@ export default function NavigationBar({ currentPath }: NavigationBarProps) {
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-[#1e3c0d] text-white rounded-t-xl shadow-lg z-10 max-w-md mx-auto">
-      <div className="grid grid-cols-5 gap-1 px-2 py-3">
-        {navItems.map((item) => (
-          <button 
-            key={item.path}
-            className={`flex flex-col items-center justify-center ${
-              currentPath === item.path ? "opacity-100" : "opacity-70"
-            }`}
-            onClick={() => navigate(item.path)}
-          >
-            {item.icon}
-            <span className="text-xs mt-1">{item.name}</span>
-          </button>
-        ))}
+    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-10 max-w-md mx-auto">
+      {/* Home indicator line for iPhone */}
+      <div className="w-full flex justify-center pb-1 pt-2">
+        <div className="w-10 h-1 bg-gray-300 rounded-full"></div>
+      </div>
+      
+      <div className="grid grid-cols-5 px-2 py-1">
+        {navItems.map((item) => {
+          const isActive = currentPath === item.path;
+          return (
+            <button 
+              key={item.path}
+              className={`flex flex-col items-center justify-center py-2 relative ${
+                isActive ? "text-[#1e3c0d]" : "text-gray-500"
+              }`}
+              onClick={() => navigate(item.path)}
+            >
+              {isActive && (
+                <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-10 h-1 bg-[#1e3c0d] rounded-full"></div>
+              )}
+              
+              <div className={`w-12 h-12 flex items-center justify-center rounded-full ${
+                isActive ? "bg-[#1e3c0d]/5" : ""
+              }`}>
+                {item.icon}
+              </div>
+              
+              <span className={`text-xs mt-1 font-medium ${
+                isActive ? "text-[#1e3c0d]" : "text-gray-500"
+              }`}>
+                {item.name}
+              </span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );

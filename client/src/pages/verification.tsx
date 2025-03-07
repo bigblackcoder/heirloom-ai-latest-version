@@ -50,7 +50,7 @@ export default function Verification() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#1e3c0d] text-white">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-[#143404] to-[#1e3c0d] text-white">
       {/* Status bar area */}
       <div className="w-full px-4 pt-6 pb-2 flex items-center">
         <div className="text-sm opacity-70">9:41</div>
@@ -68,15 +68,14 @@ export default function Verification() {
         </div>
       </div>
 
-      {/* Back Button */}
-      <div className="w-full px-6 pt-4">
+      {/* Header */}
+      <div className="w-full px-6 pt-2 pb-6 flex items-center justify-between">
         <button 
           onClick={handleBackClick}
           className="w-10 h-10 rounded-full bg-[#2a5414]/40 backdrop-blur-sm flex items-center justify-center"
         >
           <svg
             className="w-6 h-6"
-            xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -87,29 +86,61 @@ export default function Verification() {
             <path d="M15 18l-6-6 6-6" />
           </svg>
         </button>
+        
+        <div className="text-lg font-medium">Face Verification</div>
+        
+        <div className="w-10 h-10 opacity-0">
+          {/* Empty placeholder for alignment */}
+        </div>
       </div>
 
       {/* Face Scanner Component */}
       <div className="flex-1 flex flex-col items-center justify-center px-6">
+        {/* Verification info card */}
+        <div className="w-full max-w-xs bg-white/10 backdrop-blur-sm rounded-2xl px-5 py-4 mb-8">
+          <div className="flex items-center mb-3">
+            <div className="w-8 h-8 bg-[#2a5414] rounded-full flex items-center justify-center mr-3">
+              <svg className="w-4 h-4 text-[#4caf50]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-white font-medium text-sm">Secure Biometric Scan</h3>
+              <p className="text-white/60 text-xs">All data stays on your device</p>
+            </div>
+          </div>
+          
+          <p className="text-white/80 text-xs leading-relaxed">
+            This scan verifies you're a real person and creates your secure identity record. Data is never stored on our servers.
+          </p>
+        </div>
+        
         <FaceScanner 
           onProgress={handleVerificationProgress} 
           onComplete={handleVerificationComplete}
           isComplete={isVerificationComplete}
         />
         
-        <div className="text-[#4caf50] text-3xl font-bold mt-6">
+        <div className="text-[#d4a166] text-3xl font-bold mt-6">
           {verificationProgress}%
         </div>
-        <p className="text-white/80 text-center mt-1">
-          Move your head slowly to complete the circle.
+        <p className="text-white/80 text-center mt-1 mb-3 max-w-xs">
+          Follow the guidance and move your head slowly to complete the verification.
         </p>
+        
+        {/* Step indicators */}
+        <div className="flex justify-center items-center gap-2 mt-3 mb-6">
+          <div className="w-12 h-1.5 rounded-full bg-[#d4a166]"></div>
+          <div className="w-3 h-1.5 rounded-full bg-white/30"></div>
+          <div className="w-3 h-1.5 rounded-full bg-white/30"></div>
+        </div>
       </div>
 
       {/* Progress Bar */}
-      <div className="px-8 pb-8">
+      <div className="px-8 pb-10">
         <div className="w-full h-1 bg-white/20 rounded-full">
           <div 
-            className="h-full bg-white rounded-full transition-all duration-300 ease-out"
+            className="h-full bg-[#d4a166] rounded-full transition-all duration-300 ease-out"
             style={{ width: `${verificationProgress}%` }}
           />
         </div>
@@ -118,9 +149,9 @@ export default function Verification() {
       {/* Success Modal */}
       {showSuccessModal && (
         <SuccessModal 
-          title="Nice! Your account is Verified!" 
-          message="Welcome to Heirloom! You've successfully verified your humanness, and we're excited to have you!"
-          buttonText="Get started!"
+          title="Verification Successful!" 
+          message="Your identity has been securely verified. Welcome to the Heirloom ecosystem."
+          buttonText="Continue to Dashboard"
           onButtonClick={() => navigate("/dashboard")}
         />
       )}
