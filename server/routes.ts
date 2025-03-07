@@ -9,6 +9,7 @@ import {
   insertActivitySchema 
 } from "@shared/schema";
 import { z } from "zod";
+import { verifyFace } from "./deepface";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // User routes
@@ -109,8 +110,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Not authenticated" });
       }
       
-      // In a real app, this would process the face data for verification
-      // For this MVP, we'll simulate verification success
+      const { image } = req.body;
+      
+      if (!image) {
+        return res.status(400).json({ message: "Image data is required" });
+      }
+      
+      // Verify the face using DeepFace
+      console.log("Processing face verification with DeepFace...");
+      const verificationResult = await verifyFace(image);
+      
+      if (!verificationResult.success) {
+        return res.status(400).json({
+          message: "Face verification failed",
+          details: verificationResult.message || "Could not detect a valid face"
+        });
+      }
+      
+      // Set minimum confidence threshold
+      const minConfidence = 50; // 50% confidence threshold
+      
+      if (verificationResult.confidence < minConfidence) {
+        return res.status(400).json({
+          message: "Face verification failed - low confidence",
+          confidence: verificationResult.confidence,
+          minRequired: minConfidence
+        });
+      }
       
       // Update user to verified status
       const updatedUser = await storage.updateUser(req.session.userId, { isVerified: true });
@@ -119,16 +145,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
       
+      // Add verification details to the user's primary capsule
+      const capsules = await storage.getCapsulesByUserId(req.session.userId);
+      if (capsules.length > 0) {
+        const primaryCapsule = capsules[0];
+        
+        // Add facial data if available from DeepFace
+        if (verificationResult.results) {
+          const { age, gender, dominant_race, dominant_emotion } = verificationResult.results;
+          
+          // Store demographic data
+          if (age) {
+            await storage.createVerifiedData({
+              capsuleId: primaryCapsule.id,
+              dataType: "age",
+              value: String(age),
+              verificationMethod: "face-scan",
+              issuanceDate: new Date().toISOString()
+            });
+          }
+          
+          if (gender) {
+            await storage.createVerifiedData({
+              capsuleId: primaryCapsule.id,
+              dataType: "gender",
+              value: gender,
+              verificationMethod: "face-scan",
+              issuanceDate: new Date().toISOString()
+            });
+          }
+        }
+      }
+      
       // Log activity
       await storage.createActivity({
         userId: req.session.userId,
         type: "identity-verified",
         description: "Identity verification was completed successfully",
-        metadata: { method: "face" }
+        metadata: { 
+          method: "face",
+          confidence: verificationResult.confidence,
+          ...(verificationResult.results || {})
+        }
       });
       
-      res.status(200).json({ message: "Face verification successful", verified: true });
+      res.status(200).json({ 
+        message: "Face verification successful", 
+        verified: true,
+        confidence: verificationResult.confidence,
+        results: verificationResult.results
+      });
     } catch (error) {
+      console.error("Error during face verification:", error);
       res.status(500).json({ message: "Error during face verification" });
     }
   });
