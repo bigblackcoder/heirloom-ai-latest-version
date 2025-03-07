@@ -103,11 +103,11 @@ export function useFaceVerification() {
         url: '/api/verification/face',
         method: 'POST',
         body: { image: imageData },
-      });
+      }) as VerificationResponse;
       
       // If verification was successful
       if (response && response.success === true) {
-        setVerificationResults(response as VerificationResponse);
+        setVerificationResults(response);
         // Complete the progress to 100%
         setVerificationProgress(100);
       } else {
