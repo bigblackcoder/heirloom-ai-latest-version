@@ -4,6 +4,14 @@ import { motion } from "framer-motion";
 import { useFaceVerification } from "@/hooks/use-face-verification";
 import { useIsMobile } from "@/hooks/use-mobile";
 
+// Declare mouseX and mouseY on window object for cross-component tracking
+declare global {
+  interface Window {
+    mouseX?: number;
+    mouseY?: number;
+  }
+}
+
 interface FaceScannerProps {
   onProgress: (progress: number) => void;
   onComplete: () => void;
@@ -73,6 +81,39 @@ export default function FaceScanner({ onProgress, onComplete, isComplete }: Face
     handleProgressUpdate(verificationProgress);
   }, [verificationProgress, handleProgressUpdate]);
   
+  // Add mouse tracking for face alignment simulation
+  useEffect(() => {
+    const trackMouseMovement = (e: MouseEvent) => {
+      window.mouseX = e.clientX;
+      window.mouseY = e.clientY;
+    };
+    
+    // For touch devices
+    const trackTouchMovement = (e: TouchEvent) => {
+      if (e.touches.length > 0) {
+        window.mouseX = e.touches[0].clientX;
+        window.mouseY = e.touches[0].clientY;
+      }
+    };
+    
+    // Add event listeners
+    window.addEventListener('mousemove', trackMouseMovement);
+    window.addEventListener('touchmove', trackTouchMovement);
+    
+    // Set initial values to center
+    if (webcamRef.current && webcamRef.current.video) {
+      const rect = webcamRef.current.video.getBoundingClientRect();
+      window.mouseX = rect.left + rect.width / 2;
+      window.mouseY = rect.top + rect.height / 2;
+    }
+    
+    // Clean up
+    return () => {
+      window.removeEventListener('mousemove', trackMouseMovement);
+      window.removeEventListener('touchmove', trackTouchMovement);
+    };
+  }, [webcamRef.current]);
+  
   // Create the rays around the scanner circle
   const renderRays = () => {
     const rays = [];
@@ -103,8 +144,29 @@ export default function FaceScanner({ onProgress, onComplete, isComplete }: Face
     facingMode: "user"
   };
   
+  // Generates instructional text based on progress
+  const getInstructionText = () => {
+    if (verificationProgress < 30) {
+      return "Center your face in the frame";
+    } else if (verificationProgress < 60) {
+      return "Hold still while we scan";
+    } else if (verificationProgress < 90) {
+      return "Almost there, keep steady";
+    } else {
+      return "Verification complete!";
+    }
+  };
+
   return (
     <div className="relative flex flex-col items-center">
+      {/* Instruction text */}
+      <div className="mb-4 text-center">
+        <p className="text-lg font-medium">{getInstructionText()}</p>
+        <p className="text-sm text-gray-400">
+          {verificationProgress < 100 ? "Move your cursor to align with the yellow crosshair" : ""}
+        </p>
+      </div>
+      
       {/* Scanner rays */}
       <div className="relative w-72 h-72 mb-4">
         {renderRays()}

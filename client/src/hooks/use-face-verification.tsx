@@ -58,17 +58,36 @@ export function useFaceVerification() {
       // Add the frame to our collection
       setDetectedFrames(prev => {
         const newFrames = [...prev, frame];
+        // Keep only the last 5 frames for more responsive feedback
+        if (newFrames.length > 5) {
+          newFrames.shift();
+        }
         framesRef.current = newFrames;
         return newFrames;
       });
       
-      // Calculate progress based on frame quality
+      // Calculate progress based on frame quality and alignment
+      // Take an average of the last few frames to smooth out progress
+      const recentFrames = framesRef.current.slice(-3);
+      const avgConfidence = recentFrames.reduce((sum, f) => sum + f.confidence, 0) / recentFrames.length;
+      const avgAlignment = recentFrames.reduce((sum, f) => sum + f.alignment, 0) / recentFrames.length;
+      
+      // Slow down progress to make it more challenging and interactive
+      // Better alignment and confidence = faster progress
+      const progressIncrement = (avgConfidence * avgAlignment / 100) * 0.5;
+      
       const newProgress = Math.min(
-        progressRef.current + (frame.confidence * 10), // Faster progress with better quality frames
+        progressRef.current + progressIncrement, // Slower progress that depends on alignment
         90 // Only go to 90% until verification completes
       );
       
       setVerificationProgress(newProgress);
+    } else {
+      // If frame detection failed, slightly decrease progress to encourage better alignment
+      if (progressRef.current > 0) {
+        const newProgress = Math.max(progressRef.current - 0.2, 0);
+        setVerificationProgress(newProgress);
+      }
     }
   }, []);
 
@@ -139,18 +158,38 @@ export function useFaceVerification() {
   // Detect basic face presence using simple canvas operations
   const detectFacePresence = useCallback((video: HTMLVideoElement): DetectionFrame => {
     // For a real implementation, we would use a lightweight detector here
-    // But for demo purposes, we'll simulate basic detection
-    const isGoodLighting = true; // Would detect actual lighting conditions
-    const isFaceCentered = true; // Would detect face position
+    // But for demo purposes, we'll use a more controlled simulation
+    // that doesn't randomly progress but requires user interaction
     
-    // Simulate varying detection results
-    const randomConfidence = 0.7 + (Math.random() * 0.3); // 0.7-1.0
-    const randomAlignment = 70 + (Math.random() * 30); // 70-100
+    // Get the bounding client rect of the video element to determine center
+    const rect = video.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    
+    // Get the current mouse position (as a proxy for user's face movement)
+    const mouseX = window.mouseX || centerX;
+    const mouseY = window.mouseY || centerY;
+    
+    // Calculate distance from center (normalized to 0-100)
+    const distanceX = Math.abs(mouseX - centerX) / (rect.width / 2) * 100;
+    const distanceY = Math.abs(mouseY - centerY) / (rect.height / 2) * 100;
+    
+    // Calculate overall distance from center (0-100 where 0 is perfect)
+    const distance = Math.min(100, Math.sqrt(distanceX * distanceX + distanceY * distanceY));
+    
+    // Convert to alignment score (0-100 where 100 is perfect)
+    const alignment = Math.max(0, 100 - distance);
+    
+    // Is face sufficiently centered?
+    const isFaceCentered = alignment > 60;
+    
+    // Confidence based on alignment with a base minimum
+    const confidence = 0.5 + (alignment / 200); // 0.5-1.0
     
     return {
-      success: isGoodLighting && isFaceCentered,
-      confidence: randomConfidence,
-      alignment: randomAlignment
+      success: isFaceCentered,
+      confidence: confidence,
+      alignment: alignment
     };
   }, []);
   
