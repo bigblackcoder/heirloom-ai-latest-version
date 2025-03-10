@@ -1,7 +1,6 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { apiRequest } from './queryClient';
 import { User } from './types';
-import { useToast } from '@/hooks/use-toast';
 
 interface AuthContextType {
   user: User | null;
@@ -18,58 +17,41 @@ interface AuthContextType {
   setUserAfterVerification: (userData: User) => void;
 }
 
-const AuthContext = createContext<AuthContextType | null>(null);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Check if user is already logged in
   useEffect(() => {
-    const checkAuth = async () => {
+    // Check if user is already logged in
+    const fetchCurrentUser = async () => {
       try {
-        const userData = await apiRequest({
-          url: '/api/auth/me',
-          method: 'GET'
+        const userData = await apiRequest<User>('/api/auth/me', {
+          method: 'GET',
         });
         setUser(userData);
       } catch (error) {
-        // Not authenticated, that's okay
-        console.log('User not authenticated');
+        setUser(null);
       } finally {
         setIsLoading(false);
       }
     };
 
-    checkAuth();
+    fetchCurrentUser();
   }, []);
 
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
-      setIsLoading(true);
-      const response = await apiRequest({
-        url: '/api/auth/login',
+      const userData = await apiRequest<User>('/api/auth/login', {
         method: 'POST',
-        body: { username, password }
+        body: JSON.stringify({ username, password }),
       });
       
-      setUser(response.user);
-      toast({
-        title: 'Login Successful',
-        description: 'Welcome back to Heirloom',
-      });
+      setUser(userData);
       return true;
     } catch (error) {
-      console.error('Login error:', error);
-      toast({
-        title: 'Login Failed',
-        description: error instanceof Error ? error.message : 'Invalid credentials',
-        variant: 'destructive',
-      });
       return false;
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -80,51 +62,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     lastName: string;
   }): Promise<boolean> => {
     try {
-      setIsLoading(true);
-      const response = await apiRequest({
-        url: '/api/auth/register',
+      const newUser = await apiRequest<User>('/api/auth/register', {
         method: 'POST',
-        body: userData
+        body: JSON.stringify(userData),
       });
       
-      setUser(response.user);
-      toast({
-        title: 'Registration Successful',
-        description: 'Welcome to Heirloom Identity Platform',
-      });
+      setUser(newUser);
       return true;
     } catch (error) {
-      console.error('Registration error:', error);
-      toast({
-        title: 'Registration Failed',
-        description: error instanceof Error ? error.message : 'Could not create account',
-        variant: 'destructive',
-      });
       return false;
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const logout = async (): Promise<void> => {
     try {
-      await apiRequest({
-        url: '/api/auth/logout',
-        method: 'POST'
-      });
+      await apiRequest('/api/auth/logout', { method: 'POST' });
       setUser(null);
-      toast({
-        title: 'Logged Out',
-        description: 'You have been successfully logged out',
-      });
     } catch (error) {
-      console.error('Logout error:', error);
-      // Still clear the user state even if the server request fails
-      setUser(null);
+      console.error('Logout failed:', error);
     }
   };
 
-  // Helper function to set the user after verification
   const setUserAfterVerification = (userData: User) => {
     setUser(userData);
   };
@@ -133,12 +91,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     <AuthContext.Provider
       value={{
         user,
-        isLoading,
         isAuthenticated: !!user,
+        isLoading,
         login,
         register,
         logout,
-        setUserAfterVerification
+        setUserAfterVerification,
       }}
     >
       {children}
@@ -148,7 +106,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;

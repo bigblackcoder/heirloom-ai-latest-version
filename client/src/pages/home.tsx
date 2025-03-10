@@ -140,18 +140,18 @@ export default function Home() {
         <div className="mt-auto">
           <Button 
             className="w-full py-7 bg-[#4caf50] hover:bg-[#2a5414] text-white font-medium text-lg rounded-full shadow-lg"
-            onClick={() => navigate("/verification")}
+            onClick={() => navigate("/register")}
           >
-            Verify My Identity
+            Create Account
           </Button>
           
           <div className="mt-4 text-center">
             <Button 
               variant="link" 
               className="text-sm text-white/70 hover:text-white"
-              onClick={() => navigate("/dashboard")}
+              onClick={() => navigate("/login")}
             >
-              Already verified? Sign in
+              Already have an account? Sign in
             </Button>
           </div>
         </div>
