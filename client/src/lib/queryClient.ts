@@ -78,11 +78,21 @@ export async function apiRequest<TData = unknown>(
 
 type UnauthorizedBehavior = "returnNull" | "throw";
 
+// Define the QueryFunction type according to TanStack Query v5
+type QueryFunctionContext = {
+  queryKey: readonly unknown[];
+  signal: AbortSignal;
+  // other properties
+};
+
+// Updated getQueryFn to match TanStack Query v5 API
 export const getQueryFn = <TData>(options: {
   on401: UnauthorizedBehavior;
 }) => {
-  return async (url: string): Promise<TData | null> => {
+  return async ({ queryKey }: QueryFunctionContext): Promise<TData | null> => {
     try {
+      // Extract the URL from the query key
+      const url = queryKey[0] as string;
       return await apiRequest<TData>(url);
     } catch (error) {
       if (
