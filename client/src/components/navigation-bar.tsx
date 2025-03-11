@@ -104,25 +104,6 @@ export default function NavigationBar({ currentPath }: NavigationBarProps) {
             <circle cx="12" cy="7" r="4" />
           </svg>
         )
-      },
-      {
-        name: "Demos",
-        path: "/animations-demo",
-        icon: (
-          <svg
-            className="w-6 h-6"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M12 2L2 7l10 5 10-5-10-5z" />
-            <path d="M2 17l10 5 10-5" />
-            <path d="M2 12l10 5 10-5" />
-          </svg>
-        )
       }
     ];
 
@@ -136,7 +117,7 @@ export default function NavigationBar({ currentPath }: NavigationBarProps) {
           <div className="w-10 h-1 bg-gray-300 rounded-full"></div>
         </div>
         
-        <div className="grid grid-cols-6 px-2 py-1 relative z-10">
+        <div className="grid grid-cols-5 px-2 py-1 relative z-10">
           {navItems.map((item) => {
             const isActive = currentPath === item.path;
             return (
@@ -252,23 +233,6 @@ export default function NavigationBar({ currentPath }: NavigationBarProps) {
                 <circle cx="12" cy="7" r="4" />
               </svg>
               <span className={`${isMobile ? 'text-xs' : 'text-sm'}`}>Profile</span>
-            </a>
-          </Link>
-          
-          <Link href="/animations-demo">
-            <a className={`flex flex-col items-center ${currentPath === "/animations-demo" ? "text-[#1e3c0d]" : "text-gray-500"}`}>
-              <svg 
-                className={`w-6 h-6 ${isMobile ? 'mb-1' : 'mb-1.5'}`} 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="currentColor" 
-                strokeWidth="2"
-              >
-                <path d="M12 2L2 7l10 5 10-5-10-5z" />
-                <path d="M2 17l10 5 10-5" />
-                <path d="M2 12l10 5 10-5" />
-              </svg>
-              <span className={`${isMobile ? 'text-xs' : 'text-sm'}`}>Demos</span>
             </a>
           </Link>
         </div>
