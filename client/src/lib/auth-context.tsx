@@ -1,6 +1,6 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { apiRequest } from './queryClient';
-import { User } from './types';
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { apiRequest } from "./queryClient";
+import { User } from "./types";
 
 interface AuthContextType {
   user: User | null;
@@ -12,12 +12,13 @@ interface AuthContextType {
     password: string;
     firstName: string;
     lastName: string;
+    email: string;
   }) => Promise<boolean>;
   logout: () => Promise<void>;
   setUserAfterVerification: (userData: User) => void;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -25,11 +26,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Check if user is already logged in
-    const fetchCurrentUser = async () => {
+    const checkAuthStatus = async () => {
       try {
-        const userData = await apiRequest<User>('/api/auth/me', {
-          method: 'GET',
-        });
+        const userData = await apiRequest<User>("/api/auth/me");
         setUser(userData);
       } catch (error) {
         setUser(null);
@@ -38,13 +37,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    fetchCurrentUser();
+    checkAuthStatus();
   }, []);
 
   const login = async (username: string, password: string): Promise<boolean> => {
+    setIsLoading(true);
     try {
-      const userData = await apiRequest<User>('/api/auth/login', {
-        method: 'POST',
+      const userData = await apiRequest<User>("/api/auth/login", {
+        method: "POST",
         body: JSON.stringify({ username, password }),
       });
       
@@ -52,6 +52,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return true;
     } catch (error) {
       return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -60,26 +62,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     password: string;
     firstName: string;
     lastName: string;
+    email: string;
   }): Promise<boolean> => {
+    setIsLoading(true);
     try {
-      const newUser = await apiRequest<User>('/api/auth/register', {
-        method: 'POST',
+      const user = await apiRequest<User>("/api/auth/register", {
+        method: "POST",
         body: JSON.stringify(userData),
       });
       
-      setUser(newUser);
+      setUser(user);
       return true;
     } catch (error) {
       return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const logout = async (): Promise<void> => {
+    setIsLoading(true);
     try {
-      await apiRequest('/api/auth/logout', { method: 'POST' });
+      await apiRequest("/api/auth/logout", { method: "POST" });
       setUser(null);
     } catch (error) {
-      console.error('Logout failed:', error);
+      console.error("Logout error:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -91,8 +100,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider
       value={{
         user,
-        isAuthenticated: !!user,
         isLoading,
+        isAuthenticated: !!user,
         login,
         register,
         logout,
@@ -106,8 +115,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }

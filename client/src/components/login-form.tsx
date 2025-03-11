@@ -1,127 +1,124 @@
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { useLocation } from 'wouter';
-import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useAuth } from '@/lib/auth-context';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { HeirloomLogo } from '@/components/heirloom-logo';
-import { useToast } from '@/hooks/use-toast';
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useLocation } from "wouter";
+import { useAuth } from "@/lib/auth-context";
+import { useToast } from "@/hooks/use-toast";
+import { HeirloomLogo } from "@/components/heirloom-logo";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 
 const formSchema = z.object({
-  username: z.string().min(3, { message: 'Username is required' }),
-  password: z.string().min(1, { message: 'Password is required' })
+  username: z.string().min(1, "Username is required"),
+  password: z.string().min(1, "Password is required"),
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
 export default function LoginForm() {
   const { login } = useAuth();
-  const [_, navigate] = useLocation();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [, navigate] = useLocation();
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      username: '',
-      password: '',
+      username: "",
+      password: "",
     },
   });
 
   const onSubmit = async (values: FormValues) => {
-    setIsSubmitting(true);
+    setIsLoading(true);
     try {
       const success = await login(values.username, values.password);
       if (success) {
-        navigate('/dashboard');
+        toast({
+          title: "Login successful",
+          description: "Welcome back to Heirloom Identity Platform",
+        });
+        navigate("/dashboard");
       } else {
         toast({
-          title: "Authentication Failed",
-          description: "Invalid username or password",
           variant: "destructive",
+          title: "Login failed",
+          description: "Invalid username or password. Please try again.",
         });
       }
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to sign in. Please try again.",
         variant: "destructive",
+        title: "Login error",
+        description: "An error occurred while logging in. Please try again.",
       });
     } finally {
-      setIsSubmitting(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="flex flex-col items-center p-6 bg-white/10 backdrop-blur-sm rounded-2xl shadow-lg">
-      <div className="w-16 h-16 rounded-2xl bg-[#8ccc5c] flex items-center justify-center mb-4">
-        <HeirloomLogo className="w-8 h-8 text-white" />
-      </div>
-      
-      <h2 className="text-2xl font-bold mb-6 text-white">Sign In</h2>
-      
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="w-full space-y-4">
-          <FormField
-            control={form.control}
-            name="username"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-white">Username</FormLabel>
-                <FormControl>
-                  <Input 
-                    placeholder="Enter your username" 
-                    {...field} 
-                    className="bg-white/20 border-white/30 text-white placeholder:text-white/50"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
+    <Card className="w-full max-w-md">
+      <CardHeader className="space-y-1">
+        <div className="flex items-center justify-center mb-4">
+          <HeirloomLogo className="h-14 w-14 text-primary" />
+        </div>
+        <CardTitle className="text-2xl text-center">Sign In</CardTitle>
+        <CardDescription className="text-center">
+          Enter your credentials to access your account
+        </CardDescription>
+      </CardHeader>
+      <form onSubmit={form.handleSubmit(onSubmit)}>
+        <CardContent className="grid gap-4">
+          <div className="grid gap-2">
+            <Label htmlFor="username">Username</Label>
+            <Input
+              id="username"
+              placeholder="Enter your username"
+              autoCapitalize="none"
+              autoComplete="username"
+              autoCorrect="off"
+              disabled={isLoading}
+              {...form.register("username")}
+            />
+            {form.formState.errors.username && (
+              <p className="text-sm text-destructive">
+                {form.formState.errors.username.message}
+              </p>
             )}
-          />
-          
-          <FormField
-            control={form.control}
-            name="password"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-white">Password</FormLabel>
-                <FormControl>
-                  <Input 
-                    type="password" 
-                    placeholder="Enter your password" 
-                    {...field} 
-                    className="bg-white/20 border-white/30 text-white placeholder:text-white/50"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              type="password"
+              placeholder="••••••••"
+              autoComplete="current-password"
+              disabled={isLoading}
+              {...form.register("password")}
+            />
+            {form.formState.errors.password && (
+              <p className="text-sm text-destructive">
+                {form.formState.errors.password.message}
+              </p>
             )}
-          />
-          
-          <Button 
-            type="submit" 
-            disabled={isSubmitting}
-            className="w-full py-6 bg-[#4caf50] hover:bg-[#2a5414] text-white font-medium text-lg rounded-full shadow-lg mt-2"
-          >
-            {isSubmitting ? 'Signing In...' : 'Sign In'}
+          </div>
+        </CardContent>
+        <CardFooter className="flex flex-col gap-4">
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading ? "Signing in..." : "Sign In"}
           </Button>
-        </form>
-      </Form>
-      
-      <div className="mt-6 text-center">
-        <p className="text-white/70 mb-2">Don't have an account?</p>
-        <Button 
-          variant="outline" 
-          className="border-white/30 text-white hover:bg-white/20"
-          onClick={() => navigate('/register')}
-        >
-          Create Account
-        </Button>
-      </div>
-    </div>
+          <div className="text-center text-sm text-muted-foreground">
+            Don't have an account?{" "}
+            <Button variant="link" className="p-0" onClick={() => navigate("/register")}>
+              Sign up
+            </Button>
+          </div>
+        </CardFooter>
+      </form>
+    </Card>
   );
 }

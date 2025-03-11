@@ -1,77 +1,90 @@
-import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
-    const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
+    const contentType = res.headers.get("content-type");
+
+    if (contentType && contentType.includes("application/json")) {
+      const errorData = await res.json();
+      
+      if (typeof errorData === "object" && errorData !== null) {
+        if ("message" in errorData) {
+          throw new Error(errorData.message as string);
+        } else if ("error" in errorData) {
+          throw new Error(errorData.error as string);
+        }
+      }
+    }
+
+    throw new Error(`Request failed with status: ${res.status}`);
   }
 }
 
-export async function apiRequest(
-  options: { 
-    url: string; 
-    method: string; 
-    body?: any; 
-  } | string,
-  methodOrData?: string | unknown,
-  data?: unknown
-): Promise<any> {
-  let url: string;
-  let method: string;
-  let body: unknown | undefined;
+export async function apiRequest<TData = unknown>(
+  url: string,
+  options: RequestInit = {},
+): Promise<TData> {
+  const defaultHeaders: HeadersInit = {
+    "Content-Type": "application/json",
+  };
 
-  // Handle the options object format
-  if (typeof options === 'object') {
-    url = options.url;
-    method = options.method;
-    body = options.body;
-  } else {
-    // Handle the legacy format
-    url = options;
-    method = methodOrData as string;
-    body = data;
+  const opts: RequestInit = {
+    credentials: "include",
+    ...options,
+    headers: {
+      ...defaultHeaders,
+      ...options.headers,
+    },
+  };
+
+  const response = await fetch(url, opts);
+
+  const contentType = response.headers.get("content-type");
+  
+  if (response.status === 204) {
+    return {} as TData;
   }
 
-  const res = await fetch(url, {
-    method,
-    headers: body ? { "Content-Type": "application/json" } : {},
-    body: body ? JSON.stringify(body) : undefined,
-    credentials: "include",
-  });
+  if (response.status === 401) {
+    throw new Error("Unauthorized");
+  }
 
-  await throwIfResNotOk(res);
-  return res.json().catch(() => ({}));
+  if (contentType?.includes("application/json")) {
+    await throwIfResNotOk(response);
+    return response.json();
+  }
+
+  await throwIfResNotOk(response);
+  return {} as TData;
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
-export const getQueryFn: <T>(options: {
+
+export const getQueryFn = <TData>(options: {
   on401: UnauthorizedBehavior;
-}) => QueryFunction<T> =
-  ({ on401: unauthorizedBehavior }) =>
-  async ({ queryKey }) => {
-    const res = await fetch(queryKey[0] as string, {
-      credentials: "include",
-    });
-
-    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-      return null;
+}) => {
+  return async (url: string): Promise<TData | null> => {
+    try {
+      return await apiRequest<TData>(url);
+    } catch (error) {
+      if (
+        error instanceof Error && 
+        error.message === "Unauthorized" &&
+        options.on401 === "returnNull"
+      ) {
+        return null;
+      }
+      throw error;
     }
-
-    await throwIfResNotOk(res);
-    return await res.json();
   };
+};
 
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      retry: 1,
       queryFn: getQueryFn({ on401: "throw" }),
-      refetchInterval: false,
-      refetchOnWindowFocus: false,
-      staleTime: Infinity,
-      retry: false,
-    },
-    mutations: {
-      retry: false,
     },
   },
 });

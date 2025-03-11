@@ -1,419 +1,443 @@
-import type { Express, Request, Response } from "express";
-import { createServer, type Server } from "http";
-import { storage } from "./storage";
-import { 
-  insertUserSchema, 
-  insertIdentityCapsuleSchema,
-  insertVerifiedDataSchema,
-  insertAiConnectionSchema,
-  insertActivitySchema 
-} from "@shared/schema";
-import { z } from "zod";
-import { verifyFace } from "./deepface";
+import { Express, Request, Response, Router } from 'express';
+import bcrypt from 'bcryptjs';
+import { storage } from './storage';
+import { verifyFace } from './deepface';
+import { Server } from 'http';
+import { insertUserSchema, insertActivitySchema, insertIdentityCapsuleSchema, insertVerifiedDataSchema, insertAiConnectionSchema } from '@shared/schema';
+import { z } from 'zod';
 
-export async function registerRoutes(app: Express): Promise<Server> {
-  // User routes
+export async function registerRoutes(app: Express): Promise<Express> {
+  // User Registration
   app.post("/api/auth/register", async (req: Request, res: Response) => {
     try {
-      const userData = insertUserSchema.parse(req.body);
+      // Validate request body
+      const validatedData = insertUserSchema.parse(req.body);
       
-      // Check if username is already taken
-      const existingUser = await storage.getUserByUsername(userData.username);
+      // Check if username already exists
+      const existingUser = await storage.getUserByUsername(validatedData.username);
       if (existingUser) {
-        return res.status(400).json({ message: "Username already exists" });
+        return res.status(409).json({ 
+          error: "Username already exists" 
+        });
       }
       
-      const newUser = await storage.createUser(userData);
+      // Hash password
+      const hashedPassword = await bcrypt.hash(validatedData.password, 10);
       
-      // Don't return the password
-      const { password, ...userResponse } = newUser;
-      
-      // Create initial identity capsule
-      const capsule = await storage.createCapsule({
-        userId: newUser.id,
-        name: "Primary",
-        description: "Your primary identity capsule"
+      // Create user
+      const user = await storage.createUser({
+        ...validatedData,
+        password: hashedPassword
       });
       
-      // Log activity
+      // Create activity record
       await storage.createActivity({
-        userId: newUser.id,
-        type: "account-created",
-        description: "Account created successfully",
-        metadata: { capsuleId: capsule.id }
+        userId: user.id,
+        type: "register",
+        description: "Registered a new account"
       });
       
-      res.status(201).json({ message: "User registered successfully", user: userResponse });
+      // Set session
+      req.session.userId = user.id;
+      
+      // Return user without password
+      const { password, ...userWithoutPassword } = user;
+      return res.status(201).json({ user: userWithoutPassword });
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid input", errors: error.errors });
+        return res.status(400).json({ error: error.errors });
       }
-      res.status(500).json({ message: "Error registering user" });
+      console.error('Registration error:', error);
+      return res.status(500).json({ error: "Registration failed" });
     }
   });
   
+  // User Login
   app.post("/api/auth/login", async (req: Request, res: Response) => {
     try {
       const { username, password } = req.body;
       
-      // Validate input
       if (!username || !password) {
-        return res.status(400).json({ message: "Username and password are required" });
+        return res.status(400).json({ error: "Username and password are required" });
       }
       
+      // Find user
       const user = await storage.getUserByUsername(username);
-      if (!user || user.password !== password) {
-        return res.status(401).json({ message: "Invalid credentials" });
-      }
-      
-      // Don't return the password
-      const { password: _, ...userResponse } = user;
-      
-      // Create session (in a real app, generate JWT/session token here)
-      req.session = { userId: user.id };
-      
-      res.status(200).json({ message: "Login successful", user: userResponse });
-    } catch (error) {
-      res.status(500).json({ message: "Error during login" });
-    }
-  });
-  
-  app.post("/api/auth/logout", (req: Request, res: Response) => {
-    req.session = null;
-    res.status(200).json({ message: "Logged out successfully" });
-  });
-  
-  app.get("/api/auth/me", async (req: Request, res: Response) => {
-    try {
-      if (!req.session?.userId) {
-        return res.status(401).json({ message: "Not authenticated" });
-      }
-      
-      const user = await storage.getUser(req.session.userId);
       if (!user) {
-        return res.status(404).json({ message: "User not found" });
+        return res.status(401).json({ error: "Invalid credentials" });
       }
       
-      // Don't return the password
-      const { password, ...userResponse } = user;
+      // Verify password
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+      if (!isPasswordValid) {
+        return res.status(401).json({ error: "Invalid credentials" });
+      }
       
-      res.status(200).json(userResponse);
+      // Create activity record
+      await storage.createActivity({
+        userId: user.id,
+        type: "login",
+        description: "Logged in to account"
+      });
+      
+      // Set session
+      req.session.userId = user.id;
+      
+      // Return user without password
+      const { password: _, ...userWithoutPassword } = user;
+      return res.json({ user: userWithoutPassword });
     } catch (error) {
-      res.status(500).json({ message: "Error fetching user" });
+      console.error('Login error:', error);
+      return res.status(500).json({ error: "Login failed" });
     }
   });
   
-  // Face verification routes
-  app.post("/api/verification/face", async (req: Request, res: Response) => {
+  // User Logout
+  app.post("/api/auth/logout", (req: Request, res: Response) => {
     try {
-      // For development, allow unauthenticated requests for testing
-      const userId = req.session?.userId || 1; // Default to user ID 1 for testing
-      
-      const { image } = req.body;
-      
-      if (!image) {
-        return res.status(200).json({ 
-          success: false,
-          message: "Image data is required" 
-        });
+      // Record activity if user is logged in
+      if (req.session && req.session.userId) {
+        storage.createActivity({
+          userId: req.session.userId,
+          type: "logout",
+          description: "Logged out of account"
+        }).catch(err => console.error('Error recording logout activity:', err));
       }
       
-      // Verify the face using DeepFace
-      console.log("Processing face verification with DeepFace...");
-      const verificationResult = await verifyFace(image);
-      
-      if (!verificationResult.success) {
-        return res.status(200).json({
-          success: false,
-          message: "Face verification failed",
-          confidence: verificationResult.confidence,
-          details: verificationResult.message || "Could not detect a valid face"
-        });
-      }
-      
-      // Set minimum confidence threshold
-      const minConfidence = 50; // 50% confidence threshold
-      
-      if (verificationResult.confidence < minConfidence) {
-        return res.status(200).json({
-          success: false,
-          message: "Face verification failed - low confidence",
-          confidence: verificationResult.confidence,
-          minRequired: minConfidence
-        });
-      }
-      
-      // Update user to verified status
-      const updatedUser = await storage.updateUser(userId, { isVerified: true });
-      
-      if (!updatedUser && req.session?.userId) {
-        return res.status(200).json({ 
-          success: false,
-          message: "User not found" 
-        });
-      }
-      
-      // Add verification details to the user's primary capsule
-      if (userId) {
-        const capsules = await storage.getCapsulesByUserId(userId);
-        if (capsules.length > 0) {
-          const primaryCapsule = capsules[0];
-          
-          // Add facial data if available from DeepFace
-          if (verificationResult.results) {
-            const { age, gender, dominant_race, dominant_emotion } = verificationResult.results;
-            
-            // Store demographic data
-            if (age) {
-              await storage.createVerifiedData({
-                capsuleId: primaryCapsule.id,
-                dataType: "age",
-                value: String(age),
-                verificationMethod: "face-scan",
-                issuanceDate: new Date()
-              });
-            }
-            
-            if (gender) {
-              await storage.createVerifiedData({
-                capsuleId: primaryCapsule.id,
-                dataType: "gender",
-                value: gender,
-                verificationMethod: "face-scan",
-                issuanceDate: new Date()
-              });
-            }
-          }
+      // Destroy session
+      req.session.destroy(err => {
+        if (err) {
+          console.error('Session destruction error:', err);
+          return res.status(500).json({ error: "Logout failed" });
         }
         
-        // Log activity
-        await storage.createActivity({
-          userId: userId,
-          type: "identity-verified",
-          description: "Identity verification was completed successfully",
-          metadata: { 
-            method: "face",
-            confidence: verificationResult.confidence,
-            ...(verificationResult.results || {})
-          }
-        });
-      }
-      
-      res.status(200).json({ 
-        success: true,
-        message: "Face verification successful", 
-        verified: true,
-        confidence: verificationResult.confidence,
-        results: verificationResult.results
+        res.clearCookie('connect.sid');
+        return res.json({ message: "Logged out successfully" });
       });
     } catch (error) {
-      console.error("Error during face verification:", error);
-      res.status(200).json({ 
-        success: false, 
-        message: "Error during face verification", 
-        confidence: 0 
+      console.error('Logout error:', error);
+      return res.status(500).json({ error: "Logout failed" });
+    }
+  });
+  
+  // Get Current User
+  app.get("/api/auth/me", async (req: Request, res: Response) => {
+    try {
+      // Check if user is logged in
+      if (!req.session || !req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      // Get user from storage
+      const user = await storage.getUser(req.session.userId);
+      if (!user) {
+        req.session.destroy(() => {});
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      // Return user without password
+      const { password, ...userWithoutPassword } = user;
+      return res.json({ user: userWithoutPassword });
+    } catch (error) {
+      console.error('Get current user error:', error);
+      return res.status(500).json({ error: "Failed to get user data" });
+    }
+  });
+  
+  // Face Verification
+  app.post("/api/verification/face", async (req: Request, res: Response) => {
+    try {
+      // Check if user is logged in
+      if (!req.session || !req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const { imageBase64 } = req.body;
+      
+      if (!imageBase64) {
+        return res.status(400).json({ error: "Image data is required" });
+      }
+      
+      // Perform face verification
+      const verificationResult = await verifyFace(imageBase64);
+      
+      // Update user's verification status if successful
+      if (verificationResult.success && verificationResult.confidence > 0.7) {
+        const user = await storage.getUser(req.session.userId);
+        if (user) {
+          await storage.updateUser(user.id, { isVerified: true });
+          
+          // Record activity
+          await storage.createActivity({
+            userId: user.id,
+            type: "verification",
+            description: "Completed face verification"
+          });
+        }
+      }
+      
+      return res.json(verificationResult);
+    } catch (error) {
+      console.error('Face verification error:', error);
+      return res.status(500).json({ 
+        error: "Face verification failed",
+        details: error instanceof Error ? error.message : String(error)
       });
     }
   });
   
-  // Identity Capsule routes
+  // Get Identity Capsules
   app.get("/api/capsules", async (req: Request, res: Response) => {
     try {
-      if (!req.session?.userId) {
-        return res.status(401).json({ message: "Not authenticated" });
+      // Check if user is logged in
+      if (!req.session || !req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
       }
       
+      // Get capsules for current user
       const capsules = await storage.getCapsulesByUserId(req.session.userId);
-      res.status(200).json(capsules);
+      
+      return res.json({ capsules });
     } catch (error) {
-      res.status(500).json({ message: "Error fetching capsules" });
+      console.error('Get capsules error:', error);
+      return res.status(500).json({ error: "Failed to get capsules" });
     }
   });
   
+  // Create Identity Capsule
   app.post("/api/capsules", async (req: Request, res: Response) => {
     try {
-      if (!req.session?.userId) {
-        return res.status(401).json({ message: "Not authenticated" });
+      // Check if user is logged in
+      if (!req.session || !req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
       }
       
-      const capsuleData = insertIdentityCapsuleSchema.parse({
+      // Validate request body
+      const validatedData = insertIdentityCapsuleSchema.parse({
         ...req.body,
         userId: req.session.userId
       });
       
-      const newCapsule = await storage.createCapsule(capsuleData);
+      // Create capsule
+      const capsule = await storage.createCapsule(validatedData);
       
-      // Log activity
+      // Record activity
       await storage.createActivity({
         userId: req.session.userId,
-        type: "capsule-created",
-        description: `Created new capsule: ${newCapsule.name}`,
-        metadata: { capsuleId: newCapsule.id }
+        type: "capsule_create",
+        description: `Created identity capsule: ${capsule.name}`
       });
       
-      res.status(201).json(newCapsule);
+      return res.status(201).json({ capsule });
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid input", errors: error.errors });
+        return res.status(400).json({ error: error.errors });
       }
-      res.status(500).json({ message: "Error creating capsule" });
+      console.error('Create capsule error:', error);
+      return res.status(500).json({ error: "Failed to create identity capsule" });
     }
   });
   
-  // Verified Data routes
+  // Get Verified Data for a Capsule
   app.get("/api/capsules/:id/data", async (req: Request, res: Response) => {
     try {
-      if (!req.session?.userId) {
-        return res.status(401).json({ message: "Not authenticated" });
+      // Check if user is logged in
+      if (!req.session || !req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
       }
       
       const capsuleId = parseInt(req.params.id);
-      
-      // Check if capsule belongs to user
-      const capsule = await storage.getCapsule(capsuleId);
-      if (!capsule || capsule.userId !== req.session.userId) {
-        return res.status(403).json({ message: "Access denied to this capsule" });
+      if (isNaN(capsuleId)) {
+        return res.status(400).json({ error: "Invalid capsule ID" });
       }
       
-      const data = await storage.getVerifiedDataByCapsuleId(capsuleId);
-      res.status(200).json(data);
+      // Verify ownership
+      const capsule = await storage.getCapsule(capsuleId);
+      if (!capsule) {
+        return res.status(404).json({ error: "Capsule not found" });
+      }
+      
+      if (capsule.userId !== req.session.userId) {
+        return res.status(403).json({ error: "You don't have permission to access this capsule" });
+      }
+      
+      // Get verified data
+      const verifiedData = await storage.getVerifiedDataByCapsuleId(capsuleId);
+      
+      return res.json({ data: verifiedData });
     } catch (error) {
-      res.status(500).json({ message: "Error fetching verified data" });
+      console.error('Get verified data error:', error);
+      return res.status(500).json({ error: "Failed to get verified data" });
     }
   });
   
+  // Add Verified Data to a Capsule
   app.post("/api/capsules/:id/data", async (req: Request, res: Response) => {
     try {
-      if (!req.session?.userId) {
-        return res.status(401).json({ message: "Not authenticated" });
+      // Check if user is logged in
+      if (!req.session || !req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
       }
       
       const capsuleId = parseInt(req.params.id);
-      
-      // Check if capsule belongs to user
-      const capsule = await storage.getCapsule(capsuleId);
-      if (!capsule || capsule.userId !== req.session.userId) {
-        return res.status(403).json({ message: "Access denied to this capsule" });
+      if (isNaN(capsuleId)) {
+        return res.status(400).json({ error: "Invalid capsule ID" });
       }
       
-      const dataInput = insertVerifiedDataSchema.parse({
+      // Verify ownership
+      const capsule = await storage.getCapsule(capsuleId);
+      if (!capsule) {
+        return res.status(404).json({ error: "Capsule not found" });
+      }
+      
+      if (capsule.userId !== req.session.userId) {
+        return res.status(403).json({ error: "You don't have permission to modify this capsule" });
+      }
+      
+      // Validate request body
+      const validatedData = insertVerifiedDataSchema.parse({
         ...req.body,
         capsuleId
       });
       
-      const newData = await storage.createVerifiedData(dataInput);
-      
-      // Log activity
-      await storage.createActivity({
-        userId: req.session.userId,
-        type: "data-added",
-        description: `Added ${newData.dataType} verification to capsule`,
-        metadata: { capsuleId, dataId: newData.id }
+      // Add verified timestamp
+      const data = await storage.createVerifiedData({
+        ...validatedData,
+        verifiedAt: new Date().toISOString()
       });
       
-      res.status(201).json(newData);
+      // Record activity
+      await storage.createActivity({
+        userId: req.session.userId,
+        type: "data_add",
+        description: `Added verified data to capsule: ${validatedData.dataType}`
+      });
+      
+      return res.status(201).json({ data });
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid input", errors: error.errors });
+        return res.status(400).json({ error: error.errors });
       }
-      res.status(500).json({ message: "Error adding verified data" });
+      console.error('Add verified data error:', error);
+      return res.status(500).json({ error: "Failed to add verified data" });
     }
   });
   
-  // AI Connection routes
+  // Get AI Connections
   app.get("/api/connections", async (req: Request, res: Response) => {
     try {
-      if (!req.session?.userId) {
-        return res.status(401).json({ message: "Not authenticated" });
+      // Check if user is logged in
+      if (!req.session || !req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
       }
       
+      // Get connections for current user
       const connections = await storage.getAiConnectionsByUserId(req.session.userId);
-      res.status(200).json(connections);
+      
+      return res.json({ connections });
     } catch (error) {
-      res.status(500).json({ message: "Error fetching AI connections" });
+      console.error('Get connections error:', error);
+      return res.status(500).json({ error: "Failed to get AI connections" });
     }
   });
   
+  // Create AI Connection
   app.post("/api/connections", async (req: Request, res: Response) => {
     try {
-      if (!req.session?.userId) {
-        return res.status(401).json({ message: "Not authenticated" });
+      // Check if user is logged in
+      if (!req.session || !req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
       }
       
-      // Check if user is verified
-      const user = await storage.getUser(req.session.userId);
-      if (!user?.isVerified) {
-        return res.status(403).json({ message: "User must be verified to connect with AI services" });
-      }
-      
-      const connectionData = insertAiConnectionSchema.parse({
+      // Validate request body
+      const validatedData = insertAiConnectionSchema.parse({
         ...req.body,
         userId: req.session.userId
       });
       
-      const newConnection = await storage.createAiConnection(connectionData);
-      
-      // Log activity
-      await storage.createActivity({
-        userId: req.session.userId,
-        type: "ai-connected",
-        description: `Connected with ${newConnection.aiServiceName}`,
-        metadata: { connectionId: newConnection.id }
+      // Create connection with timestamp
+      const connection = await storage.createAiConnection({
+        ...validatedData,
+        createdAt: new Date().toISOString(),
+        lastUsed: null
       });
       
-      res.status(201).json(newConnection);
+      // Record activity
+      await storage.createActivity({
+        userId: req.session.userId,
+        type: "connection_create",
+        description: `Connected to AI service: ${connection.aiServiceName}`
+      });
+      
+      return res.status(201).json({ connection });
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid input", errors: error.errors });
+        return res.status(400).json({ error: error.errors });
       }
-      res.status(500).json({ message: "Error creating AI connection" });
+      console.error('Create connection error:', error);
+      return res.status(500).json({ error: "Failed to create AI connection" });
     }
   });
   
+  // Revoke AI Connection
   app.patch("/api/connections/:id/revoke", async (req: Request, res: Response) => {
     try {
-      if (!req.session?.userId) {
-        return res.status(401).json({ message: "Not authenticated" });
+      // Check if user is logged in
+      if (!req.session || !req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
       }
       
       const connectionId = parseInt(req.params.id);
-      
-      // Check if connection belongs to user
-      const connection = await storage.getAiConnection(connectionId);
-      if (!connection || connection.userId !== req.session.userId) {
-        return res.status(403).json({ message: "Access denied to this connection" });
+      if (isNaN(connectionId)) {
+        return res.status(400).json({ error: "Invalid connection ID" });
       }
       
-      const updatedConnection = await storage.updateAiConnection(connectionId, { isActive: false });
+      // Verify ownership
+      const connection = await storage.getAiConnection(connectionId);
+      if (!connection) {
+        return res.status(404).json({ error: "Connection not found" });
+      }
       
-      // Log activity
-      await storage.createActivity({
-        userId: req.session.userId,
-        type: "connection-revoked",
-        description: `Revoked access for ${connection.aiServiceName}`,
-        metadata: { connectionId }
+      if (connection.userId !== req.session.userId) {
+        return res.status(403).json({ error: "You don't have permission to modify this connection" });
+      }
+      
+      // Update connection
+      const updatedConnection = await storage.updateAiConnection(connectionId, {
+        isActive: false
       });
       
-      res.status(200).json(updatedConnection);
+      // Record activity
+      await storage.createActivity({
+        userId: req.session.userId,
+        type: "connection_revoke",
+        description: `Revoked connection to AI service: ${connection.aiServiceName}`
+      });
+      
+      return res.json({ connection: updatedConnection });
     } catch (error) {
-      res.status(500).json({ message: "Error revoking connection" });
+      console.error('Revoke connection error:', error);
+      return res.status(500).json({ error: "Failed to revoke AI connection" });
     }
   });
   
-  // Activity routes
+  // Get Activity Log
   app.get("/api/activities", async (req: Request, res: Response) => {
     try {
-      if (!req.session?.userId) {
-        return res.status(401).json({ message: "Not authenticated" });
+      // Check if user is logged in
+      if (!req.session || !req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
       }
       
+      // Get activities for current user
       const activities = await storage.getActivitiesByUserId(req.session.userId);
-      res.status(200).json(activities);
+      
+      return res.json({ activities });
     } catch (error) {
-      res.status(500).json({ message: "Error fetching activities" });
+      console.error('Get activities error:', error);
+      return res.status(500).json({ error: "Failed to get activity log" });
     }
   });
-
-  const httpServer = createServer(app);
-  return httpServer;
+  
+  return app;
 }

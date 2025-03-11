@@ -1,9 +1,14 @@
 import { 
-  users, type User, type InsertUser,
-  identityCapsules, type IdentityCapsule, type InsertIdentityCapsule,
-  verifiedData, type VerifiedData, type InsertVerifiedData,
-  aiConnections, type AiConnection, type InsertAiConnection,
-  activities, type Activity, type InsertActivity 
+  User, 
+  InsertUser, 
+  IdentityCapsule, 
+  InsertIdentityCapsule,
+  VerifiedData,
+  InsertVerifiedData,
+  AiConnection,
+  InsertAiConnection,
+  Activity,
+  InsertActivity
 } from "@shared/schema";
 
 export interface IStorage {
@@ -48,7 +53,7 @@ export class MemStorage implements IStorage {
   private dataIdCounter: number;
   private connectionIdCounter: number;
   private activityIdCounter: number;
-
+  
   constructor() {
     this.users = new Map();
     this.identityCapsules = new Map();
@@ -61,38 +66,31 @@ export class MemStorage implements IStorage {
     this.dataIdCounter = 1;
     this.connectionIdCounter = 1;
     this.activityIdCounter = 1;
-    
-    // Initialize with a demo user
-    this.createUser({
-      username: "leslie",
-      password: "password123",
-      firstName: "Leslie",
-      lastName: "Alexander"
-    });
   }
-
-  // User methods
+  
   async getUser(id: number): Promise<User | undefined> {
     return this.users.get(id);
   }
-
+  
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username.toLowerCase() === username.toLowerCase(),
-    );
+    for (const user of this.users.values()) {
+      if (user.username.toLowerCase() === username.toLowerCase()) {
+        return user;
+      }
+    }
+    return undefined;
   }
-
+  
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.userIdCounter++;
-    const now = new Date();
     const user: User = { 
-      ...insertUser, 
-      id, 
-      isVerified: false, 
-      memberSince: now,
-      avatar: undefined
+      ...insertUser,
+      id: this.userIdCounter++,
+      isVerified: false,
+      memberSince: new Date().toISOString(),
+      avatar: null
     };
-    this.users.set(id, user);
+    
+    this.users.set(user.id, user);
     return user;
   }
   
@@ -104,28 +102,29 @@ export class MemStorage implements IStorage {
     this.users.set(id, updatedUser);
     return updatedUser;
   }
-
-  // Identity Capsule methods
+  
   async getCapsule(id: number): Promise<IdentityCapsule | undefined> {
     return this.identityCapsules.get(id);
   }
   
   async getCapsulesByUserId(userId: number): Promise<IdentityCapsule[]> {
-    return Array.from(this.identityCapsules.values()).filter(
-      (capsule) => capsule.userId === userId
-    );
+    const capsules: IdentityCapsule[] = [];
+    for (const capsule of this.identityCapsules.values()) {
+      if (capsule.userId === userId) {
+        capsules.push(capsule);
+      }
+    }
+    return capsules;
   }
   
   async createCapsule(insertCapsule: InsertIdentityCapsule): Promise<IdentityCapsule> {
-    const id = this.capsuleIdCounter++;
-    const now = new Date();
     const capsule: IdentityCapsule = {
       ...insertCapsule,
-      id,
-      isActive: true,
-      createdAt: now
+      id: this.capsuleIdCounter++,
+      createdAt: new Date().toISOString()
     };
-    this.identityCapsules.set(id, capsule);
+    
+    this.identityCapsules.set(capsule.id, capsule);
     return capsule;
   }
   
@@ -137,54 +136,52 @@ export class MemStorage implements IStorage {
     this.identityCapsules.set(id, updatedCapsule);
     return updatedCapsule;
   }
-
-  // Verified Data methods
+  
   async getVerifiedData(id: number): Promise<VerifiedData | undefined> {
     return this.verifiedData.get(id);
   }
   
   async getVerifiedDataByCapsuleId(capsuleId: number): Promise<VerifiedData[]> {
-    return Array.from(this.verifiedData.values()).filter(
-      (data) => data.capsuleId === capsuleId
-    );
-  }
-  
-  async createVerifiedData(insertData: InsertVerifiedData): Promise<VerifiedData> {
-    const id = this.dataIdCounter++;
-    const now = new Date();
-    const data: VerifiedData = {
-      ...insertData,
-      id,
-      isVerified: false,
-      verifiedAt: undefined,
-      createdAt: now
-    };
-    this.verifiedData.set(id, data);
+    const data: VerifiedData[] = [];
+    for (const item of this.verifiedData.values()) {
+      if (item.capsuleId === capsuleId) {
+        data.push(item);
+      }
+    }
     return data;
   }
-
-  // AI Connection methods
+  
+  async createVerifiedData(insertData: InsertVerifiedData & { verifiedAt: string }): Promise<VerifiedData> {
+    const data: VerifiedData = {
+      ...insertData,
+      id: this.dataIdCounter++
+    };
+    
+    this.verifiedData.set(data.id, data);
+    return data;
+  }
+  
   async getAiConnection(id: number): Promise<AiConnection | undefined> {
     return this.aiConnections.get(id);
   }
   
   async getAiConnectionsByUserId(userId: number): Promise<AiConnection[]> {
-    return Array.from(this.aiConnections.values()).filter(
-      (connection) => connection.userId === userId
-    );
+    const connections: AiConnection[] = [];
+    for (const connection of this.aiConnections.values()) {
+      if (connection.userId === userId) {
+        connections.push(connection);
+      }
+    }
+    return connections;
   }
   
-  async createAiConnection(insertConnection: InsertAiConnection): Promise<AiConnection> {
-    const id = this.connectionIdCounter++;
-    const now = new Date();
+  async createAiConnection(insertConnection: InsertAiConnection & { createdAt: string, lastUsed: string | null }): Promise<AiConnection> {
     const connection: AiConnection = {
       ...insertConnection,
-      id,
-      isActive: true,
-      createdAt: now,
-      lastConnected: now
+      id: this.connectionIdCounter++
     };
-    this.aiConnections.set(id, connection);
+    
+    this.aiConnections.set(connection.id, connection);
     return connection;
   }
   
@@ -196,30 +193,29 @@ export class MemStorage implements IStorage {
     this.aiConnections.set(id, updatedConnection);
     return updatedConnection;
   }
-
-  // Activity methods
+  
   async getActivity(id: number): Promise<Activity | undefined> {
     return this.activities.get(id);
   }
   
   async getActivitiesByUserId(userId: number): Promise<Activity[]> {
-    return Array.from(this.activities.values())
-      .filter(activity => activity.userId === userId)
-      .sort((a, b) => {
-        // Sort activities in descending order by createdAt
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      });
+    const activities: Activity[] = [];
+    for (const activity of this.activities.values()) {
+      if (activity.userId === userId) {
+        activities.push(activity);
+      }
+    }
+    return activities;
   }
   
   async createActivity(insertActivity: InsertActivity): Promise<Activity> {
-    const id = this.activityIdCounter++;
-    const now = new Date();
     const activity: Activity = {
       ...insertActivity,
-      id,
-      createdAt: now
+      id: this.activityIdCounter++,
+      createdAt: new Date().toISOString()
     };
-    this.activities.set(id, activity);
+    
+    this.activities.set(activity.id, activity);
     return activity;
   }
 }

@@ -1,23 +1,1239 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Heirloom Identity Platform</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
-    <style>
-      body {
-        font-family: "Inter", sans-serif;
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Heirloom Identity Platform</title>
+  <style>
+    :root {
+      --primary: #2c974b;
+      --primary-light: #4caf50;
+      --primary-dark: #1b5e20;
+      --background: #f9f9f9;
+      --card-background: #ffffff;
+      --text: #333333;
+      --text-light: #666666;
+      --border: #e0e0e0;
+      --success: #4caf50;
+      --error: #f44336;
+      --warning: #ff9800;
+      --info: #2196f3;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    body {
+      background-color: var(--background);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    
+    header {
+      background-color: var(--card-background);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      padding: 1rem;
+      text-align: center;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    
+    .logo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .logo-icon {
+      width: 36px;
+      height: 36px;
+      color: var(--primary);
+    }
+    
+    h1 {
+      font-size: 1.5rem;
+      color: var(--primary);
+    }
+    
+    h2 {
+      font-size: 1.25rem;
+      margin-bottom: 1rem;
+      color: var(--text);
+    }
+    
+    main {
+      flex: 1;
+      padding: 2rem;
+      max-width: 1000px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    
+    .container {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 2rem;
+    }
+    
+    @media (min-width: 768px) {
+      .container {
+        grid-template-columns: 1fr 1fr;
       }
-    </style>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+    }
+    
+    .card {
+      background-color: var(--card-background);
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      padding: 1.5rem;
+    }
+    
+    .card-title {
+      font-size: 1.25rem;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .card-icon {
+      width: 24px;
+      height: 24px;
+      color: var(--primary);
+    }
+    
+    .form-group {
+      margin-bottom: 1rem;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+    }
+    
+    input, button {
+      width: 100%;
+      padding: 0.75rem;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      font-size: 1rem;
+    }
+    
+    input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(44, 151, 75, 0.2);
+    }
+    
+    button {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: 500;
+      margin-top: 1rem;
+      transition: background-color 0.2s;
+    }
+    
+    button:hover {
+      background-color: var(--primary-dark);
+    }
+    
+    button:disabled {
+      background-color: var(--text-light);
+      cursor: not-allowed;
+    }
+    
+    .button-secondary {
+      background-color: transparent;
+      color: var(--primary);
+      border: 1px solid var(--primary);
+    }
+    
+    .button-secondary:hover {
+      background-color: rgba(44, 151, 75, 0.1);
+    }
+    
+    .webcam-container {
+      position: relative;
+      width: 100%;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 1rem;
+    }
+    
+    .webcam-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: 2px solid var(--primary);
+      border-radius: 8px;
+      pointer-events: none;
+    }
+    
+    .face-scan-box {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 200px;
+      height: 200px;
+      border: 2px dashed var(--primary);
+      border-radius: 100%;
+      pointer-events: none;
+    }
+    
+    .webcam-video {
+      width: 100%;
+      height: auto;
+      border-radius: 8px;
+      background-color: #000;
+    }
+    
+    .status-text {
+      text-align: center;
+      margin: 1rem 0;
+      font-weight: 500;
+    }
+    
+    .success-text {
+      color: var(--success);
+    }
+    
+    .error-text {
+      color: var(--error);
+    }
+    
+    .info-text {
+      color: var(--info);
+    }
+    
+    .warning-text {
+      color: var(--warning);
+    }
+    
+    .hidden {
+      display: none;
+    }
+    
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background-color: var(--border);
+      border-radius: 4px;
+      margin-bottom: 1rem;
+      overflow: hidden;
+    }
+    
+    .progress-bar-inner {
+      height: 100%;
+      background-color: var(--primary);
+      width: 0%;
+      transition: width 0.3s;
+    }
+    
+    .result-container {
+      margin-top: 1rem;
+      padding: 1rem;
+      border-radius: 8px;
+      background-color: rgba(44, 151, 75, 0.1);
+    }
+    
+    .result-title {
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+    }
+    
+    .result-detail {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.25rem;
+    }
+    
+    .attribute-name {
+      font-weight: 500;
+    }
+    
+    .attribute-value {
+      color: var(--primary);
+    }
+    
+    footer {
+      background-color: var(--card-background);
+      padding: 1rem;
+      text-align: center;
+      font-size: 0.875rem;
+      color: var(--text-light);
+      border-top: 1px solid var(--border);
+      margin-top: 2rem;
+    }
+    
+    /* Tabs */
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 1.5rem;
+    }
+    
+    .tab {
+      padding: 0.75rem 1rem;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+    }
+    
+    .tab.active {
+      color: var(--primary);
+      border-bottom: 2px solid var(--primary);
+      font-weight: 500;
+    }
+    
+    .tab-content {
+      display: none;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+    
+    /* Identity card */
+    .identity-card {
+      background-color: var(--primary);
+      color: white;
+      border-radius: 8px;
+      padding: 1.5rem;
+      position: relative;
+      overflow: hidden;
+      margin-top: 1.5rem;
+    }
+    
+    .card-bg-pattern {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 150px;
+      height: 150px;
+      opacity: 0.1;
+    }
+    
+    .identity-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 1.5rem;
+    }
+    
+    .identity-card-title {
+      font-size: 1.25rem;
+      font-weight: 500;
+    }
+    
+    .identity-card-subtitle {
+      font-size: 0.875rem;
+      opacity: 0.8;
+      margin-top: 0.25rem;
+    }
+    
+    .verified-badge {
+      background-color: white;
+      color: var(--primary);
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+    
+    .identity-card-content {
+      display: flex;
+      gap: 1rem;
+    }
+    
+    .user-avatar {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background-color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--primary);
+    }
+    
+    .user-details {
+      flex: 1;
+    }
+    
+    .detail-row {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .detail-group {
+      flex: 1;
+    }
+    
+    .detail-label {
+      font-size: 0.75rem;
+      opacity: 0.8;
+      margin-bottom: 0.25rem;
+    }
+    
+    .detail-value {
+      font-weight: 500;
+    }
+    
+    /* Loading */
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 1s linear infinite;
+      margin-right: 0.5rem;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    /* Toast */
+    .toast-container {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      z-index: 1000;
+    }
+    
+    .toast {
+      background-color: var(--card-background);
+      color: var(--text);
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      padding: 1rem;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      animation: slideIn 0.3s, fadeOut 0.5s 2.5s forwards;
+      width: 300px;
+    }
+    
+    @keyframes slideIn {
+      from { transform: translateX(100%); }
+      to { transform: translateX(0); }
+    }
+    
+    @keyframes fadeOut {
+      from { opacity: 1; }
+      to { opacity: 0; }
+    }
+    
+    .toast-success {
+      border-left: 4px solid var(--success);
+    }
+    
+    .toast-error {
+      border-left: 4px solid var(--error);
+    }
+    
+    .toast-warning {
+      border-left: 4px solid var(--warning);
+    }
+    
+    .toast-info {
+      border-left: 4px solid var(--info);
+    }
+    
+    .toast-icon {
+      width: 20px;
+      height: 20px;
+    }
+    
+    .toast-content {
+      flex: 1;
+    }
+    
+    .toast-title {
+      font-weight: 500;
+      margin-bottom: 0.25rem;
+    }
+    
+    .toast-message {
+      font-size: 0.875rem;
+      color: var(--text-light);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">
+      <svg class="logo-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2 15c6.667-6 13.333 0 20-6" />
+        <path d="M9 22c1.798-1.998 2.518-3.995 2.807-5.993" />
+        <path d="M15 2c-1.798 1.998-2.518 3.995-2.807 5.993" />
+        <path d="m17 6-2.5-2.5" />
+        <path d="m14 8-1-1" />
+        <path d="m7 18 2.5 2.5" />
+        <path d="m3.5 14.5.5.5" />
+        <path d="m20 9 .5.5" />
+        <path d="m6.5 12.5 1 1" />
+        <path d="m16.5 10.5 1 1" />
+        <path d="m10 16 1.5 1.5" />
+      </svg>
+      <h1>Heirloom Identity Platform</h1>
+    </div>
+  </header>
+
+  <main>
+    <div class="tabs">
+      <div class="tab active" data-tab="login">Login</div>
+      <div class="tab" data-tab="register">Register</div>
+      <div class="tab" data-tab="verification">Face Verification</div>
+      <div class="tab" data-tab="profile">Profile</div>
+    </div>
+
+    <div class="container">
+      <!-- Login Tab -->
+      <div class="tab-content active" id="login-tab">
+        <div class="card">
+          <h2 class="card-title">
+            <svg class="card-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+              <polyline points="10 17 15 12 10 7" />
+              <line x1="15" y1="12" x2="3" y2="12" />
+            </svg>
+            Login
+          </h2>
+          <form id="login-form">
+            <div class="form-group">
+              <label for="login-username">Username</label>
+              <input type="text" id="login-username" name="username" required>
+            </div>
+            <div class="form-group">
+              <label for="login-password">Password</label>
+              <input type="password" id="login-password" name="password" required>
+            </div>
+            <button type="submit" id="login-button">Login</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Register Tab -->
+      <div class="tab-content" id="register-tab">
+        <div class="card">
+          <h2 class="card-title">
+            <svg class="card-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <line x1="19" y1="8" x2="19" y2="14" />
+              <line x1="22" y1="11" x2="16" y2="11" />
+            </svg>
+            Register
+          </h2>
+          <form id="register-form">
+            <div class="form-group">
+              <label for="register-firstname">First Name</label>
+              <input type="text" id="register-firstname" name="firstName" required>
+            </div>
+            <div class="form-group">
+              <label for="register-lastname">Last Name</label>
+              <input type="text" id="register-lastname" name="lastName" required>
+            </div>
+            <div class="form-group">
+              <label for="register-username">Username</label>
+              <input type="text" id="register-username" name="username" required>
+            </div>
+            <div class="form-group">
+              <label for="register-email">Email</label>
+              <input type="email" id="register-email" name="email" required>
+            </div>
+            <div class="form-group">
+              <label for="register-password">Password</label>
+              <input type="password" id="register-password" name="password" required>
+            </div>
+            <button type="submit" id="register-button">Register</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Verification Tab -->
+      <div class="tab-content" id="verification-tab">
+        <div class="card">
+          <h2 class="card-title">
+            <svg class="card-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M8 3H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-1" />
+              <path d="M12 4c2 0 3 1 3 3h1" />
+              <path d="M18 6v14H8V8h8" />
+              <path d="M12 4c-2 0-3 1-3 3H8" />
+              <path d="M11 14.6c.2.1.3.2.5.3.4.1.7.1 1 0 .4-.1.7-.4.9-.7a1 1 0 0 0 0-1.2c-.2-.3-.5-.6-.9-.7a1.2 1.2 0 0 0-1 0c-.2.1-.3.2-.5.3" />
+              <path d="M11 10.3c.2-.1.3-.2.5-.3.4-.1.7-.1 1 0 .4.1.7.4.9.7a1 1 0 0 1 0 1.2c-.2.3-.5.6-.9.7a1.2 1.2 0 0 1-1 0c-.2-.1-.3-.2-.5-.3" />
+            </svg>
+            Face Verification
+          </h2>
+          <div id="verification-content">
+            <p class="status-text warning-text" id="verification-auth-required">Please login or register first.</p>
+            <div id="verification-authenticated" class="hidden">
+              <div id="webcam-container" class="webcam-container">
+                <video id="webcam" class="webcam-video" autoplay playsinline></video>
+                <div class="webcam-overlay">
+                  <div class="face-scan-box"></div>
+                </div>
+              </div>
+              <div class="progress-bar">
+                <div id="verification-progress" class="progress-bar-inner" style="width: 0%;"></div>
+              </div>
+              <p class="status-text" id="verification-status">Waiting to start...</p>
+              <button id="start-verification-button">Start Verification</button>
+              <button id="generate-test-image-button" class="button-secondary">Generate Test Image</button>
+              
+              <div id="verification-result" class="result-container hidden">
+                <p class="result-title">Verification Result</p>
+                <div class="result-detail">
+                  <span class="attribute-name">Confidence</span>
+                  <span id="result-confidence" class="attribute-value">-</span>
+                </div>
+                <div class="result-detail">
+                  <span class="attribute-name">Status</span>
+                  <span id="result-status" class="attribute-value">-</span>
+                </div>
+                <div id="attributes-container" class="hidden">
+                  <div class="result-detail">
+                    <span class="attribute-name">Age</span>
+                    <span id="result-age" class="attribute-value">-</span>
+                  </div>
+                  <div class="result-detail">
+                    <span class="attribute-name">Gender</span>
+                    <span id="result-gender" class="attribute-value">-</span>
+                  </div>
+                  <div class="result-detail">
+                    <span class="attribute-name">Race</span>
+                    <span id="result-race" class="attribute-value">-</span>
+                  </div>
+                  <div class="result-detail">
+                    <span class="attribute-name">Emotion</span>
+                    <span id="result-emotion" class="attribute-value">-</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Profile Tab -->
+      <div class="tab-content" id="profile-tab">
+        <div class="card">
+          <h2 class="card-title">
+            <svg class="card-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+            Profile
+          </h2>
+          <div id="profile-content">
+            <p class="status-text warning-text" id="profile-auth-required">Please login or register first.</p>
+            <div id="profile-authenticated" class="hidden">
+              <div class="identity-card">
+                <svg class="card-bg-pattern" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M2 15c6.667-6 13.333 0 20-6" />
+                  <path d="M9 22c1.798-1.998 2.518-3.995 2.807-5.993" />
+                  <path d="M15 2c-1.798 1.998-2.518 3.995-2.807 5.993" />
+                  <path d="m17 6-2.5-2.5" />
+                  <path d="m14 8-1-1" />
+                  <path d="m7 18 2.5 2.5" />
+                  <path d="m3.5 14.5.5.5" />
+                  <path d="m20 9 .5.5" />
+                  <path d="m6.5 12.5 1 1" />
+                  <path d="m16.5 10.5 1 1" />
+                  <path d="m10 16 1.5 1.5" />
+                </svg>
+                
+                <div class="identity-card-header">
+                  <div>
+                    <div class="identity-card-title">Identity Capsule</div>
+                    <div class="identity-card-subtitle">Digital Identity Passport</div>
+                  </div>
+                  <div class="verified-badge" id="verified-badge">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                      <polyline points="22 4 12 14.01 9 11.01" />
+                    </svg>
+                    <span id="verified-status">Not Verified</span>
+                  </div>
+                </div>
+                
+                <div class="identity-card-content">
+                  <div class="user-avatar" id="user-avatar">JP</div>
+                  <div class="user-details">
+                    <div class="detail-row">
+                      <div class="detail-group">
+                        <div class="detail-label">Name</div>
+                        <div class="detail-value" id="profile-name">John Public</div>
+                      </div>
+                      <div class="detail-group">
+                        <div class="detail-label">Username</div>
+                        <div class="detail-value" id="profile-username">johnpublic</div>
+                      </div>
+                    </div>
+                    <div class="detail-row">
+                      <div class="detail-group">
+                        <div class="detail-label">Email</div>
+                        <div class="detail-value" id="profile-email">john@example.com</div>
+                      </div>
+                      <div class="detail-group">
+                        <div class="detail-label">Member Since</div>
+                        <div class="detail-value" id="profile-member-since">Jan 1, 2023</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <button id="logout-button" class="button-secondary" style="margin-top: 1.5rem;">Logout</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div class="toast-container" id="toast-container"></div>
+
+  <footer>
+    <p>© 2025 Heirloom Identity Platform. All rights reserved.</p>
+  </footer>
+
+  <script>
+    // Configuration
+    const API_BASE_URL = 'http://localhost:3001';
+    
+    // DOM Elements
+    const tabs = document.querySelectorAll('.tab');
+    const tabContents = document.querySelectorAll('.tab-content');
+    const loginForm = document.getElementById('login-form');
+    const registerForm = document.getElementById('register-form');
+    const logoutButton = document.getElementById('logout-button');
+    const startVerificationButton = document.getElementById('start-verification-button');
+    const generateTestImageButton = document.getElementById('generate-test-image-button');
+    const verificationProgress = document.getElementById('verification-progress');
+    const verificationStatus = document.getElementById('verification-status');
+    const verificationResult = document.getElementById('verification-result');
+    const attributesContainer = document.getElementById('attributes-container');
+    const resultConfidence = document.getElementById('result-confidence');
+    const resultStatus = document.getElementById('result-status');
+    const resultAge = document.getElementById('result-age');
+    const resultGender = document.getElementById('result-gender');
+    const resultRace = document.getElementById('result-race');
+    const resultEmotion = document.getElementById('result-emotion');
+    const verificationAuthRequired = document.getElementById('verification-auth-required');
+    const verificationAuthenticated = document.getElementById('verification-authenticated');
+    const profileAuthRequired = document.getElementById('profile-auth-required');
+    const profileAuthenticated = document.getElementById('profile-authenticated');
+    const profileName = document.getElementById('profile-name');
+    const profileUsername = document.getElementById('profile-username');
+    const profileEmail = document.getElementById('profile-email');
+    const profileMemberSince = document.getElementById('profile-member-since');
+    const userAvatar = document.getElementById('user-avatar');
+    const verifiedBadge = document.getElementById('verified-badge');
+    const verifiedStatus = document.getElementById('verified-status');
+    const toastContainer = document.getElementById('toast-container');
+    
+    // State
+    let currentUser = null;
+    let stream = null;
+    let verificationInterval = null;
+    let verificationInProgress = false;
+    
+    // Initialize
+    init();
+    
+    // Functions
+    async function init() {
+      setupTabNavigation();
+      setupEventListeners();
+      await checkCurrentUser();
+      updateAuthUI();
+    }
+    
+    function setupTabNavigation() {
+      tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          tabs.forEach(t => t.classList.remove('active'));
+          tabContents.forEach(tc => tc.classList.remove('active'));
+          
+          tab.classList.add('active');
+          const tabId = tab.getAttribute('data-tab') + '-tab';
+          document.getElementById(tabId).classList.add('active');
+        });
+      });
+    }
+    
+    function setupEventListeners() {
+      loginForm.addEventListener('submit', handleLogin);
+      registerForm.addEventListener('submit', handleRegister);
+      logoutButton.addEventListener('click', handleLogout);
+      startVerificationButton.addEventListener('click', handleStartVerification);
+      generateTestImageButton.addEventListener('click', handleGenerateTestImage);
+    }
+    
+    async function checkCurrentUser() {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+          credentials: 'include'
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          currentUser = data.user;
+          return true;
+        } else {
+          currentUser = null;
+          return false;
+        }
+      } catch (error) {
+        console.error('Error checking current user:', error);
+        currentUser = null;
+        return false;
+      }
+    }
+    
+    function updateAuthUI() {
+      if (currentUser) {
+        // Update verification tab
+        verificationAuthRequired.classList.add('hidden');
+        verificationAuthenticated.classList.remove('hidden');
+        
+        // Update profile tab
+        profileAuthRequired.classList.add('hidden');
+        profileAuthenticated.classList.remove('hidden');
+        
+        // Update profile data
+        profileName.textContent = `${currentUser.firstName} ${currentUser.lastName}`;
+        profileUsername.textContent = currentUser.username;
+        profileEmail.textContent = currentUser.email;
+        profileMemberSince.textContent = formatDate(currentUser.memberSince);
+        userAvatar.textContent = getInitials(`${currentUser.firstName} ${currentUser.lastName}`);
+        
+        // Update verification status
+        if (currentUser.isVerified) {
+          verifiedStatus.textContent = 'Verified';
+          verifiedBadge.classList.add('verified');
+        } else {
+          verifiedStatus.textContent = 'Not Verified';
+          verifiedBadge.classList.remove('verified');
+        }
+      } else {
+        // Update verification tab
+        verificationAuthRequired.classList.remove('hidden');
+        verificationAuthenticated.classList.add('hidden');
+        
+        // Update profile tab
+        profileAuthRequired.classList.remove('hidden');
+        profileAuthenticated.classList.add('hidden');
+      }
+    }
+    
+    async function handleLogin(event) {
+      event.preventDefault();
+      
+      const username = document.getElementById('login-username').value;
+      const password = document.getElementById('login-password').value;
+      
+      if (!username || !password) {
+        showToast('Error', 'Please fill in all fields', 'error');
+        return;
+      }
+      
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ username, password }),
+          credentials: 'include'
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          currentUser = data.user;
+          updateAuthUI();
+          showToast('Success', 'Login successful', 'success');
+          
+          // Switch to verification tab if not verified, otherwise to profile
+          if (!currentUser.isVerified) {
+            tabs.forEach(t => t.classList.remove('active'));
+            tabContents.forEach(tc => tc.classList.remove('active'));
+            
+            document.querySelector('[data-tab="verification"]').classList.add('active');
+            document.getElementById('verification-tab').classList.add('active');
+          } else {
+            tabs.forEach(t => t.classList.remove('active'));
+            tabContents.forEach(tc => tc.classList.remove('active'));
+            
+            document.querySelector('[data-tab="profile"]').classList.add('active');
+            document.getElementById('profile-tab').classList.add('active');
+          }
+        } else {
+          const errorData = await response.json();
+          showToast('Error', errorData.error || 'Login failed', 'error');
+        }
+      } catch (error) {
+        console.error('Login error:', error);
+        showToast('Error', 'Connection error', 'error');
+      }
+    }
+    
+    async function handleRegister(event) {
+      event.preventDefault();
+      
+      const firstName = document.getElementById('register-firstname').value;
+      const lastName = document.getElementById('register-lastname').value;
+      const username = document.getElementById('register-username').value;
+      const email = document.getElementById('register-email').value;
+      const password = document.getElementById('register-password').value;
+      
+      if (!firstName || !lastName || !username || !email || !password) {
+        showToast('Error', 'Please fill in all fields', 'error');
+        return;
+      }
+      
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ firstName, lastName, username, email, password }),
+          credentials: 'include'
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          currentUser = data.user;
+          updateAuthUI();
+          showToast('Success', 'Registration successful', 'success');
+          
+          // Switch to verification tab
+          tabs.forEach(t => t.classList.remove('active'));
+          tabContents.forEach(tc => tc.classList.remove('active'));
+          
+          document.querySelector('[data-tab="verification"]').classList.add('active');
+          document.getElementById('verification-tab').classList.add('active');
+        } else {
+          const errorData = await response.json();
+          showToast('Error', errorData.error || 'Registration failed', 'error');
+        }
+      } catch (error) {
+        console.error('Registration error:', error);
+        showToast('Error', 'Connection error', 'error');
+      }
+    }
+    
+    async function handleLogout() {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/auth/logout`, {
+          method: 'POST',
+          credentials: 'include'
+        });
+        
+        if (response.ok) {
+          currentUser = null;
+          updateAuthUI();
+          showToast('Success', 'Logged out successfully', 'success');
+          
+          // Switch to login tab
+          tabs.forEach(t => t.classList.remove('active'));
+          tabContents.forEach(tc => tc.classList.remove('active'));
+          
+          document.querySelector('[data-tab="login"]').classList.add('active');
+          document.getElementById('login-tab').classList.add('active');
+        } else {
+          const errorData = await response.json();
+          showToast('Error', errorData.error || 'Logout failed', 'error');
+        }
+      } catch (error) {
+        console.error('Logout error:', error);
+        showToast('Error', 'Connection error', 'error');
+      }
+    }
+    
+    async function handleStartVerification() {
+      if (verificationInProgress) {
+        return;
+      }
+      
+      try {
+        // Setup webcam
+        const video = document.getElementById('webcam');
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = stream;
+        
+        // Reset UI
+        verificationProgress.style.width = '0%';
+        verificationStatus.textContent = 'Scanning face...';
+        verificationStatus.className = 'status-text info-text';
+        verificationResult.classList.add('hidden');
+        attributesContainer.classList.add('hidden');
+        
+        // Disable button
+        startVerificationButton.disabled = true;
+        startVerificationButton.innerHTML = '<span class="loading"></span>Verifying...';
+        verificationInProgress = true;
+        
+        // Wait for video to load
+        await new Promise(resolve => {
+          video.onloadedmetadata = () => {
+            resolve();
+          };
+        });
+        
+        // Let video play for a moment to adjust exposure
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Capture frame
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        // Get base64 image data
+        const imageBase64 = canvas.toDataURL('image/jpeg').split(',')[1];
+        
+        // Update progress
+        verificationProgress.style.width = '50%';
+        verificationStatus.textContent = 'Processing...';
+        
+        // Send to server
+        const response = await fetch(`${API_BASE_URL}/api/verification/face`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ imageBase64 }),
+          credentials: 'include'
+        });
+        
+        // Update progress
+        verificationProgress.style.width = '100%';
+        
+        if (response.ok) {
+          const result = await response.json();
+          displayVerificationResult(result);
+          
+          // Refresh user data to update verification status
+          await checkCurrentUser();
+          updateAuthUI();
+        } else {
+          const errorData = await response.json();
+          verificationStatus.textContent = errorData.error || 'Verification failed';
+          verificationStatus.className = 'status-text error-text';
+        }
+      } catch (error) {
+        console.error('Verification error:', error);
+        verificationStatus.textContent = 'Error accessing camera or processing image';
+        verificationStatus.className = 'status-text error-text';
+      } finally {
+        // Clean up
+        if (stream) {
+          stream.getTracks().forEach(track => track.stop());
+        }
+        
+        // Re-enable button
+        startVerificationButton.disabled = false;
+        startVerificationButton.textContent = 'Start Verification';
+        verificationInProgress = false;
+      }
+    }
+    
+    async function handleGenerateTestImage() {
+      try {
+        startVerificationButton.disabled = true;
+        generateTestImageButton.disabled = true;
+        generateTestImageButton.innerHTML = '<span class="loading"></span>Generating...';
+        
+        const response = await fetch(`${API_BASE_URL}/api/generate-test-image`);
+        
+        if (response.ok) {
+          const data = await response.json();
+          
+          if (data.success && data.imageBase64) {
+            // Create test image
+            const img = document.createElement('img');
+            img.src = `data:image/jpeg;base64,${data.imageBase64}`;
+            img.style.maxWidth = '100%';
+            img.style.borderRadius = '8px';
+            img.style.marginBottom = '1rem';
+            
+            // Replace webcam with test image
+            const webcamContainer = document.getElementById('webcam-container');
+            webcamContainer.innerHTML = '';
+            webcamContainer.appendChild(img);
+            
+            showToast('Success', 'Test image generated', 'success');
+            
+            // Simulate progress
+            verificationProgress.style.width = '0%';
+            verificationStatus.textContent = 'Using test image...';
+            verificationStatus.className = 'status-text info-text';
+            
+            // Send image to verification API
+            const verifyResponse = await fetch(`${API_BASE_URL}/api/verification/face`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ imageBase64: data.imageBase64 }),
+              credentials: 'include'
+            });
+            
+            // Update progress
+            verificationProgress.style.width = '100%';
+            
+            if (verifyResponse.ok) {
+              const result = await verifyResponse.json();
+              displayVerificationResult(result);
+              
+              // Refresh user data to update verification status
+              await checkCurrentUser();
+              updateAuthUI();
+            } else {
+              const errorData = await verifyResponse.json();
+              verificationStatus.textContent = errorData.error || 'Verification failed';
+              verificationStatus.className = 'status-text error-text';
+            }
+          } else {
+            showToast('Error', 'Failed to generate test image', 'error');
+            verificationStatus.textContent = 'Failed to generate test image';
+            verificationStatus.className = 'status-text error-text';
+          }
+        } else {
+          showToast('Error', 'Failed to generate test image', 'error');
+          verificationStatus.textContent = 'Failed to generate test image';
+          verificationStatus.className = 'status-text error-text';
+        }
+      } catch (error) {
+        console.error('Generate test image error:', error);
+        showToast('Error', 'Failed to generate test image', 'error');
+        verificationStatus.textContent = 'Error generating test image';
+        verificationStatus.className = 'status-text error-text';
+      } finally {
+        // Reset UI
+        startVerificationButton.disabled = false;
+        generateTestImageButton.disabled = false;
+        generateTestImageButton.textContent = 'Generate Test Image';
+      }
+    }
+    
+    function displayVerificationResult(result) {
+      verificationResult.classList.remove('hidden');
+      
+      const confidence = (result.confidence * 100).toFixed(2);
+      resultConfidence.textContent = `${confidence}%`;
+      
+      if (result.success) {
+        verificationStatus.textContent = 'Verification successful';
+        verificationStatus.className = 'status-text success-text';
+        resultStatus.textContent = 'Verified';
+        resultStatus.className = 'attribute-value success-text';
+        
+        // Show attributes if available
+        if (result.results) {
+          attributesContainer.classList.remove('hidden');
+          
+          resultAge.textContent = result.results.age || 'Unknown';
+          resultGender.textContent = capitalize(result.results.gender) || 'Unknown';
+          resultRace.textContent = capitalize(result.results.dominant_race) || 'Unknown';
+          resultEmotion.textContent = capitalize(result.results.dominant_emotion) || 'Unknown';
+        }
+      } else {
+        verificationStatus.textContent = result.message || 'Verification failed';
+        verificationStatus.className = 'status-text error-text';
+        resultStatus.textContent = 'Failed';
+        resultStatus.className = 'attribute-value error-text';
+        attributesContainer.classList.add('hidden');
+      }
+    }
+    
+    function showToast(title, message, type = 'info') {
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+      
+      let icon = '';
+      switch (type) {
+        case 'success':
+          icon = '<svg class="toast-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#4caf50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>';
+          break;
+        case 'error':
+          icon = '<svg class="toast-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#f44336" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>';
+          break;
+        case 'warning':
+          icon = '<svg class="toast-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#ff9800" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>';
+          break;
+        default:
+          icon = '<svg class="toast-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#2196f3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>';
+      }
+      
+      toast.innerHTML = `
+        ${icon}
+        <div class="toast-content">
+          <div class="toast-title">${title}</div>
+          <div class="toast-message">${message}</div>
+        </div>
+      `;
+      
+      toastContainer.appendChild(toast);
+      
+      // Remove toast after animation completes
+      setTimeout(() => {
+        toast.remove();
+      }, 3000);
+    }
+    
+    // Helper Functions
+    function formatDate(dateString) {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    }
+    
+    function getInitials(name) {
+      return name
+        .split(' ')
+        .map(part => part.charAt(0).toUpperCase())
+        .slice(0, 2)
+        .join('');
+    }
+    
+    function capitalize(str) {
+      if (!str) return '';
+      return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+  </script>
+</body>
 </html>
