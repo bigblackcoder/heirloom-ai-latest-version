@@ -15,6 +15,7 @@ import Profile from "./pages/profile";
 import Verification from "./pages/verification";
 import Capsule from "./pages/capsule";
 import Notifications from "./pages/notifications";
+import AnimationsDemo from "./pages/animations-demo";
 import NotFound from "./pages/not-found";
 import ProtectedRoute from "./components/protected-route";
 
@@ -50,6 +51,7 @@ function Router() {
             <Notifications />
           </ProtectedRoute>
         </Route>
+        <Route path="/animations-demo" component={AnimationsDemo} />
         <Route component={NotFound} />
       </Switch>
     </ResponsiveLayout>

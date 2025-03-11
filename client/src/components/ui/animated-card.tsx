@@ -1,8 +1,8 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { useScrollAnimation } from "@/hooks/use-animations";
 import { cn } from "@/lib/utils";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { useScrollAnimation } from "@/hooks/use-animations";
 
 interface AnimatedCardProps {
   children: React.ReactNode;
@@ -31,153 +31,136 @@ export function AnimatedCard({
   animationDelay = 0,
   animationDirection = "up",
 }: AnimatedCardProps) {
-  const [ref, isVisible] = useScrollAnimation<HTMLDivElement>();
+  const [ref, isVisible] = useScrollAnimation();
 
   // Animation variants
-  const fadeVariants = {
-    hidden: { 
-      opacity: 0,
-      y: animationDirection === "up" ? 20 : 
-         animationDirection === "down" ? -20 : 0,
-      x: animationDirection === "left" ? 20 : 
-         animationDirection === "right" ? -20 : 0,
-    },
-    visible: { 
-      opacity: 1, 
-      y: 0, 
-      x: 0,
-      transition: { 
-        duration: 0.5, 
-        delay: animationDelay,
-        ease: "easeOut"
+  const variants = {
+    fade: {
+      hidden: { opacity: 0, y: 10 },
+      visible: { 
+        opacity: 1, 
+        y: 0,
+        transition: { 
+          duration: 0.5,
+          delay: animationDelay
+        }
       }
+    },
+    slide: {
+      hidden: { 
+        opacity: 0,
+        x: animationDirection === "left" ? -50 : 
+           animationDirection === "right" ? 50 : 0,
+        y: animationDirection === "up" ? 50 : 
+           animationDirection === "down" ? -50 : 0
+      },
+      visible: { 
+        opacity: 1, 
+        x: 0, 
+        y: 0,
+        transition: { 
+          type: "spring", 
+          damping: 25, 
+          stiffness: 500,
+          delay: animationDelay
+        }
+      }
+    },
+    scale: {
+      hidden: { opacity: 0, scale: 0.8 },
+      visible: { 
+        opacity: 1, 
+        scale: 1,
+        transition: { 
+          duration: 0.5,
+          delay: animationDelay
+        }
+      }
+    },
+    tilt: {
+      hidden: { 
+        opacity: 0, 
+        rotateX: 10, 
+        rotateY: 10, 
+        y: 20 
+      },
+      visible: { 
+        opacity: 1, 
+        rotateX: 0, 
+        rotateY: 0, 
+        y: 0,
+        transition: { 
+          duration: 0.6,
+          delay: animationDelay
+        }
+      }
+    },
+    none: {
+      hidden: { opacity: 1 },
+      visible: { opacity: 1 }
     }
   };
 
-  const slideVariants = {
-    hidden: { 
-      x: animationDirection === "left" ? -50 : 
-         animationDirection === "right" ? 50 : 0,
-      y: animationDirection === "up" ? 50 : 
-         animationDirection === "down" ? -50 : 0,
-      opacity: 0
-    },
-    visible: { 
-      x: 0, 
-      y: 0, 
-      opacity: 1,
-      transition: { 
-        type: "spring", 
-        stiffness: 100, 
-        damping: 15,
-        delay: animationDelay
-      }
-    }
-  };
-
-  const scaleVariants = {
-    hidden: { scale: 0.8, opacity: 0 },
-    visible: { 
-      scale: 1, 
-      opacity: 1,
-      transition: { 
-        duration: 0.5, 
-        delay: animationDelay,
-        ease: "easeOut"
-      }
-    }
-  };
-
-  const tiltVariants = {
-    hidden: { 
-      opacity: 0,
-      rotateX: animationDirection === "up" || animationDirection === "down" ? 15 : 0,
-      rotateY: animationDirection === "left" || animationDirection === "right" ? 15 : 0,
-      scale: 0.95
-    },
-    visible: { 
-      opacity: 1, 
-      rotateX: 0, 
-      rotateY: 0,
-      scale: 1,
-      transition: { 
-        duration: 0.6, 
-        delay: animationDelay,
-        ease: "easeOut"
-      }
-    }
-  };
-
-  // Hover animation variant
-  const hoverVariants = {
-    rest: { 
-      scale: 1,
-      boxShadow: "0 2px 10px rgba(0, 0, 0, 0.1)",
-    },
-    hover: { 
-      scale: 1.02,
-      boxShadow: "0 10px 20px rgba(0, 0, 0, 0.15)",
-      transition: { duration: 0.3, ease: "easeOut" }
-    },
-  };
-
-  // Select the appropriate variant based on animationType
-  let selectedVariant;
-  switch (animationType) {
-    case "fade":
-      selectedVariant = fadeVariants;
-      break;
-    case "slide":
-      selectedVariant = slideVariants;
-      break;
-    case "scale":
-      selectedVariant = scaleVariants;
-      break;
-    case "tilt":
-      selectedVariant = tiltVariants;
-      break;
-    default:
-      selectedVariant = fadeVariants;
-  }
-
-  const cardContent = (
-    <Card className={cn("relative overflow-hidden", className)}>
-      {title || description ? (
-        <CardHeader className={headerClassName}>
-          {title && <CardTitle>{title}</CardTitle>}
-          {description && <CardDescription>{description}</CardDescription>}
-        </CardHeader>
-      ) : null}
-      <CardContent className={contentClassName}>{children}</CardContent>
-      {footer && <CardFooter className={footerClassName}>{footer}</CardFooter>}
-    </Card>
-  );
-
+  // Base component when no animation is needed
   if (animationType === "none") {
-    return <div ref={ref}>{cardContent}</div>;
+    return (
+      <Card className={className}>
+        {(title || description) && (
+          <CardHeader className={headerClassName}>
+            {title}
+            {description}
+          </CardHeader>
+        )}
+        <CardContent className={contentClassName}>{children}</CardContent>
+        {footer && <CardFooter className={footerClassName}>{footer}</CardFooter>}
+      </Card>
+    );
   }
 
+  // Card with hover animation
   if (animationType === "hover") {
     return (
       <motion.div
-        initial="rest"
-        whileHover="hover"
-        variants={hoverVariants}
+        className={cn("h-full", className)}
+        whileHover={{ 
+          y: -5, 
+          boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)" 
+        }}
+        transition={{ duration: 0.2 }}
       >
-        {cardContent}
+        <Card className="h-full transition-all duration-200">
+          {(title || description) && (
+            <CardHeader className={headerClassName}>
+              {title}
+              {description}
+            </CardHeader>
+          )}
+          <CardContent className={contentClassName}>{children}</CardContent>
+          {footer && <CardFooter className={footerClassName}>{footer}</CardFooter>}
+        </Card>
       </motion.div>
     );
   }
 
+  // Animated card with scroll reveal
   return (
     <motion.div
       ref={ref}
+      className={cn("h-full", className)}
       initial="hidden"
       animate={isVisible ? "visible" : "hidden"}
-      variants={selectedVariant}
-      style={{ perspective: 1000 }} // For 3D effects like tilt
+      variants={variants[animationType]}
     >
-      {cardContent}
+      <Card className="h-full">
+        {(title || description) && (
+          <CardHeader className={headerClassName}>
+            {title}
+            {description}
+          </CardHeader>
+        )}
+        <CardContent className={contentClassName}>{children}</CardContent>
+        {footer && <CardFooter className={footerClassName}>{footer}</CardFooter>}
+      </Card>
     </motion.div>
   );
 }

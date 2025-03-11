@@ -1,8 +1,8 @@
-import React, { ButtonHTMLAttributes, useState } from "react";
+import React, { ButtonHTMLAttributes } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { useRippleEffect } from "@/hooks/use-animations";
 import { cn } from "@/lib/utils";
+import { useRippleEffect } from "@/hooks/use-animations";
 
 interface AnimatedButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   children: React.ReactNode;
@@ -30,127 +30,163 @@ export function AnimatedButton({
   isLoading = false,
   ...props
 }: AnimatedButtonProps) {
-  const [isTapped, setIsTapped] = useState(false);
-  const { ripples, addRipple, styles: rippleContainerStyles, rippleStyles } = useRippleEffect();
+  // For ripple effect
+  const { ripples, addRipple, styles, rippleStyles } = useRippleEffect();
   
-  // Animation variants
-  const animationVariants = {
-    scale: {
-      rest: { scale: 1 },
-      hover: { scale: 1.03 },
-      tap: { scale: 0.97 },
-    },
-    pulse: {
-      rest: { boxShadow: "0 0 0 0 rgba(30, 60, 13, 0)" },
-      hover: { 
-        boxShadow: [
-          "0 0 0 0 rgba(30, 60, 13, 0.4)",
-          "0 0 0 8px rgba(30, 60, 13, 0)",
-        ],
-        transition: {
-          boxShadow: {
-            repeat: Infinity,
-            duration: 2,
-          },
-        },
-      },
-      tap: { scale: 0.97 },
-    },
-    bounce: {
-      rest: { y: 0 },
-      hover: { y: -3 },
-      tap: { y: 1 },
-    },
-    shadow: {
-      rest: { 
-        y: 0,
-        boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)" 
-      },
-      hover: { 
-        y: -2,
-        boxShadow: "0 5px 10px rgba(0, 0, 0, 0.15)" 
-      },
-      tap: { 
-        y: 0,
-        boxShadow: "0 2px 3px rgba(0, 0, 0, 0.1)" 
-      },
-    },
-    none: {},
-  };
-
-  // Set animation variant based on type prop
-  const currentVariant = animationType !== "ripple" && animationType !== "none" 
-    ? animationVariants[animationType] 
-    : undefined;
-
-  const handleRippleClick = (e: React.MouseEvent) => {
-    if (animationType === "ripple") {
-      addRipple(e);
-    }
-  };
-  
-  return (
-    <motion.div
-      className="inline-block"
-      initial="rest"
-      whileHover="hover"
-      whileTap="tap"
-      animate={isTapped ? "tap" : "rest"}
-      variants={currentVariant}
+  // Loading spinner component
+  const LoadingSpinner = () => (
+    <svg 
+      className="animate-spin -ml-1 mr-2 h-4 w-4" 
+      xmlns="http://www.w3.org/2000/svg" 
+      fill="none" 
+      viewBox="0 0 24 24"
     >
-      <Button
-        variant={variant}
-        size={size}
-        className={cn(
-          "relative overflow-hidden",
-          animationType === "ripple" && "overflow-hidden",
-          className
-        )}
-        style={animationType === "ripple" ? rippleContainerStyles : undefined}
-        onClick={animationType === "ripple" ? handleRippleClick : undefined}
-        onMouseDown={() => setIsTapped(true)}
-        onMouseUp={() => setIsTapped(false)}
-        onMouseLeave={() => setIsTapped(false)}
-        disabled={isLoading || props.disabled}
-        {...props}
-      >
-        {isLoading && (
-          <motion.div 
-            className="mr-2" 
-            animate={{ rotate: 360 }}
-            transition={{
-              repeat: Infinity,
-              duration: 1,
-              ease: "linear"
-            }}
-          >
-            <svg 
-              className="w-4 h-4" 
-              viewBox="0 0 24 24" 
-              fill="none" 
-              stroke="currentColor" 
-              strokeWidth="2"
-            >
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeOpacity="0.25" fill="none" />
-              <path 
-                className="opacity-75" 
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                fill="currentColor" 
-              />
-            </svg>
-          </motion.div>
-        )}
-        
-        {children}
-        
-        {/* Ripple effect */}
-        {animationType === "ripple" && ripples.map(ripple => (
-          <span
-            key={ripple.id}
-            style={rippleStyles(ripple.x, ripple.y)}
-          />
-        ))}
-      </Button>
-    </motion.div>
+      <circle 
+        className="opacity-25" 
+        cx="12" 
+        cy="12" 
+        r="10" 
+        stroke="currentColor" 
+        strokeWidth="4"
+      ></circle>
+      <path 
+        className="opacity-75" 
+        fill="currentColor" 
+        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+      ></path>
+    </svg>
   );
+  
+  // Button content with loading state
+  const ButtonContent = () => (
+    <>
+      {isLoading && <LoadingSpinner />}
+      {children}
+    </>
+  );
+  
+  // Different animation variants
+  switch (animationType) {
+    case "scale":
+      return (
+        <motion.div
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          transition={{ duration: 0.2 }}
+        >
+          <Button 
+            variant={variant} 
+            size={size}
+            className={className}
+            disabled={isLoading || props.disabled}
+            {...props}
+          >
+            <ButtonContent />
+          </Button>
+        </motion.div>
+      );
+      
+    case "pulse":
+      return (
+        <motion.div
+          whileHover={{ 
+            boxShadow: "0 0 8px rgba(30, 60, 13, 0.5)",
+            transition: { duration: 0.3, repeat: Infinity, repeatType: "reverse" }
+          }}
+          whileTap={{ scale: 0.95 }}
+        >
+          <Button 
+            variant={variant} 
+            size={size}
+            className={className}
+            disabled={isLoading || props.disabled}
+            {...props}
+          >
+            <ButtonContent />
+          </Button>
+        </motion.div>
+      );
+      
+    case "bounce":
+      return (
+        <motion.div
+          whileHover={{ y: [0, -6, 0], transition: { repeat: Infinity, duration: 1 } }}
+          whileTap={{ scale: 0.9 }}
+        >
+          <Button 
+            variant={variant} 
+            size={size}
+            className={className}
+            disabled={isLoading || props.disabled}
+            {...props}
+          >
+            <ButtonContent />
+          </Button>
+        </motion.div>
+      );
+      
+    case "shadow":
+      return (
+        <motion.div
+          whileHover={{ 
+            boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+            y: -2
+          }}
+          whileTap={{ boxShadow: "0 0 0 rgba(0, 0, 0, 0)", y: 0 }}
+          transition={{ duration: 0.2 }}
+        >
+          <Button 
+            variant={variant} 
+            size={size}
+            className={className}
+            disabled={isLoading || props.disabled}
+            {...props}
+          >
+            <ButtonContent />
+          </Button>
+        </motion.div>
+      );
+      
+    case "ripple":
+      return (
+        <Button 
+          variant={variant} 
+          size={size}
+          className={cn("relative overflow-hidden", className)}
+          style={styles}
+          disabled={isLoading || props.disabled}
+          onClick={(e) => {
+            addRipple(e);
+            props.onClick?.(e);
+          }}
+          {...props}
+        >
+          <ButtonContent />
+          {ripples.map((ripple) => (
+            <span
+              key={ripple.id}
+              style={{
+                ...rippleStyles(ripple.x, ripple.y),
+                position: "absolute",
+              }}
+              className="animate-ripple rounded-full bg-white/30 opacity-0"
+            />
+          ))}
+        </Button>
+      );
+      
+    case "none":
+    default:
+      return (
+        <Button 
+          variant={variant} 
+          size={size}
+          className={className}
+          disabled={isLoading || props.disabled}
+          {...props}
+        >
+          <ButtonContent />
+        </Button>
+      );
+  }
 }

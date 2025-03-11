@@ -28,7 +28,7 @@ export function AnimatedList({
   animationDirection = "up",
   delayInitial = 0,
 }: AnimatedListProps) {
-  const [ref, isVisible] = useScrollAnimation<HTMLDivElement>();
+  const [ref, isVisible] = useScrollAnimation();
   
   // Get React children as array
   const childrenArray = React.Children.toArray(children);
