@@ -21,19 +21,37 @@ async function throwIfResNotOk(res: Response) {
 }
 
 export async function apiRequest<TData = unknown>(
-  url: string,
+  urlOrOptions: string | {
+    url: string;
+    method?: string;
+    body?: Record<string, any>;
+  },
   options: RequestInit = {},
 ): Promise<TData> {
+  let url: string;
+  let finalOptions: RequestInit = { ...options };
+  
+  // Handle both parameter formats
+  if (typeof urlOrOptions === 'string') {
+    url = urlOrOptions;
+  } else {
+    url = urlOrOptions.url;
+    finalOptions.method = urlOrOptions.method || 'GET';
+    if (urlOrOptions.body) {
+      finalOptions.body = JSON.stringify(urlOrOptions.body);
+    }
+  }
+  
   const defaultHeaders: HeadersInit = {
     "Content-Type": "application/json",
   };
 
   const opts: RequestInit = {
     credentials: "include",
-    ...options,
+    ...finalOptions,
     headers: {
       ...defaultHeaders,
-      ...options.headers,
+      ...finalOptions.headers,
     },
   };
 

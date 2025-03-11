@@ -121,7 +121,7 @@ export function useFaceVerification() {
       const response = await apiRequest({
         url: '/api/verification/face',
         method: 'POST',
-        body: { image: imageData },
+        body: { imageBase64: imageData },
       }) as VerificationResponse;
       
       // If verification was successful
