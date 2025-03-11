@@ -1,45 +1,37 @@
 /**
- * Heirloom Identity Platform - Vite Integration Server
- * Serves the React frontend through Vite and integrates with the Express backend
+ * Heirloom Identity Platform - Development Server
+ * This script starts the Vite development server for the React frontend
+ * and provides API endpoints for the backend.
  */
 
 const express = require('express');
-const cors = require('cors');
 const { createServer } = require('http');
-const { exec } = require('child_process');
-const path = require('path');
-const fs = require('fs');
+const cors = require('cors');
 const session = require('express-session');
 const MemoryStore = require('memorystore')(session);
+const path = require('path');
+const { execSync } = require('child_process');
+const { spawn } = require('child_process');
+const { createServer: createViteServer } = require('vite');
 
-// Kill any existing server processes
-try {
-  if (fs.existsSync(path.join(__dirname, 'server.pid'))) {
-    const pid = fs.readFileSync(path.join(__dirname, 'server.pid'), 'utf8');
-    if (pid) {
-      console.log(`Stopping existing server process (PID: ${pid})...`);
-      try {
-        process.kill(Number(pid), 'SIGTERM');
-      } catch (error) {
-        console.log(`Failed to stop process ${pid}:`, error.message);
-      }
-    }
-  }
-} catch (error) {
-  console.log('No existing server process found or error stopping it');
-}
-
-// Create Express app
+// Create Express app and HTTP server
 const app = express();
 const server = createServer(app);
 
-// Enable CORS
+// Kill any existing server processes
+try {
+  execSync('pkill -f "node.*pure-server.js"', { stdio: 'ignore' });
+  console.log('Stopped any existing server processes');
+} catch (error) {
+  // Ignore errors if no process was found
+}
+
+// Configure middleware
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:5000', 'http://localhost:5173', 'https://*.replit.dev', 'https://*.replit.app'],
+  origin: ['http://localhost:3000', 'http://localhost:5000', 'http://localhost:5173'],
   credentials: true
 }));
 
-// Parse JSON request bodies
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true }));
 
@@ -54,6 +46,10 @@ app.use(session({
   })
 }));
 
+// In-memory storage for development
+const users = new Map();
+let nextUserId = 1;
+
 // API Routes
 app.post('/api/auth/register', async (req, res) => {
   try {
@@ -63,23 +59,34 @@ app.post('/api/auth/register', async (req, res) => {
       return res.status(400).json({ error: "All fields are required" });
     }
     
-    // Mock user creation for development
+    // Check if username exists
+    for (const user of users.values()) {
+      if (user.username === username) {
+        return res.status(409).json({ error: "Username already exists" });
+      }
+    }
+    
+    // Create user
     const user = {
-      id: Math.floor(Math.random() * 10000),
+      id: nextUserId++,
       firstName,
       lastName,
       username,
       email,
+      password, // In a real app, we'd hash this
       isVerified: false,
-      memberSince: new Date().toISOString()
+      memberSince: new Date().toISOString(),
+      avatar: null
     };
     
-    // Set session
-    if (req.session) {
-      req.session.userId = user.id;
-    }
+    users.set(user.id, user);
     
-    return res.status(201).json({ user });
+    // Set session
+    req.session.userId = user.id;
+    
+    // Return user without password
+    const { password: _, ...userWithoutPassword } = user;
+    return res.status(201).json({ user: userWithoutPassword });
   } catch (error) {
     console.error('Registration error:', error);
     return res.status(500).json({ error: "Registration failed" });
@@ -94,23 +101,37 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(400).json({ error: "Username and password are required" });
     }
     
-    // Mock successful login for development
-    const user = {
-      id: Math.floor(Math.random() * 10000),
-      firstName: "Test",
-      lastName: "User",
-      username,
-      email: `${username}@example.com`,
-      isVerified: false,
-      memberSince: new Date().toISOString()
-    };
-    
-    // Set session
-    if (req.session) {
-      req.session.userId = user.id;
+    // Find user
+    let foundUser = null;
+    for (const user of users.values()) {
+      if (user.username === username) {
+        foundUser = user;
+        break;
+      }
     }
     
-    return res.json({ user });
+    if (!foundUser) {
+      // For development, create a mock user if none exists
+      foundUser = {
+        id: nextUserId++,
+        firstName: "Test",
+        lastName: "User",
+        username,
+        email: `${username}@example.com`,
+        password,
+        isVerified: false,
+        memberSince: new Date().toISOString(),
+        avatar: null
+      };
+      users.set(foundUser.id, foundUser);
+    }
+    
+    // Set session
+    req.session.userId = foundUser.id;
+    
+    // Return user without password
+    const { password: _, ...userWithoutPassword } = foundUser;
+    return res.json({ user: userWithoutPassword });
   } catch (error) {
     console.error('Login error:', error);
     return res.status(500).json({ error: "Login failed" });
@@ -145,18 +166,15 @@ app.get('/api/auth/me', async (req, res) => {
       return res.status(401).json({ error: "Not authenticated" });
     }
     
-    // Mock user data for development
-    const user = {
-      id: req.session.userId,
-      firstName: "Test",
-      lastName: "User",
-      username: "testuser",
-      email: "test@example.com",
-      isVerified: true,
-      memberSince: new Date().toISOString()
-    };
+    // Get user from memory
+    const user = users.get(req.session.userId);
+    if (!user) {
+      return res.status(401).json({ error: "User not found" });
+    }
     
-    return res.json({ user });
+    // Return user without password
+    const { password, ...userWithoutPassword } = user;
+    return res.json({ user: userWithoutPassword });
   } catch (error) {
     console.error('Get current user error:', error);
     return res.status(500).json({ error: "Failed to get user data" });
@@ -171,9 +189,9 @@ app.post('/api/verification/face', async (req, res) => {
       return res.status(401).json({ error: "Not authenticated" });
     }
     
-    const { imageBase64 } = req.body;
+    const { image } = req.body;
     
-    if (!imageBase64) {
+    if (!image) {
       return res.status(400).json({ 
         success: false, 
         message: 'No image data provided' 
@@ -181,7 +199,7 @@ app.post('/api/verification/face', async (req, res) => {
     }
     
     // For development, mock a successful verification
-    return res.json({
+    const verificationResult = {
       success: true,
       confidence: 0.95,
       results: {
@@ -190,13 +208,22 @@ app.post('/api/verification/face', async (req, res) => {
         dominant_race: "white",
         dominant_emotion: "neutral"
       }
-    });
+    };
+    
+    // Update user's verification status
+    const user = users.get(req.session.userId);
+    if (user) {
+      user.isVerified = true;
+      users.set(user.id, user);
+    }
+    
+    return res.json(verificationResult);
   } catch (error) {
     console.error('Face verification error:', error);
     return res.status(500).json({ 
       success: false,
       message: "Face verification failed",
-      details: error instanceof Error ? error.message : String(error)
+      details: error.message
     });
   }
 });
@@ -307,64 +334,50 @@ app.get('/api/activities', async (req, res) => {
   }
 });
 
-// Determine which port to use
-const PORT = process.env.PORT || 5173;
-
-// Setup Vite dev server if in development environment
-async function createViteDevServer() {
-  const { createServer } = await import('vite');
-  return createServer({
-    root: path.join(__dirname, 'client'),
-    server: {
-      middlewareMode: true,
-      hmr: {
-        server: server
-      }
-    }
-  });
-}
+// Health check endpoint
+app.get('/healthcheck', (_req, res) => {
+  res.json({ status: 'ok' });
+});
 
 async function startServer() {
   try {
-    // Start Vite dev server
-    const vite = await createViteDevServer();
+    // Create Vite server
+    const vite = await createViteServer({
+      root: path.join(__dirname, 'client'),
+      server: {
+        middlewareMode: true,
+        hmr: {
+          server
+        }
+      }
+    });
     
-    // Use Vite's middleware
+    // Use Vite middlewares
     app.use(vite.middlewares);
     
     // Fallback for SPA routing
     app.use('*', async (req, res, next) => {
-      // Exclude API routes
+      // Skip API routes
       if (req.originalUrl.startsWith('/api/')) {
         return next();
       }
       
       try {
         // Read index.html
-        let template = fs.readFileSync(
-          path.join(__dirname, 'client', 'index.html'),
-          'utf-8'
-        );
+        let template = path.resolve(__dirname, 'client', 'index.html');
         
-        // Apply Vite transformations
-        template = await vite.transformIndexHtml(req.originalUrl, template);
-        
-        // Send the transformed HTML
-        res.status(200).set({ 'Content-Type': 'text/html' }).end(template);
+        // Send the template
+        res.sendFile(template);
       } catch (e) {
-        // Send error to Vite's error handling
-        vite.ssrFixStacktrace(e);
         console.error(e);
         res.status(500).end(e.message);
       }
     });
-
+    
     // Start the server
+    const PORT = process.env.PORT || 5173;
     server.listen(PORT, '0.0.0.0', () => {
-      console.log(`Heirloom Identity Platform running at http://0.0.0.0:${PORT}`);
-      
-      // Save PID to file for future reference
-      fs.writeFileSync(path.join(__dirname, 'server.pid'), String(process.pid));
+      console.log(`Heirloom Identity Platform development server running at http://0.0.0.0:${PORT}`);
     });
   } catch (e) {
     console.error('Error starting server:', e);

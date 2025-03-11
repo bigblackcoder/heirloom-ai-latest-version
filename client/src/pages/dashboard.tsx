@@ -1,17 +1,17 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useToast } from "@/hooks/use-toast";
-import { getGreeting } from "@/lib/identity";
-import { apiRequest } from "@/lib/queryClient";
-import IdentityCapsuleCard from "@/components/identity-capsule-card";
-import QuickActions from "@/components/quick-actions";
-import ActiveConnections from "@/components/active-connections";
-import ActivityFeed from "@/components/activity-feed";
-import NavigationBar from "@/components/navigation-bar";
-import VerificationSuccessPopup from "@/components/verification-success-popup";
-import CapsuleSetupPopup from "@/components/capsule-setup-popup";
-import HeirloomLogo from "@/components/heirloom-logo";
+import { useToast } from "../hooks/use-toast";
+import { getGreeting } from "../lib/identity";
+import { apiRequest } from "../lib/queryClient";
+import IdentityCapsuleCard from "../components/identity-capsule-card";
+import QuickActions from "../components/quick-actions";
+import ActiveConnections from "../components/active-connections";
+import ActivityFeed from "../components/activity-feed";
+import NavigationBar from "../components/navigation-bar";
+import VerificationSuccessPopup from "../components/verification-success-popup";
+import CapsuleSetupPopup from "../components/capsule-setup-popup";
+import { HeirloomLogo } from "../components/heirloom-logo";
 
 // Define types for our API responses
 interface User {

@@ -1,6 +1,6 @@
 import { Link } from "wouter";
-import { Button } from "@/components/ui/button";
-import { HeirloomLogo } from "@/components/heirloom-logo";
+import { Button } from "../components/ui/button";
+import { HeirloomLogo } from "../components/heirloom-logo";
 
 export default function NotFound() {
   return (

@@ -38,8 +38,47 @@ app.use(session({
 const users = new Map();
 let nextUserId = 1;
 
-// Serve static files
-app.use(express.static(path.join(__dirname, 'client')));
+// Start Vite dev server for the frontend
+let viteProcess = null;
+
+function startViteDevServer() {
+  console.log('Starting Vite development server...');
+  
+  const clientPath = path.join(__dirname, 'client');
+  console.log(`Starting Vite in client directory: ${clientPath}`);
+  
+  // Start Vite with config file path
+  viteProcess = spawn('npx', ['vite', '--config', path.join(clientPath, 'vite.config.ts')], {
+    cwd: clientPath, // Set working directory to client folder
+  });
+  
+  viteProcess.stdout.on('data', (data) => {
+    console.log(`Vite: ${data}`);
+  });
+  
+  viteProcess.stderr.on('data', (data) => {
+    console.error(`Vite Error: ${data}`);
+  });
+  
+  viteProcess.on('close', (code) => {
+    console.log(`Vite process exited with code ${code}`);
+    if (code !== 0) {
+      // If Vite crashed, restart it after a short delay
+      setTimeout(startViteDevServer, 5000);
+    }
+  });
+}
+
+// Handle cleanup
+process.on('SIGINT', () => {
+  if (viteProcess) {
+    viteProcess.kill();
+  }
+  process.exit();
+});
+
+// Start frontend dev server
+startViteDevServer();
 
 // Simple user registration
 app.post('/api/auth/register', async (req, res) => {
@@ -273,9 +312,15 @@ app.get('/healthcheck', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
-// Default route to serve client HTML
+// Proxy all frontend requests to the Vite development server
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'client', 'index.html'));
+  // Skip API routes
+  if (req.path.startsWith('/api/') || req.path === '/healthcheck') {
+    return res.status(404).send('API endpoint not found');
+  }
+  
+  // Redirect to Vite development server
+  res.redirect(`http://localhost:5173${req.path}`);
 });
 
 // Start server
