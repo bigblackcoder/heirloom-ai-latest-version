@@ -279,7 +279,7 @@ app.get('*', (req, res) => {
 });
 
 // Start server
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Heirloom Identity Platform server running on http://0.0.0.0:${PORT}`);
 });
