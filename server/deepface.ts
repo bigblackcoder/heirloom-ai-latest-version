@@ -86,23 +86,6 @@ export async function verifyFace(imageBase64: string): Promise<FaceVerificationR
       });
     });
     
-    // Always use mock data for now since we're having OpenCV/libGL issues
-    // This helps with testing the UI flow while we fix the Python dependencies
-    console.log('Using mock face verification data');
-    setTimeout(() => {
-      resolve({
-        success: true,
-        confidence: 95,
-        results: {
-          age: 28,
-          gender: 'Man',
-          dominant_race: 'asian',
-          dominant_emotion: 'neutral'
-        }
-      });
-    }, 1000);
-    return;
-    
     // Send the base64 image data to the Python script
     try {
       const inputData = JSON.stringify({ image: imageBase64 });

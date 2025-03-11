@@ -132,7 +132,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Set minimum confidence threshold
-      const minConfidence = 50; // 50% confidence threshold
+      const minConfidence = 85; // 85% confidence threshold
       
       if (verificationResult.confidence < minConfidence) {
         return res.status(200).json({
