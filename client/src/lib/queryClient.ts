@@ -1,118 +1,77 @@
-import { QueryClient } from "@tanstack/react-query";
+import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
-    const contentType = res.headers.get("content-type");
-
-    if (contentType && contentType.includes("application/json")) {
-      const errorData = await res.json();
-      
-      if (typeof errorData === "object" && errorData !== null) {
-        if ("message" in errorData) {
-          throw new Error(errorData.message as string);
-        } else if ("error" in errorData) {
-          throw new Error(errorData.error as string);
-        }
-      }
-    }
-
-    throw new Error(`Request failed with status: ${res.status}`);
+    const text = (await res.text()) || res.statusText;
+    throw new Error(`${res.status}: ${text}`);
   }
 }
 
-export async function apiRequest<TData = unknown>(
-  urlOrOptions: string | {
-    url: string;
-    method?: string;
-    body?: Record<string, any>;
-  },
-  options: RequestInit = {},
-): Promise<TData> {
+export async function apiRequest(
+  options: { 
+    url: string; 
+    method: string; 
+    body?: any; 
+  } | string,
+  methodOrData?: string | unknown,
+  data?: unknown
+): Promise<any> {
   let url: string;
-  let finalOptions: RequestInit = { ...options };
-  
-  // Handle both parameter formats
-  if (typeof urlOrOptions === 'string') {
-    url = urlOrOptions;
+  let method: string;
+  let body: unknown | undefined;
+
+  // Handle the options object format
+  if (typeof options === 'object') {
+    url = options.url;
+    method = options.method;
+    body = options.body;
   } else {
-    url = urlOrOptions.url;
-    finalOptions.method = urlOrOptions.method || 'GET';
-    if (urlOrOptions.body) {
-      finalOptions.body = JSON.stringify(urlOrOptions.body);
-    }
+    // Handle the legacy format
+    url = options;
+    method = methodOrData as string;
+    body = data;
   }
-  
-  const defaultHeaders: HeadersInit = {
-    "Content-Type": "application/json",
-  };
 
-  const opts: RequestInit = {
+  const res = await fetch(url, {
+    method,
+    headers: body ? { "Content-Type": "application/json" } : {},
+    body: body ? JSON.stringify(body) : undefined,
     credentials: "include",
-    ...finalOptions,
-    headers: {
-      ...defaultHeaders,
-      ...finalOptions.headers,
-    },
-  };
+  });
 
-  const response = await fetch(url, opts);
-
-  const contentType = response.headers.get("content-type");
-  
-  if (response.status === 204) {
-    return {} as TData;
-  }
-
-  if (response.status === 401) {
-    throw new Error("Unauthorized");
-  }
-
-  if (contentType?.includes("application/json")) {
-    await throwIfResNotOk(response);
-    return response.json();
-  }
-
-  await throwIfResNotOk(response);
-  return {} as TData;
+  await throwIfResNotOk(res);
+  return res.json().catch(() => ({}));
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
-
-// Define the QueryFunction type according to TanStack Query v5
-type QueryFunctionContext = {
-  queryKey: readonly unknown[];
-  signal: AbortSignal;
-  // other properties
-};
-
-// Updated getQueryFn to match TanStack Query v5 API
-export const getQueryFn = <TData>(options: {
+export const getQueryFn: <T>(options: {
   on401: UnauthorizedBehavior;
-}) => {
-  return async ({ queryKey }: QueryFunctionContext): Promise<TData | null> => {
-    try {
-      // Extract the URL from the query key
-      const url = queryKey[0] as string;
-      return await apiRequest<TData>(url);
-    } catch (error) {
-      if (
-        error instanceof Error && 
-        error.message === "Unauthorized" &&
-        options.on401 === "returnNull"
-      ) {
-        return null;
-      }
-      throw error;
+}) => QueryFunction<T> =
+  ({ on401: unauthorizedBehavior }) =>
+  async ({ queryKey }) => {
+    const res = await fetch(queryKey[0] as string, {
+      credentials: "include",
+    });
+
+    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+      return null;
     }
+
+    await throwIfResNotOk(res);
+    return await res.json();
   };
-};
 
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 5, // 5 minutes
-      retry: 1,
       queryFn: getQueryFn({ on401: "throw" }),
+      refetchInterval: false,
+      refetchOnWindowFocus: false,
+      staleTime: Infinity,
+      retry: false,
+    },
+    mutations: {
+      retry: false,
     },
   },
 });

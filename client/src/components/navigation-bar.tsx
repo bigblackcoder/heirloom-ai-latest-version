@@ -13,7 +13,7 @@ export default function NavigationBar({ currentPath }: NavigationBarProps) {
   const useGridStyle = true;
   
   if (useGridStyle) {
-    // Rich navigation with items in a grid
+    // Rich navigation with 5 items in a grid
     const navItems = [
       {
         name: "Home",
@@ -150,7 +150,7 @@ export default function NavigationBar({ currentPath }: NavigationBarProps) {
       </div>
     );
   } else {
-    // Simpler navigation
+    // Simpler 5-item navigation
     return (
       <nav className="fixed bottom-0 left-0 right-0 border-t bg-white py-2 px-4">
         <div className="max-w-md mx-auto flex justify-between items-center">

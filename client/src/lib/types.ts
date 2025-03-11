@@ -25,21 +25,11 @@ export interface Capsule {
   createdAt: string;
 }
 
-export interface VerifiedData {
-  id: number;
-  capsuleId: number;
-  dataType: string;
-  value: string;
-  verifiedAt: string;
-}
-
 export interface Activity {
   id: number;
-  userId: number;
   type: string;
   description: string;
   createdAt: string;
-  // UI properties
   title?: string;
   time?: string;
   icon?: React.ReactNode;

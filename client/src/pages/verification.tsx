@@ -25,13 +25,8 @@ export default function Verification() {
     setIsVerificationComplete(true);
     
     try {
-      // Call backend verification endpoint with empty image data
-      // In a real implementation, we would send actual image data
-      await apiRequest({
-        url: "/api/verification/face",
-        method: "POST",
-        body: { imageBase64: "mock-image-data" }
-      });
+      // Call backend verification endpoint
+      await apiRequest("POST", "/api/verification/face", {});
       
       // Show success modal
       setShowSuccessModal(true);

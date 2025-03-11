@@ -1,95 +1,104 @@
-import { pgTable, text, integer, boolean, timestamp } from 'drizzle-orm/pg-core';
-import { createInsertSchema } from 'drizzle-zod';
-import { z } from 'zod';
+import { pgTable, text, serial, integer, boolean, json, timestamp } from "drizzle-orm/pg-core";
+import { createInsertSchema } from "drizzle-zod";
+import { z } from "zod";
 
-// Users table
 export const users = pgTable("users", {
-  id: integer("id").primaryKey(),
+  id: serial("id").primaryKey(),
+  username: text("username").notNull().unique(),
+  password: text("password").notNull(),
   firstName: text("first_name").notNull(),
   lastName: text("last_name").notNull(),
-  username: text("username").notNull().unique(),
-  email: text("email").notNull(),
-  password: text("password").notNull(),
-  isVerified: boolean("is_verified").default(false),
-  memberSince: text("member_since").notNull(),
-  avatar: text("avatar")
+  isVerified: boolean("is_verified").default(false).notNull(),
+  memberSince: timestamp("member_since").defaultNow().notNull(),
+  avatar: text("avatar"),
 });
 
-export const insertUserSchema = createInsertSchema(users).omit({
-  id: true,
-  isVerified: true,
-  memberSince: true
+export const insertUserSchema = createInsertSchema(users).pick({
+  username: true,
+  password: true,
+  firstName: true,
+  lastName: true,
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
-// Identity Capsules table
 export const identityCapsules = pgTable("identity_capsules", {
-  id: integer("id").primaryKey(),
-  userId: integer("user_id").notNull(),
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
   name: text("name").notNull(),
-  createdAt: text("created_at").notNull()
+  description: text("description"),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const insertIdentityCapsuleSchema = createInsertSchema(identityCapsules).pick({
   userId: true,
-  name: true
+  name: true,
+  description: true,
 });
 
 export type InsertIdentityCapsule = z.infer<typeof insertIdentityCapsuleSchema>;
 export type IdentityCapsule = typeof identityCapsules.$inferSelect;
 
-// Verified Data table
 export const verifiedData = pgTable("verified_data", {
-  id: integer("id").primaryKey(),
-  capsuleId: integer("capsule_id").notNull(),
-  dataType: text("data_type").notNull(),
+  id: serial("id").primaryKey(),
+  capsuleId: integer("capsule_id").notNull().references(() => identityCapsules.id),
+  dataType: text("data_type").notNull(), // e.g., "employment", "income", "identity", etc.
   value: text("value").notNull(),
-  verifiedAt: text("verified_at").notNull()
+  isVerified: boolean("is_verified").default(true).notNull(),
+  verificationMethod: text("verification_method"), // e.g., "face-scan", "document", etc.
+  issuanceDate: timestamp("issuance_date"),
+  verifiedAt: timestamp("verified_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const insertVerifiedDataSchema = createInsertSchema(verifiedData).pick({
   capsuleId: true,
   dataType: true,
-  value: true
+  value: true,
+  verificationMethod: true,
+  issuanceDate: true,
 });
 
 export type InsertVerifiedData = z.infer<typeof insertVerifiedDataSchema>;
 export type VerifiedData = typeof verifiedData.$inferSelect;
 
-// AI Connections table
 export const aiConnections = pgTable("ai_connections", {
-  id: integer("id").primaryKey(),
-  userId: integer("user_id").notNull(),
-  aiServiceName: text("ai_service_name").notNull(),
-  isActive: boolean("is_active").default(true),
-  createdAt: text("created_at").notNull(),
-  lastUsed: text("last_used")
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  aiServiceName: text("ai_service_name").notNull(), // e.g., "OpenAI", "Claude", etc.
+  aiServiceId: text("ai_service_id").notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  sharedData: json("shared_data"), // JSON field for what data is shared
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  lastConnected: timestamp("last_connected"),
 });
 
 export const insertAiConnectionSchema = createInsertSchema(aiConnections).pick({
   userId: true,
   aiServiceName: true,
-  isActive: true
+  aiServiceId: true,
+  sharedData: true,
 });
 
 export type InsertAiConnection = z.infer<typeof insertAiConnectionSchema>;
 export type AiConnection = typeof aiConnections.$inferSelect;
 
-// Activities table
 export const activities = pgTable("activities", {
-  id: integer("id").primaryKey(),
-  userId: integer("user_id").notNull(),
-  type: text("type").notNull(),
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  type: text("type").notNull(), // e.g., "connection", "verification", "data-added", etc.
   description: text("description").notNull(),
-  createdAt: text("created_at").notNull()
+  metadata: json("metadata"), // Additional details
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const insertActivitySchema = createInsertSchema(activities).pick({
   userId: true,
   type: true,
-  description: true
+  description: true,
+  metadata: true,
 });
 
 export type InsertActivity = z.infer<typeof insertActivitySchema>;

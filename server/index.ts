@@ -1,70 +1,69 @@
-import express, { Express, Request, Response, NextFunction } from 'express';
-import cors from 'cors';
-import session from 'express-session';
-import { setupVite, log } from './vite';
-import { registerRoutes } from './routes';
-import bcrypt from 'bcryptjs';
-import { createServer } from 'http';
-import { storage } from './storage';
+import express, { type Request, Response, NextFunction } from "express";
+import { registerRoutes } from "./routes";
+import { setupVite, serveStatic, log } from "./vite";
 
-// Create Express application
-const app: Express = express();
-const server = createServer(app);
+const app = express();
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
 
-// Middleware
-app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:5173'],
-  credentials: true,
-}));
+app.use((req, res, next) => {
+  const start = Date.now();
+  const path = req.path;
+  let capturedJsonResponse: Record<string, any> | undefined = undefined;
 
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
+  const originalResJson = res.json;
+  res.json = function (bodyJson, ...args) {
+    capturedJsonResponse = bodyJson;
+    return originalResJson.apply(res, [bodyJson, ...args]);
+  };
 
-// Session configuration
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'heirloom-identity-capsule-secret',
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-  }
-}));
+  res.on("finish", () => {
+    const duration = Date.now() - start;
+    if (path.startsWith("/api")) {
+      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
+      if (capturedJsonResponse) {
+        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+      }
 
-// Error handler
-app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-  console.error('Server error:', err);
-  const statusCode = err.statusCode || 500;
-  const message = err.message || 'Internal Server Error';
-  res.status(statusCode).json({
-    error: {
-      status: statusCode,
-      message,
-    },
+      if (logLine.length > 80) {
+        logLine = logLine.slice(0, 79) + "…";
+      }
+
+      log(logLine);
+    }
   });
+
+  next();
 });
 
-// Start server
-async function main() {
-  try {
-    // Register API routes
-    await registerRoutes(app);
-    
-    // Set up Vite dev server in development
-    if (process.env.NODE_ENV !== 'production') {
-      await setupVite(app, server);
-    }
+(async () => {
+  const server = await registerRoutes(app);
 
-    // Start server
-    const PORT = process.env.PORT || 3000;
-    server.listen(PORT, () => {
-      log(`Server running on port ${PORT}`);
-    });
-  } catch (error) {
-    console.error('Failed to start server:', error);
-    process.exit(1);
+  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+    const status = err.status || err.statusCode || 500;
+    const message = err.message || "Internal Server Error";
+
+    res.status(status).json({ message });
+    throw err;
+  });
+
+  // importantly only setup vite in development and after
+  // setting up all the other routes so the catch-all route
+  // doesn't interfere with the other routes
+  if (app.get("env") === "development") {
+    await setupVite(app, server);
+  } else {
+    serveStatic(app);
   }
-}
 
-// Start the server
-main();
+  // ALWAYS serve the app on port 5000
+  // this serves both the API and the client
+  const port = 5000;
+  server.listen({
+    port,
+    host: "0.0.0.0",
+    reusePort: true,
+  }, () => {
+    log(`serving on port ${port}`);
+  });
+})();
