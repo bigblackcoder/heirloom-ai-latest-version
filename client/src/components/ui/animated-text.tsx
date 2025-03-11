@@ -1,12 +1,11 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { useScrollAnimation } from "@/hooks/use-animations";
 
 interface AnimatedTextProps {
   text: string;
   className?: string;
-  as?: keyof JSX.IntrinsicElements; // 'h1', 'h2', 'p', etc.
+  as?: React.ElementType;
   animationType?: "fade" | "letterByLetter" | "wordByWord" | "highlight" | "typewriter" | "none";
   delay?: number;
   duration?: number;
@@ -18,184 +17,153 @@ export function AnimatedText({
   text,
   className,
   as: Component = "p",
-  animationType = "fade",
+  animationType = "none",
   delay = 0,
   duration = 0.5,
   highlightColor = "rgba(30, 60, 13, 0.2)",
-  staggerChildren = 0.05,
+  staggerChildren = 0.03,
 }: AnimatedTextProps) {
-  const [ref, isVisible] = useScrollAnimation<HTMLDivElement>();
-
-  // Split the text into words and/or letters depending on the animation type
+  // Split text into words and letters for different animation types
   const words = text.split(" ");
-  
-  // Handle different types of animations
-  const containerAnimation = {
+  const letters = text.split("");
+
+  // Base animation configuration
+  const container = {
     hidden: { opacity: 0 },
     visible: (i = 1) => ({
       opacity: 1,
       transition: { 
         staggerChildren: staggerChildren, 
-        delayChildren: delay,
-        ease: "easeOut",
-        duration: duration,
+        delayChildren: delay * i 
       }
     })
   };
 
-  const childWordAnimation = {
-    hidden: { y: 20, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      transition: {
-        ease: "easeOut",
-        duration: duration,
-      }
-    }
-  };
-
-  const childLetterAnimation = {
-    hidden: { y: 10, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      transition: {
-        ease: "easeOut",
-        duration: duration * 0.8,
-      }
-    }
-  };
-
-  const typewriterAnimation = {
-    hidden: { width: 0, opacity: 0 },
-    visible: {
-      width: "100%",
-      opacity: 1,
-      transition: {
-        duration: Math.max(0.5, Math.min(text.length * 0.05, 3)), // Scale with text length, cap at 3s
-        delay,
-        ease: "linear",
-      }
-    }
-  };
-
-  const highlightAnimation = {
-    hidden: { 
-      color: "currentColor",
-      backgroundPosition: "0% 100%",
-      backgroundSize: "0% 30%",
-    },
-    visible: {
-      color: "currentColor",
-      backgroundPosition: "0% 100%",
-      backgroundSize: "100% 30%",
-      transition: {
-        duration: 0.8,
-        delay,
-        ease: "easeOut",
-      }
-    }
-  };
-
-  if (animationType === "none") {
-    return <Component className={className}>{text}</Component>;
-  }
-
-  if (animationType === "fade") {
-    return (
-      <motion.div
-        ref={ref}
-        initial={{ opacity: 0, y: 10 }}
-        animate={isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
-        transition={{ duration, delay, ease: "easeOut" }}
-      >
-        <Component className={className}>{text}</Component>
-      </motion.div>
-    );
-  }
-
-  if (animationType === "typewriter") {
-    return (
-      <div ref={ref} className="inline-block">
+  // Different animation types
+  switch (animationType) {
+    case "letterByLetter":
+      return (
         <motion.div
+          className={cn("inline-block", className)}
+          variants={container}
           initial="hidden"
-          animate={isVisible ? "visible" : "hidden"}
-          variants={typewriterAnimation}
-          style={{
-            overflow: "hidden", 
-            whiteSpace: "nowrap",
-            display: "inline-block",
-          }}
+          animate="visible"
         >
-          <Component className={className}>{text}</Component>
-        </motion.div>
-      </div>
-    );
-  }
-
-  if (animationType === "highlight") {
-    return (
-      <motion.div
-        ref={ref}
-        initial="hidden"
-        animate={isVisible ? "visible" : "hidden"}
-        variants={highlightAnimation}
-        style={{
-          display: "inline-block",
-          backgroundImage: `linear-gradient(${highlightColor}, ${highlightColor})`,
-          backgroundRepeat: "no-repeat",
-        }}
-      >
-        <Component className={className}>{text}</Component>
-      </motion.div>
-    );
-  }
-
-  if (animationType === "letterByLetter") {
-    return (
-      <motion.div
-        ref={ref}
-        style={{ overflow: "hidden" }}
-        variants={containerAnimation}
-        initial="hidden"
-        animate={isVisible ? "visible" : "hidden"}
-      >
-        <Component className={cn("flex flex-wrap", className)}>
-          {Array.from(text).map((letter, index) => (
+          {letters.map((letter, index) => (
             <motion.span
               key={index}
-              variants={childLetterAnimation}
-              style={{ display: "inline-block" }}
+              variants={{
+                hidden: { opacity: 0, y: 20 },
+                visible: {
+                  opacity: 1,
+                  y: 0,
+                  transition: {
+                    duration: duration
+                  }
+                }
+              }}
+              className="inline-block"
             >
               {letter === " " ? "\u00A0" : letter}
             </motion.span>
           ))}
-        </Component>
-      </motion.div>
-    );
-  }
+        </motion.div>
+      );
 
-  // Default to wordByWord animation
-  return (
-    <motion.div
-      ref={ref}
-      style={{ overflow: "hidden" }}
-      variants={containerAnimation}
-      initial="hidden"
-      animate={isVisible ? "visible" : "hidden"}
-    >
-      <Component className={cn("flex flex-wrap", className)}>
-        {words.map((word, index) => (
+    case "wordByWord":
+      return (
+        <motion.div
+          className={cn("inline-block", className)}
+          variants={container}
+          initial="hidden"
+          animate="visible"
+        >
+          {words.map((word, index) => (
+            <motion.span
+              key={index}
+              className="inline-block mr-[0.25em]"
+              variants={{
+                hidden: { opacity: 0, y: 20 },
+                visible: {
+                  opacity: 1,
+                  y: 0,
+                  transition: {
+                    duration: duration,
+                    ease: "easeOut"
+                  }
+                }
+              }}
+            >
+              {word}
+            </motion.span>
+          ))}
+        </motion.div>
+      );
+
+    case "highlight":
+      return (
+        <Component className={cn("relative inline-block", className)}>
+          <span>{text}</span>
           <motion.span
-            key={index}
-            variants={childWordAnimation}
-            style={{ display: "inline-block", marginRight: "0.25em" }}
+            initial={{ width: "0%" }}
+            animate={{ width: "100%" }}
+            transition={{ duration: duration, delay: delay }}
+            style={{
+              position: "absolute",
+              height: "0.4em",
+              bottom: "0.1em",
+              left: 0,
+              backgroundColor: highlightColor,
+              zIndex: -1,
+              borderRadius: "2px",
+            }}
+          ></motion.span>
+        </Component>
+      );
+
+    case "typewriter":
+      return (
+        <Component className={cn(className)}>
+          <motion.span
+            initial={{ width: "0%" }}
+            animate={{ width: "100%" }}
+            transition={{ 
+              duration: duration * text.length * 0.1, 
+              delay,
+              ease: "linear" 
+            }}
+            className="inline-block whitespace-nowrap overflow-hidden"
           >
-            {word}
+            {text}
           </motion.span>
-        ))}
-      </Component>
-    </motion.div>
-  );
+          <motion.span
+            initial={{ opacity: 1 }}
+            animate={{ opacity: 0 }}
+            transition={{ 
+              duration: 0.5, 
+              repeat: Infinity, 
+              repeatType: "reverse" 
+            }}
+            className="inline-block ml-1 w-[2px] h-[1em] bg-current align-text-bottom"
+          ></motion.span>
+        </Component>
+      );
+
+    case "fade":
+      const MotionComponent = motion.div;
+      return (
+        <MotionComponent
+          className={cn(className)}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration, delay }}
+        >
+          {React.createElement(Component, {}, text)}
+        </MotionComponent>
+      );
+
+    case "none":
+    default:
+      return <Component className={className}>{text}</Component>;
+  }
 }

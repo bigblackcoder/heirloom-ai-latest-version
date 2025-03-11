@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, RefObject } from 'react';
 
 // Hook for scroll animations
-export function useScrollAnimation<T extends HTMLElement>(): [RefObject<T>, boolean] {
-  const ref = useRef<T>(null);
+export function useScrollAnimation(): [RefObject<HTMLDivElement>, boolean] {
+  const ref = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {

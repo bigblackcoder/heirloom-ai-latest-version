@@ -18,7 +18,7 @@ interface AnimatedIconProps {
   className?: string;
   onClick?: () => void;
   isAnimating?: boolean;
-  repeat?: boolean | number;
+  repeat?: number; // Changed from 'boolean | number' to just 'number'
   duration?: number;
 }
 
@@ -79,7 +79,7 @@ export function AnimatedIcon({
   const getTransition = () => {
     const baseTransition = {
       duration,
-      repeat: repeat === true ? Infinity : repeat,
+      repeat, // Already defined as number type
       repeatType: "loop" as const,
       ease: "easeInOut",
     };
