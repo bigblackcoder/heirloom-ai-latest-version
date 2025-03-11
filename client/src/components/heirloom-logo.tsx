@@ -1,3 +1,5 @@
+import React from 'react';
+
 export function HeirloomLogo({ className = "w-6 h-6" }: { className?: string }) {
   return (
     <svg 
@@ -8,12 +10,23 @@ export function HeirloomLogo({ className = "w-6 h-6" }: { className?: string }) 
       fill="none" 
       xmlns="http://www.w3.org/2000/svg"
     >
+      {/* Main "H" shape design based on the official logo */}
       <path 
         d="M39.4615 14.733V51.0659C39.4615 53.3182 37.6412 55.1385 35.3889 55.1385H31.3162M17.6419 55.1385H13.5693C11.317 55.1385 9.49667 53.3182 9.49667 51.0659V14.733C9.49667 12.4807 11.317 10.6604 13.5693 10.6604H17.6419M31.3162 55.1385H17.6419M31.3162 55.1385V64.3182M17.6419 55.1385V64.3182M17.6419 10.6604H31.3162M17.6419 10.6604V1.5M31.3162 10.6604H35.3889C37.6412 10.6604 39.4615 12.4807 39.4615 14.733M31.3162 10.6604V1.5M31.3162 37.3932H40.4941C42.7464 37.3932 44.5667 35.5729 44.5667 33.3206V28.2352C44.5667 25.9829 42.7464 24.1626 40.4941 24.1626H31.3162V37.3932ZM17.6419 24.1626H8.4641C6.21179 24.1626 4.39146 25.9829 4.39146 28.2352V33.3206C4.39146 35.5729 6.21179 37.3932 8.4641 37.3932H17.6419V24.1626Z" 
-        stroke="#1E3C0D" 
+        stroke="#23340E" 
         strokeWidth="2.5" 
         strokeLinecap="round" 
         strokeLinejoin="round"
+        fill="#23340E"
+        fillOpacity="0.08"
+      />
+      
+      {/* Connector line at the middle of the H */}
+      <path 
+        d="M17.6419 32.5L31.3162 32.5" 
+        stroke="#23340E" 
+        strokeWidth="2.5" 
+        strokeLinecap="round"
       />
     </svg>
   );
