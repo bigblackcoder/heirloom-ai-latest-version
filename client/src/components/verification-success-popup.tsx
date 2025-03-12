@@ -43,20 +43,25 @@ export default function VerificationSuccessPopup({ isOpen, onClose }: Verificati
         }`}
         style={{marginBottom: 0, paddingBottom: "calc(1.5rem + env(safe-area-inset-bottom, 0rem))"}}
       >
+        {/* Background decorative elements */}
+        <div className="absolute top-4 right-4 w-20 h-20 bg-[#273414]/5 rounded-full"></div>
+        <div className="absolute bottom-16 left-4 w-12 h-12 bg-[#273414]/5 rounded-full"></div>
         {/* Check icon */}
-        <div className="mx-auto w-16 h-16 bg-[#f8f2e9] rounded-full flex items-center justify-center mb-5">
-          <svg className="w-8 h-8 text-[#d4a166]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="20 6 9 17 4 12"></polyline>
+        <div className="mx-auto w-20 h-20 bg-[#273414]/10 rounded-full flex items-center justify-center mb-5 relative">
+          <div className="absolute inset-0 bg-[#273414]/5 rounded-full animate-pulse"></div>
+          <svg className="w-10 h-10 text-[#273414]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
           </svg>
         </div>
         
-        <h2 className="text-2xl font-bold text-center mb-2">Nice! Your account is Verified!</h2>
+        <h2 className="text-2xl font-bold text-center mb-2 text-[#273414]">Identity Verified!</h2>
         
-        <p className="text-gray-600 text-center mb-1">Welcome to <span className="font-semibold">Heirloom</span>!</p>
-        <p className="text-gray-600 text-center mb-6">You've successfully verified your humanness, and we're excited to have you!</p>
+        <p className="text-gray-700 text-center mb-1">Welcome to <span className="font-semibold text-[#273414]">Heirloom</span>!</p>
+        <p className="text-gray-600 text-center mb-6">You've successfully verified your identity with biometric authentication. Your Identity Capsule is now active.</p>
         
         <button 
-          className="w-full bg-[#a4cb76] hover:bg-[#7c9861] text-[#273414] font-medium py-3 rounded-full transition-colors"
+          className="w-full bg-[#273414] hover:bg-[#324319] text-white font-medium py-3.5 rounded-xl transition-colors shadow-sm"
           onClick={() => {
             setIsVisible(false);
             setTimeout(() => {
@@ -65,7 +70,7 @@ export default function VerificationSuccessPopup({ isOpen, onClose }: Verificati
             }, 300);
           }}
         >
-          Get started!
+          Continue to Dashboard
         </button>
         
         {/* Bottom indicator */}

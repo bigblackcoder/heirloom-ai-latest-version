@@ -161,9 +161,9 @@ export default function FaceScanner({ onProgress, onComplete, isComplete }: Face
     <div className="relative flex flex-col items-center">
       {/* Instruction text */}
       <div className="mb-4 text-center">
-        <p className="text-lg font-medium">{getInstructionText()}</p>
-        <p className="text-sm text-gray-400">
-          {verificationProgress < 100 ? "Move your cursor to align with the yellow crosshair" : ""}
+        <p className="text-lg font-medium text-[#273414]">{getInstructionText()}</p>
+        <p className="text-sm text-gray-500">
+          {verificationProgress < 100 ? "Move your cursor to align with the crosshair" : ""}
         </p>
       </div>
       
@@ -233,16 +233,19 @@ export default function FaceScanner({ onProgress, onComplete, isComplete }: Face
         </svg>
         
         {/* Alignment guides */}
-        <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-[#ffeb3b] z-20"></div>
-        <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-[#ffeb3b] z-20"></div>
+        <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-[#91c35c] z-20"></div>
+        <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-[#91c35c] z-20"></div>
         
         {/* Complete overlay */}
         {isComplete && (
-          <div className="absolute inset-0 bg-[#1e3c0d]/50 flex items-center justify-center z-30">
-            <svg className="w-16 h-16 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-              <polyline points="22 4 12 14.01 9 11.01" />
-            </svg>
+          <div className="absolute inset-0 bg-[#273414]/60 flex items-center justify-center z-30">
+            <div className="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center relative">
+              <div className="absolute inset-0 rounded-full animate-pulse bg-white/10"></div>
+              <svg className="w-16 h-16 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                <polyline points="22 4 12 14.01 9 11.01" />
+              </svg>
+            </div>
           </div>
         )}
       </div>

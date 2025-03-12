@@ -43,21 +43,28 @@ export default function CapsuleSetupPopup({ isOpen, onClose }: CapsuleSetupPopup
         }`}
         style={{marginBottom: 0, paddingBottom: "calc(1.5rem + env(safe-area-inset-bottom, 0rem))"}}
       >
-        {/* Check icon */}
-        <div className="mx-auto w-16 h-16 bg-[#d4a166]/20 rounded-full flex items-center justify-center mb-4">
-          <svg className="w-8 h-8 text-[#d4a166]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="20 6 9 17 4 12"></polyline>
+        {/* Background decorative elements */}
+        <div className="absolute top-4 right-4 w-20 h-20 bg-[#273414]/5 rounded-full"></div>
+        <div className="absolute bottom-16 left-4 w-12 h-12 bg-[#273414]/5 rounded-full"></div>
+        
+        {/* Capsule icon */}
+        <div className="mx-auto w-20 h-20 bg-[#273414]/10 rounded-full flex items-center justify-center mb-5 relative">
+          <div className="absolute inset-0 bg-[#273414]/5 rounded-full animate-pulse"></div>
+          <svg className="w-10 h-10 text-[#273414]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 20C7.58 20 4 16.42 4 12C4 7.58 7.58 4 12 4C16.42 4 20 7.58 20 12C20 16.42 16.42 20 12 20Z" fill="currentColor" />
+            <path d="M12 7L12 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            <path d="M7 12L17 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
           </svg>
         </div>
         
-        <h2 className="text-2xl font-bold text-center mb-4">Complete Your Capsule Setup to Start Connecting with AI Safely.</h2>
+        <h2 className="text-2xl font-bold text-center mb-3 text-[#273414]">Set Up Your Identity Capsule</h2>
         
-        <p className="text-gray-600 text-sm mb-6">
-          Your Identity Capsule is your secure digital vault, designed to keep your verified data safe and under your control. With Heirloom, you can confidently manage your data, connect it to trusted AI systems, and shape your digital legacy—all on your terms. Ready to take the next step?
+        <p className="text-gray-700 text-center mb-6">
+          Your Identity Capsule is your secure digital vault that keeps your verified data safe and under your control. Ready to take the next step in securing your digital identity?
         </p>
         
         <button 
-          className="w-full bg-[#8ccc5c] hover:bg-[#7cb34e] text-[#1e3c0d] font-medium py-3 rounded-full transition-colors"
+          className="w-full bg-[#273414] hover:bg-[#324319] text-white font-medium py-3.5 rounded-xl transition-colors shadow-sm"
           onClick={() => {
             setIsVisible(false);
             setTimeout(() => {
@@ -66,7 +73,7 @@ export default function CapsuleSetupPopup({ isOpen, onClose }: CapsuleSetupPopup
             }, 300);
           }}
         >
-          Let's Do It!
+          Set Up My Identity Capsule
         </button>
         
         {/* Bottom indicator */}
