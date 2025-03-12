@@ -108,9 +108,9 @@ export default function NavigationBar({ currentPath }: NavigationBarProps) {
     ];
 
     return (
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-40 max-w-md mx-auto overflow-hidden">
-        {/* Green Vector Background */}
-        <div className="absolute bottom-0 left-0 right-0 h-16 bg-[#1e3c0d]/5 rounded-t-3xl z-0"></div>
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-0 z-40 max-w-md mx-auto overflow-hidden">
+        {/* Light Background */}
+        <div className="absolute bottom-0 left-0 right-0 h-16 bg-[#f7f7f7] rounded-t-3xl z-0"></div>
         
         {/* Home indicator line for iPhone */}
         <div className="w-full flex justify-center pb-1 pt-2 relative z-10">
@@ -152,8 +152,9 @@ export default function NavigationBar({ currentPath }: NavigationBarProps) {
   } else {
     // Simpler 5-item navigation
     return (
-      <nav className="fixed bottom-0 left-0 right-0 border-t border-gray-100 bg-white py-2 px-4 z-40">
-        <div className="max-w-md mx-auto flex justify-between items-center">
+      <nav className="fixed bottom-0 left-0 right-0 border-0 bg-white py-2 px-4 z-40">
+        <div className="absolute bottom-0 left-0 right-0 h-full bg-[#f7f7f7] z-0"></div>
+        <div className="max-w-md mx-auto flex justify-between items-center relative z-10">
           <Link href="/dashboard">
             <a className={`flex flex-col items-center ${currentPath === "/dashboard" ? "text-[#1e3c0d]" : "text-gray-500"}`}>
               <svg 
