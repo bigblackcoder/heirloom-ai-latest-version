@@ -1,0 +1,7 @@
+Place your logo images here:
+
+1. heirloom-icon.png - The small circular icon logo
+2. heirloom-full.png - The full logo with emblem only
+3. heirloom-complete.png - The complete logo with text
+
+These files will be automatically picked up by the HeirloomLogo component.

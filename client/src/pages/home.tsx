@@ -120,7 +120,7 @@ export default function Home() {
           
           <div className="relative mx-auto w-48 h-48 border-4 border-white/20 rounded-3xl overflow-hidden backdrop-blur-sm bg-white/5 flex items-center justify-center">
             <div className="text-center">
-              <div className="w-20 h-20 mx-auto mb-5 flex justify-center">
+              <div className="w-24 h-24 mx-auto mb-4 flex justify-center items-center">
                 <HeirloomLogo className="w-full h-full" variant="icon" />
               </div>
               <p className="text-white/90 text-base leading-tight px-2">Your identity capsule<br />awaits activation</p>

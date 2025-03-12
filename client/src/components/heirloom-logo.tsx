@@ -12,28 +12,39 @@ export function HeirloomLogo({
   variant = 'icon',
   withText = false
 }: HeirloomLogoProps) {
+  // Paths to logo image files
+  const logoIconPath = "/images/heirloom-icon.png";    // Green "H" logo
+  const logoFullPath = "/images/heirloom-full.png";    // White "H" logo
+  const logoCompletePath = "/images/heirloom-complete.png";  // White "H" logo (same as full for now)
+
   return (
     <div className={cn("flex items-center", className)}>
       {variant === 'complete' ? (
         // Complete logo with text included in the image
-        <div className="relative flex items-center justify-center w-20 h-20 rounded-full bg-[#235B3C]">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-white">
-            <path d="M7 10L12 15L17 10" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
+        <div className="relative bg-[#235B3C] rounded-lg p-1">
+          <img 
+            src={logoCompletePath} 
+            alt="Heirloom Identity Platform" 
+            className="shrink-0 h-auto w-auto"
+          />
         </div>
       ) : variant === 'icon' ? (
-        // Small icon logo
-        <div className="relative flex items-center justify-center rounded-full bg-[#235B3C] w-full h-full">
-          <svg width="40%" height="40%" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-white">
-            <path d="M7 10L12 15L17 10" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
+        // Small icon logo - green version on transparent background
+        <div className="relative flex items-center justify-center">
+          <img 
+            src={logoIconPath} 
+            alt="Heirloom Logo" 
+            className="shrink-0 w-full h-full object-contain"
+          />
         </div>
       ) : (
-        // Full logo with emblem
-        <div className="relative flex items-center justify-center rounded-full bg-[#235B3C] w-full h-full">
-          <svg width="40%" height="40%" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-white">
-            <path d="M7 10L12 15L17 10" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
+        // Full logo with emblem - white version on green background
+        <div className="relative bg-[#235B3C] rounded-lg p-1">
+          <img 
+            src={logoFullPath} 
+            alt="Heirloom Logo" 
+            className="shrink-0 w-full h-full object-contain"
+          />
         </div>
       )}
 
