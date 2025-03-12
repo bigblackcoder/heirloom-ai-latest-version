@@ -26,8 +26,11 @@ export default function Home() {
       </div>
 
       {/* Logo and brand */}
-      <div className="pt-8 pb-6 px-6">
-        <HeirloomLogo className="w-auto h-auto" variant="complete" />
+      <div className="pt-8 pb-6 px-6 flex items-center">
+        <div className="w-10 h-10 mr-3">
+          <HeirloomLogo className="w-full h-full" variant="icon" />
+        </div>
+        <h1 className="text-2xl font-bold">Heirloom</h1>
       </div>
 
       {/* Main Content */}
