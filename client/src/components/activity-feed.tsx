@@ -7,7 +7,8 @@ import {
   IoWarningSharp,
   IoCheckmarkCircleSharp
 } from "react-icons/io5";
-import { SiProbot } from "react-icons/si";
+import SunburstIcon from "@/components/ui/sunburst-icon";
+import AnthropicLogo from "@/components/ui/anthropic-logo";
 
 interface Activity {
   id: number;
@@ -127,9 +128,9 @@ function ActivityFeedHorizontal() {
       description: "Claude AI now has limited access to your identity information.",
       time: "Today, 11:45 AM",
       icon: (
-        <SiProbot className="w-5 h-5 text-[#4caf50]" />
+        <SunburstIcon className="w-5 h-5" color="#E57B52" />
       ),
-      iconBg: "bg-[#4caf50]/10"
+      iconBg: "bg-[#E57B52]/10"
     },
     {
       type: "data_added",

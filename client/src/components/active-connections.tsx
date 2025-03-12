@@ -6,8 +6,8 @@ import {
   SiAmazon
 } from "react-icons/si";
 import { TbBrain, TbRobot, TbBrandDiscord } from "react-icons/tb";
-import { GiWaveCrest } from "react-icons/gi";
-import { IoWaterOutline } from "react-icons/io5";
+import SunburstIcon from "@/components/ui/sunburst-icon";
+import AnthropicLogo from "@/components/ui/anthropic-logo";
 
 interface Connection {
   id: number;
@@ -29,11 +29,11 @@ export default function ActiveConnections({ connections, isLoading }: ActiveConn
     {
       name: "Claude AI",
       icon: (
-        <GiWaveCrest className="w-6 h-6 text-[#6333c4]" />
+        <SunburstIcon className="w-6 h-6" color="#E57B52" />
       ),
       lastUsed: "2h ago",
       status: "Active",
-      color: "#6333c4"
+      color: "#E57B52"
     },
     {
       name: "OpenAI ChatGPT",
@@ -47,7 +47,9 @@ export default function ActiveConnections({ connections, isLoading }: ActiveConn
     {
       name: "Anthropic",
       icon: (
-        <IoWaterOutline className="w-6 h-6 text-[#5436DA]" />
+        <div className="bg-[#5436DA] rounded-sm w-6 h-6 flex items-center justify-center">
+          <AnthropicLogo className="w-4 h-4" color="#FFFFFF" />
+        </div>
       ),
       lastUsed: "3d ago",
       status: "Active",
