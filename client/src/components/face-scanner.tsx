@@ -124,7 +124,7 @@ export default function FaceScanner({ onProgress, onComplete, isComplete }: Face
       rays.push(
         <div 
           key={i}
-          className="absolute h-6 w-0.5 bg-[#4caf50] origin-bottom"
+          className="absolute h-6 w-0.5 bg-[#273414] origin-bottom"
           style={{ 
             left: 'calc(50% - 1px)',
             bottom: '50%',
@@ -173,12 +173,13 @@ export default function FaceScanner({ onProgress, onComplete, isComplete }: Face
         
         {/* Webcam container */}
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-64 h-64 rounded-full border-2 border-white/30 overflow-hidden relative flex items-center justify-center">
+          <div className="w-64 h-64 rounded-full border-2 border-[#273414]/30 overflow-hidden relative flex items-center justify-center">
             {/* Scanner lines effect */}
             <div className="absolute inset-0 z-10 bg-gradient-to-b from-transparent via-black/10 to-transparent bg-repeat-y" 
                 style={{ 
                   backgroundSize: "100% 8px",
-                  backgroundImage: "linear-gradient(to bottom, rgba(255,255,255,0.05), rgba(255,255,255,0.05) 1px, transparent 1px, transparent 4px)"
+                  backgroundImage: "linear-gradient(to bottom, rgba(39,52,20,0.1), rgba(39,52,20,0.1) 1px, transparent 1px, transparent 4px)",
+                  animation: "scanAnimation 1.5s linear infinite"
                 }}
             />
             
@@ -212,7 +213,7 @@ export default function FaceScanner({ onProgress, onComplete, isComplete }: Face
         {/* Verification progress ring */}
         <svg className="absolute inset-0 w-full h-full z-20" viewBox="0 0 290 290">
           <motion.circle
-            className="text-[#4caf50]"
+            className="text-[#273414]"
             strokeWidth="2"
             stroke="currentColor"
             fill="transparent"

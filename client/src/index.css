@@ -36,6 +36,16 @@
     }
   }
   
+  /* Scanner animation for face verification */
+  @keyframes scanAnimation {
+    0% {
+      background-position: 0 -100%;
+    }
+    100% {
+      background-position: 0 100%;
+    }
+  }
+  
   /* Fingerprint scanning effect */
   .animate-fingerprint-scan {
     animation: fingerprint-scan 2.5s ease-in-out infinite;
