@@ -30,19 +30,20 @@ export default function VerificationSuccessPopup({ isOpen, onClose }: Verificati
   
   return (
     <div 
-      className={`fixed inset-0 flex items-center justify-center p-4 z-50 transition-opacity duration-300 ${
+      className={`fixed inset-x-0 bottom-0 z-50 transition-opacity duration-300 ${
         isVisible ? "opacity-100" : "opacity-0"
       }`}
+      onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="bg-black/50 absolute inset-0" onClick={onClose}></div>
+      <div className="bg-black/30 absolute inset-0" onClick={onClose}></div>
       
       <div 
-        className={`bg-white rounded-3xl w-full max-w-xs p-6 relative z-10 shadow-xl transform transition-transform duration-300 ${
-          isVisible ? "translate-y-0" : "translate-y-20"
+        className={`bg-white rounded-t-3xl p-6 relative z-10 shadow-xl transform transition-transform duration-300 mx-auto max-w-md ${
+          isVisible ? "translate-y-0" : "translate-y-full"
         }`}
       >
         {/* Check icon */}
-        <div className="mx-auto w-16 h-16 bg-[#d4a166]/20 rounded-full flex items-center justify-center mb-4">
+        <div className="mx-auto w-16 h-16 bg-[#f8f2e9] rounded-full flex items-center justify-center mb-5">
           <svg className="w-8 h-8 text-[#d4a166]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="20 6 9 17 4 12"></polyline>
           </svg>
@@ -54,7 +55,7 @@ export default function VerificationSuccessPopup({ isOpen, onClose }: Verificati
         <p className="text-gray-600 text-center mb-6">You've successfully verified your humanness, and we're excited to have you!</p>
         
         <button 
-          className="w-full bg-[#8ccc5c] hover:bg-[#7cb34e] text-[#1e3c0d] font-medium py-3 rounded-full transition-colors"
+          className="w-full bg-[#a4cb76] hover:bg-[#7c9861] text-[#273414] font-medium py-3 rounded-full transition-colors"
           onClick={() => {
             setIsVisible(false);
             setTimeout(() => {
