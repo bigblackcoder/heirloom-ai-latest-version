@@ -27,7 +27,7 @@ export default function Home() {
 
       {/* Logo and brand */}
       <div className="pt-8 pb-6 px-6">
-        <HeirloomLogo className="w-auto h-auto" withText={true} />
+        <HeirloomLogo className="w-auto h-auto" variant="complete" />
       </div>
 
       {/* Main Content */}
@@ -121,7 +121,7 @@ export default function Home() {
           <div className="relative mx-auto w-48 h-48 border-4 border-white/20 rounded-3xl overflow-hidden backdrop-blur-sm bg-white/5 flex items-center justify-center">
             <div className="text-center">
               <div className="w-20 h-20 mx-auto mb-3 flex justify-center">
-                <HeirloomLogo className="w-full h-full" />
+                <HeirloomLogo className="w-full h-full" variant="icon" />
               </div>
               <p className="text-white/80 text-sm leading-tight px-2">Your identity capsule<br />awaits activation</p>
             </div>
