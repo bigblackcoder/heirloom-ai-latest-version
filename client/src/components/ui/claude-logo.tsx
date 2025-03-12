@@ -12,45 +12,35 @@ export const ClaudeLogo: React.FC<ClaudeLogoProps> = ({
   return (
     <svg
       className={className}
-      viewBox="0 0 40 40"
+      viewBox="0 0 32 32"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <circle cx="20" cy="20" r="18" fill="#F9F5F2" />
+      <circle cx="16" cy="16" r="14" fill="#F9F5F2" />
+      <circle cx="16" cy="16" r="11" stroke={color} strokeWidth="2" />
       <path
-        d="M20.0001 12.5C17.6555 12.5 15.4443 13.5357 13.9692 15.2682C12.494 17.0007 11.8529 19.2935 12.2044 21.5121C12.5558 23.7308 13.8714 25.6767 15.8072 26.8842C17.743 28.0917 20.1121 28.4336 22.3143 27.8263"
+        d="M16 7C13.8 7 11.7 7.8 10.1 9.3C8.5 10.8 7.6 12.9 7.6 15C7.6 17.1 8.5 19.2 10.1 20.7C11.7 22.2 13.8 23 16 23"
         stroke={color}
-        strokeWidth="2.5"
+        strokeWidth="2"
         strokeLinecap="round"
-        strokeLinejoin="round"
       />
       <path
-        d="M27.5 22.5C27.5 19.0482 25.3088 16.1463 22.3142 15.1738"
+        d="M16 7C18.2 7 20.3 7.8 21.9 9.3C23.5 10.8 24.4 12.9 24.4 15C24.4 17.1 23.5 19.2 21.9 20.7C20.3 22.2 18.2 23 16 23"
         stroke={color}
-        strokeWidth="2.5"
+        strokeWidth="2"
         strokeLinecap="round"
-        strokeLinejoin="round"
       />
       <path
-        d="M22.5 25L27.5 22.5L29.5 27.8263"
+        d="M10 12H22"
         stroke={color}
-        strokeWidth="2.5"
+        strokeWidth="2"
         strokeLinecap="round"
-        strokeLinejoin="round"
       />
       <path
-        d="M17.5 25.0001L12.5001 22.5001L10.5001 27.8264"
+        d="M10 18H22"
         stroke={color}
-        strokeWidth="2.5"
+        strokeWidth="2"
         strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M17.5 17.5C17.5 20.9518 19.6912 23.8537 22.6858 24.8262"
-        stroke={color}
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
       />
     </svg>
   );

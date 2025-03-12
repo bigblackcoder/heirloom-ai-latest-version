@@ -12,18 +12,14 @@ export const AnthropicLogo: React.FC<AnthropicLogoProps> = ({
   return (
     <svg
       className={className}
-      viewBox="0 0 40 40"
+      viewBox="0 0 32 32"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <circle cx="20" cy="20" r="18" fill="#F9F5F2" />
-      <rect x="13" y="13" width="14" height="14" rx="4" fill={color} />
+      <circle cx="16" cy="16" r="14" fill="#F9F5F2" />
+      <rect x="8" y="8" width="16" height="16" rx="4" fill={color} />
       <path
-        d="M21.5 23.5L23 18.5H20.5L19 23.5H21.5ZM17 23.5L18.5 18.5H16L14.5 23.5H17Z"
-        fill="white"
-      />
-      <path
-        d="M22 23.5L23.5 18.5H26L24.5 23.5H22Z"
+        d="M16 21C14.3431 21 13 19.6569 13 18V14C13 12.3431 14.3431 11 16 11C17.6569 11 19 12.3431 19 14V18C19 19.6569 17.6569 21 16 21Z"
         fill="white"
       />
     </svg>
