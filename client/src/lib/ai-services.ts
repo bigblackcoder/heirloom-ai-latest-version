@@ -1,7 +1,7 @@
-import React from "react";
-import AnthropicLogo from "@/components/ui/anthropic-logo";
-import ClaudeLogo from "@/components/ui/claude-logo";
-import GeminiLogo from "@/components/ui/gemini-logo";
+import * as React from "react";
+import { AnthropicLogo } from "@/components/ui/anthropic-logo";
+import { ClaudeLogo } from "@/components/ui/claude-logo";
+import { GeminiLogo } from "@/components/ui/gemini-logo";
 
 // Function to get AI service icon based on service name
 export function getAiServiceIcon(serviceName: string): React.ReactNode {

@@ -12,16 +12,14 @@ export default function Home() {
       <div className="w-full px-4 pt-6 pb-2 flex items-center">
         <div className="text-sm opacity-70">9:41</div>
         <div className="flex-1"></div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
           <svg className="w-4 h-4 opacity-70" viewBox="0 0 24 24" fill="none">
-            <path d="M1.5 6.5C1.5 4 3.5 2 6 2 8.5 2 10.5 4 10.5 6.5v11C10.5 20 8.5 22 6 22 3.5 22 1.5 20 1.5 17.5v-11Z" stroke="currentColor" strokeWidth="1.5"/>
-            <path d="M10.5 6c0-2.5 2-4.5 4.5-4.5s4.5 2 4.5 4.5v11c0 2.5-2 4.5-4.5 4.5S10.5 19.5 10.5 17V6Z" stroke="currentColor" strokeWidth="1.5"/>
-            <path d="M19.5 7a2.5 2.5 0 0 1 5 0v10a2.5 2.5 0 0 1-5 0V7Z" stroke="currentColor" strokeWidth="1.5"/>
+            <path d="M17 6h1a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            <rect x="3" y="6" width="14" height="12" rx="2" fill="none" stroke="currentColor" strokeWidth="1.5" />
+            <rect x="5" y="8" width="10" height="8" rx="1" fill="currentColor" fillOpacity="0.5" />
           </svg>
-          <svg className="w-4 h-4 opacity-70" viewBox="0 0 24 24" fill="none">
-            <path d="M3 7c0-1.1.9-2 2-2h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" stroke="currentColor" strokeWidth="1.5"/>
-            <path d="M21 16h2v-8h-2M1 16h2V8H1" stroke="currentColor" strokeWidth="1.5"/>
-          </svg>
+          <div className="w-0.5 h-3 bg-white/40 rounded-full mx-0.5"></div>
+          <img src="/attached_assets/heirloomlogo.png" alt="Heirloom Logo" className="w-5 h-5" />
         </div>
       </div>
 
