@@ -1,10 +1,12 @@
 import { MdAdd } from "react-icons/md";
 import {
-  SiClaude,
   SiOpenai,
-  SiGoogle
+  SiGoogle,
+  SiMeta,
+  SiAmazon
 } from "react-icons/si";
-import { TbAtom } from "react-icons/tb";
+import { TbBrain, TbRobot } from "react-icons/tb";
+import { GiArtificialIntelligence } from "react-icons/gi";
 
 interface Connection {
   id: number;
@@ -26,7 +28,7 @@ export default function ActiveConnections({ connections, isLoading }: ActiveConn
     {
       name: "Claude AI",
       icon: (
-        <SiClaude className="w-6 h-6 text-[#6333c4]" />
+        <GiArtificialIntelligence className="w-6 h-6 text-[#6333c4]" />
       ),
       lastUsed: "2h ago",
       status: "Active",
@@ -44,7 +46,7 @@ export default function ActiveConnections({ connections, isLoading }: ActiveConn
     {
       name: "Anthropic",
       icon: (
-        <TbAtom className="w-6 h-6 text-[#f02c56]" strokeWidth={2} fill="#f02c56" />
+        <TbBrain className="w-6 h-6 text-[#f02c56]" strokeWidth={2} />
       ),
       lastUsed: "3d ago",
       status: "Active",
