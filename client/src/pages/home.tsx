@@ -7,7 +7,7 @@ export default function Home() {
   const [_, navigate] = useLocation();
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-[#1a3607] via-[#1e3c0d] to-[#2a5414] text-white">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-[#1e2610] via-[#232d12] to-[#273414] text-white">
       {/* Status bar area */}
       <div className="w-full px-4 pt-6 pb-2 flex items-center">
         <div className="text-sm opacity-70">9:41</div>
@@ -45,9 +45,9 @@ export default function Home() {
         {/* Features list */}
         <div className="space-y-5 mb-8">
           <div className="flex items-center p-4 bg-white/10 backdrop-blur-sm rounded-2xl">
-            <div className="w-12 h-12 rounded-full bg-[#2a5414] flex items-center justify-center mr-4 shadow-sm">
+            <div className="w-12 h-12 rounded-full bg-[#273414] flex items-center justify-center mr-4 shadow-sm">
               <svg
-                className="w-6 h-6 text-[#4caf50]"
+                className="w-6 h-6 text-[#7c9861]"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -68,9 +68,9 @@ export default function Home() {
           </div>
           
           <div className="flex items-center p-4 bg-white/10 backdrop-blur-sm rounded-2xl">
-            <div className="w-12 h-12 rounded-full bg-[#2a5414] flex items-center justify-center mr-4 shadow-sm">
+            <div className="w-12 h-12 rounded-full bg-[#273414] flex items-center justify-center mr-4 shadow-sm">
               <svg
-                className="w-6 h-6 text-[#4caf50]"
+                className="w-6 h-6 text-[#7c9861]"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -91,9 +91,9 @@ export default function Home() {
           </div>
           
           <div className="flex items-center p-4 bg-white/10 backdrop-blur-sm rounded-2xl">
-            <div className="w-12 h-12 rounded-full bg-[#2a5414] flex items-center justify-center mr-4 shadow-sm">
+            <div className="w-12 h-12 rounded-full bg-[#273414] flex items-center justify-center mr-4 shadow-sm">
               <svg
-                className="w-6 h-6 text-[#4caf50]"
+                className="w-6 h-6 text-[#7c9861]"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -116,7 +116,7 @@ export default function Home() {
         {/* Mobile mockup design element */}
         <div className="relative mb-10">
           <div className="absolute -right-4 top-3 w-36 h-36 rounded-full bg-[#d4a166]/20 blur-2xl"></div>
-          <div className="absolute -left-4 -bottom-4 w-28 h-28 rounded-full bg-[#4caf50]/20 blur-2xl"></div>
+          <div className="absolute -left-4 -bottom-4 w-28 h-28 rounded-full bg-[#7c9861]/20 blur-2xl"></div>
           
           <div className="relative mx-auto w-48 h-48 border-4 border-white/20 rounded-3xl overflow-hidden backdrop-blur-sm bg-white/5 flex items-center justify-center">
             <div className="text-center">
@@ -131,7 +131,7 @@ export default function Home() {
         {/* CTAs */}
         <div className="mt-auto">
           <Button 
-            className="w-full py-7 bg-[#4caf50] hover:bg-[#2a5414] text-white font-medium text-lg rounded-full shadow-lg"
+            className="w-full py-7 bg-[#7c9861] hover:bg-[#273414] text-white font-medium text-lg rounded-full shadow-lg"
             onClick={() => navigate("/verification")}
           >
             Verify My Identity
