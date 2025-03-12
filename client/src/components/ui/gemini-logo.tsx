@@ -1,13 +1,13 @@
 import React from 'react';
 
-interface AnthropicLogoProps {
+interface GeminiLogoProps {
   className?: string;
   color?: string;
 }
 
-export const AnthropicLogo: React.FC<AnthropicLogoProps> = ({ 
+export const GeminiLogo: React.FC<GeminiLogoProps> = ({ 
   className = "w-6 h-6", 
-  color = "#F1F0E8" 
+  color = "#1C69FF" 
 }) => {
   return (
     <svg
@@ -17,11 +17,11 @@ export const AnthropicLogo: React.FC<AnthropicLogoProps> = ({
       xmlns="http://www.w3.org/2000/svg"
     >
       <path
-        d="M18 85L40 15H55L82 85H67L60 65H35L28 85H18ZM40 50H55L50 35L47.5 25L45 35L40 50Z"
+        d="M50 10L10 50L50 90L90 50L50 10Z"
         fill={color}
       />
     </svg>
   );
 };
 
-export default AnthropicLogo;
+export default GeminiLogo;
