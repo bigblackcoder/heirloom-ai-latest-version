@@ -26,20 +26,22 @@ export default function CapsuleSetupPopup({ isOpen, onClose }: CapsuleSetupPopup
     }
   }, [isOpen, onClose]);
   
-  if (!isOpen) return null;
+  // Return null when completely closed to remove from DOM
+  if (!isOpen && !isVisible) return null;
   
   return (
     <div 
-      className={`fixed inset-0 flex items-center justify-center p-4 z-50 transition-opacity duration-300 ${
-        isVisible ? "opacity-100" : "opacity-0"
+      className={`fixed inset-0 flex items-end justify-center z-50 transition-opacity duration-300 ${
+        isVisible ? "opacity-100" : "opacity-0 pointer-events-none"
       }`}
     >
-      <div className="bg-black/50 absolute inset-0" onClick={onClose}></div>
+      <div className="bg-black/30 absolute inset-0" onClick={onClose}></div>
       
       <div 
-        className={`bg-white rounded-3xl w-full max-w-xs p-6 relative z-10 shadow-xl transform transition-transform duration-300 ${
-          isVisible ? "translate-y-0" : "translate-y-20"
+        className={`bg-white rounded-t-3xl w-full max-w-md p-6 relative z-50 shadow-xl transform transition-transform duration-300 ${
+          isVisible ? "translate-y-0" : "translate-y-full"
         }`}
+        style={{marginBottom: 0, paddingBottom: "calc(1.5rem + env(safe-area-inset-bottom, 0rem))"}}
       >
         {/* Check icon */}
         <div className="mx-auto w-16 h-16 bg-[#d4a166]/20 rounded-full flex items-center justify-center mb-4">
