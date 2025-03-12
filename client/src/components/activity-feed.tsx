@@ -1,6 +1,13 @@
 import { useLocation } from "wouter";
 import { formatTime } from "@/lib/identity";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { 
+  ShieldCheck, 
+  Brain, 
+  FileText, 
+  WarningCircle,
+  CheckCircle
+} from "phosphor-react";
 
 interface Activity {
   id: number;
@@ -112,9 +119,7 @@ function ActivityFeedHorizontal() {
       description: "Your identity has been successfully verified through biometric scan.",
       time: "Today, 10:32 AM",
       icon: (
-        <svg className="w-5 h-5 text-[#d4a166]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-        </svg>
+        <ShieldCheck weight="duotone" className="w-5 h-5 text-[#d4a166]" />
       ),
       iconBg: "bg-[#d4a166]/10"
     },
@@ -124,9 +129,7 @@ function ActivityFeedHorizontal() {
       description: "Claude AI now has limited access to your identity information.",
       time: "Today, 11:45 AM",
       icon: (
-        <svg className="w-5 h-5 text-[#4caf50]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M12 2a10 10 0 1 0 10 10 4 4 0 0 1-5-5 4 4 0 0 1-5-5" />
-        </svg>
+        <Brain weight="duotone" className="w-5 h-5 text-[#4caf50]" />
       ),
       iconBg: "bg-[#4caf50]/10"
     },
@@ -136,13 +139,7 @@ function ActivityFeedHorizontal() {
       description: "Your driver's license has been added to your identity capsule.",
       time: "Yesterday, 4:15 PM",
       icon: (
-        <svg className="w-5 h-5 text-[#2196f3]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-          <path d="M14 2v6h6" />
-          <path d="M16 13H8" />
-          <path d="M16 17H8" />
-          <path d="M10 9H8" />
-        </svg>
+        <FileText weight="duotone" className="w-5 h-5 text-[#2196f3]" />
       ),
       iconBg: "bg-[#2196f3]/10"
     },
@@ -152,9 +149,7 @@ function ActivityFeedHorizontal() {
       description: "Unusual login attempt detected from a new location.",
       time: "3 days ago",
       icon: (
-        <svg className="w-5 h-5 text-[#f44336]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-        </svg>
+        <WarningCircle weight="duotone" className="w-5 h-5 text-[#f44336]" />
       ),
       iconBg: "bg-[#f44336]/10"
     }
