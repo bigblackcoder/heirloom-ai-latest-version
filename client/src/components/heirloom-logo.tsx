@@ -4,6 +4,7 @@ import { cn } from '../lib/utils';
 // Import logo images directly
 import iconLogo from '../assets/heirloom-icon.png';
 import fullLogo from '../assets/heirloom-full.png';
+import transparentLogo from '../assets/heirloom-transparent.png';
 
 interface HeirloomLogoProps {
   className?: string;
@@ -17,15 +18,15 @@ export function HeirloomLogo({
   withText = false
 }: HeirloomLogoProps) {
   // Use imported logo assets
-  const logoIconPath = iconLogo;      // Green "H" logo
-  const logoFullPath = fullLogo;      // White "H" logo
-  const logoCompletePath = fullLogo;  // Using full logo for complete variant too
+  const logoIconPath = iconLogo;               // Green "H" logo
+  const logoFullPath = transparentLogo;        // Transparent white "H" logo
+  const logoCompletePath = transparentLogo;    // Using transparent logo for complete variant too
 
   return (
     <div className={cn("flex items-center", className)}>
       {variant === 'complete' ? (
         // Complete logo with text included in the image
-        <div className="relative bg-[#235B3C] rounded-lg p-1">
+        <div className="relative flex items-center justify-center">
           <img 
             src={logoCompletePath} 
             alt="Heirloom Identity Platform" 
@@ -42,8 +43,8 @@ export function HeirloomLogo({
           />
         </div>
       ) : (
-        // Full logo with emblem - white version on green background
-        <div className="relative bg-[#235B3C] rounded-lg p-1">
+        // Full logo with emblem - transparent white version
+        <div className="relative flex items-center justify-center">
           <img 
             src={logoFullPath} 
             alt="Heirloom Logo" 
