@@ -108,7 +108,7 @@ export default function NavigationBar({ currentPath }: NavigationBarProps) {
     ];
 
     return (
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-10 max-w-md mx-auto overflow-hidden">
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-40 max-w-md mx-auto overflow-hidden">
         {/* Green Vector Background */}
         <div className="absolute bottom-0 left-0 right-0 h-16 bg-[#1e3c0d]/10 rounded-t-3xl z-0"></div>
         
@@ -152,7 +152,7 @@ export default function NavigationBar({ currentPath }: NavigationBarProps) {
   } else {
     // Simpler 5-item navigation
     return (
-      <nav className="fixed bottom-0 left-0 right-0 border-t bg-white py-2 px-4">
+      <nav className="fixed bottom-0 left-0 right-0 border-t bg-white py-2 px-4 z-40">
         <div className="max-w-md mx-auto flex justify-between items-center">
           <Link href="/dashboard">
             <a className={`flex flex-col items-center ${currentPath === "/dashboard" ? "text-[#1e3c0d]" : "text-gray-500"}`}>
