@@ -12,13 +12,16 @@ export const GeminiLogo: React.FC<GeminiLogoProps> = ({
   return (
     <svg
       className={className}
-      viewBox="0 0 100 100"
+      viewBox="0 0 40 40"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
+      <circle cx="20" cy="20" r="18" fill="#F9F5F2" />
       <path
-        d="M50 10L10 50L50 90L90 50L50 10Z"
-        fill={color}
+        d="M26 20C26 15.5 23 13 20 13C17 13 14 15 14 20C14 25 17 27 20 27C23 27 24.5 25 24.5 22H20"
+        stroke={color}
+        strokeWidth="2.5"
+        fill="none"
       />
     </svg>
   );
