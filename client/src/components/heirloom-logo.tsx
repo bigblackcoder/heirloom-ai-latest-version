@@ -14,93 +14,30 @@ export function HeirloomLogo({
 }: HeirloomLogoProps) {
   return (
     <div className={cn("flex items-center", className)}>
-      <svg 
-        className="shrink-0"
-        width="44" 
-        height="44" 
-        viewBox="0 0 160 160" 
-        fill="none" 
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        {/* Rounded square background */}
-        <rect 
-          x="0" 
-          y="0" 
-          width="160" 
-          height="160" 
-          rx="56" 
-          fill="#C9E9A0" 
+      {variant === 'icon' ? (
+        <img 
+          src="/images/heirloom-icon.svg" 
+          alt="Heirloom Logo" 
+          className="shrink-0 w-11 h-11"
         />
-        {/* Inner lighter area */}
-        <rect 
-          x="40" 
-          y="40" 
-          width="80" 
-          height="80" 
-          rx="20" 
-          fill="#DBF4B7" 
-        />
-        {/* Stylized document/capsule icon */}
-        <path 
-          d="M65 60H95M65 100H95M65 60V100M95 60V100"
-          stroke="#23340E" 
-          strokeWidth="6" 
-          strokeLinecap="round" 
-          strokeLinejoin="round" 
-        />
-        <path 
-          d="M70 75H90M70 85H90" 
-          stroke="#23340E" 
-          strokeWidth="6" 
-          strokeLinecap="round" 
-          strokeLinejoin="round" 
-        />
-        <rect 
-          x="62" 
-          y="68" 
-          width="12" 
-          height="12" 
-          rx="2" 
-          stroke="#23340E" 
-          strokeWidth="4" 
+      ) : (
+        <svg 
+          className="shrink-0"
+          width="44" 
+          height="44" 
+          viewBox="0 0 44 44" 
           fill="none" 
-        />
-        <rect 
-          x="86" 
-          y="68" 
-          width="12" 
-          height="12" 
-          rx="2" 
-          stroke="#23340E" 
-          strokeWidth="4" 
-          fill="none" 
-        />
-        <rect 
-          x="62" 
-          y="82" 
-          width="12" 
-          height="12" 
-          rx="2" 
-          stroke="#23340E" 
-          strokeWidth="4" 
-          fill="none" 
-        />
-        <rect 
-          x="86" 
-          y="82" 
-          width="12" 
-          height="12" 
-          rx="2" 
-          stroke="#23340E" 
-          strokeWidth="4" 
-          fill="none" 
-        />
-      </svg>
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path d="M22 44C34.1503 44 44 34.1503 44 22C44 9.84974 34.1503 0 22 0C9.84974 0 0 9.84974 0 22C0 34.1503 9.84974 44 22 44Z" fill="#235B3C"/>
+          <path d="M25.4244 18.1333H18.5756L17.6978 21.4667H26.3022L25.4244 18.1333ZM19.8889 30.8L22 22L24.1111 30.8H19.8889ZM18.5778 33H25.4222L28.2222 15.9333C28.3778 15.2667 27.8778 14.6667 27.2 14.6667H16.8C16.1222 14.6667 15.6222 15.2667 15.7778 15.9333L18.5778 33Z" fill="white"/>
+        </svg>
+      )}
 
       {withText && (
         <div className="ml-4">
-          <h2 className="text-2xl font-bold text-white">Heirloom</h2>
-          <p className="text-gray-300">Identity Platform</p>
+          <h2 className="text-2xl font-bold text-[#235B3C]">Heirloom</h2>
+          <p className="text-gray-600">Identity Platform</p>
         </div>
       )}
     </div>
