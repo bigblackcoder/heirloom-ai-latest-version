@@ -1,6 +1,10 @@
 import React from 'react';
 import { cn } from '../lib/utils';
 
+// Import logo images directly
+import iconLogo from '../assets/heirloom-icon.png';
+import fullLogo from '../assets/heirloom-full.png';
+
 interface HeirloomLogoProps {
   className?: string;
   variant?: 'icon' | 'full' | 'complete';
@@ -12,10 +16,10 @@ export function HeirloomLogo({
   variant = 'icon',
   withText = false
 }: HeirloomLogoProps) {
-  // Paths to logo image files
-  const logoIconPath = "/images/heirloom-icon.png";    // Green "H" logo
-  const logoFullPath = "/images/heirloom-full.png";    // White "H" logo
-  const logoCompletePath = "/images/heirloom-complete.png";  // White "H" logo (same as full for now)
+  // Use imported logo assets
+  const logoIconPath = iconLogo;      // Green "H" logo
+  const logoFullPath = fullLogo;      // White "H" logo
+  const logoCompletePath = fullLogo;  // Using full logo for complete variant too
 
   return (
     <div className={cn("flex items-center", className)}>
