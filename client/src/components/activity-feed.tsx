@@ -2,12 +2,12 @@ import { useLocation } from "wouter";
 import { formatTime } from "@/lib/identity";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { 
-  ShieldCheck, 
-  Brain, 
-  FileText, 
-  WarningCircle,
-  CheckCircle
-} from "phosphor-react";
+  IoShieldCheckmarkSharp,
+  IoDocumentTextSharp,
+  IoWarningSharp,
+  IoCheckmarkCircleSharp
+} from "react-icons/io5";
+import { SiProbot } from "react-icons/si";
 
 interface Activity {
   id: number;
@@ -54,15 +54,13 @@ export default function ActivityFeed({ today, yesterday, older, isLoading }: Act
         className="flex items-start py-3 border-b border-gray-100 last:border-0"
       >
         <div className={`rounded-full bg-[#e6efe6] p-2 mr-3 ${isMobile ? 'mt-0.5' : 'mt-0'}`}>
-          <svg className="w-5 h-5 text-[#1e3c0d]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            {activity.type === 'verification' ? (
-              <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-            ) : activity.type === 'login' ? (
-              <path d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-            ) : (
-              <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            )}
-          </svg>
+          {activity.type === 'verification' ? (
+            <IoShieldCheckmarkSharp className="w-5 h-5 text-[#1e3c0d]" />
+          ) : activity.type === 'login' ? (
+            <IoCheckmarkCircleSharp className="w-5 h-5 text-[#1e3c0d]" />
+          ) : (
+            <IoDocumentTextSharp className="w-5 h-5 text-[#1e3c0d]" />
+          )}
         </div>
         <div className="flex-1">
           <p className={`font-medium ${isMobile ? 'text-sm' : 'text-base'}`}>{activity.title || activity.type}</p>
@@ -119,7 +117,7 @@ function ActivityFeedHorizontal() {
       description: "Your identity has been successfully verified through biometric scan.",
       time: "Today, 10:32 AM",
       icon: (
-        <ShieldCheck weight="duotone" className="w-5 h-5 text-[#d4a166]" />
+        <IoShieldCheckmarkSharp className="w-5 h-5 text-[#d4a166]" />
       ),
       iconBg: "bg-[#d4a166]/10"
     },
@@ -129,7 +127,7 @@ function ActivityFeedHorizontal() {
       description: "Claude AI now has limited access to your identity information.",
       time: "Today, 11:45 AM",
       icon: (
-        <Brain weight="duotone" className="w-5 h-5 text-[#4caf50]" />
+        <SiProbot className="w-5 h-5 text-[#4caf50]" />
       ),
       iconBg: "bg-[#4caf50]/10"
     },
@@ -139,7 +137,7 @@ function ActivityFeedHorizontal() {
       description: "Your driver's license has been added to your identity capsule.",
       time: "Yesterday, 4:15 PM",
       icon: (
-        <FileText weight="duotone" className="w-5 h-5 text-[#2196f3]" />
+        <IoDocumentTextSharp className="w-5 h-5 text-[#2196f3]" />
       ),
       iconBg: "bg-[#2196f3]/10"
     },
@@ -149,7 +147,7 @@ function ActivityFeedHorizontal() {
       description: "Unusual login attempt detected from a new location.",
       time: "3 days ago",
       icon: (
-        <WarningCircle weight="duotone" className="w-5 h-5 text-[#f44336]" />
+        <IoWarningSharp className="w-5 h-5 text-[#f44336]" />
       ),
       iconBg: "bg-[#f44336]/10"
     }

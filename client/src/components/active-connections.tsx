@@ -1,10 +1,10 @@
-import { 
-  Sparkle, 
-  Brain, 
-  Atom, 
-  Star, 
-  PlusCircle 
-} from "phosphor-react";
+import { MdAdd } from "react-icons/md";
+import {
+  SiClaude,
+  SiOpenai,
+  SiGoogle
+} from "react-icons/si";
+import { TbAtom } from "react-icons/tb";
 
 interface Connection {
   id: number;
@@ -26,7 +26,7 @@ export default function ActiveConnections({ connections, isLoading }: ActiveConn
     {
       name: "Claude AI",
       icon: (
-        <Sparkle weight="duotone" className="w-6 h-6 text-[#6333c4]" />
+        <SiClaude className="w-6 h-6 text-[#6333c4]" />
       ),
       lastUsed: "2h ago",
       status: "Active",
@@ -35,7 +35,7 @@ export default function ActiveConnections({ connections, isLoading }: ActiveConn
     {
       name: "OpenAI ChatGPT",
       icon: (
-        <Brain weight="duotone" className="w-6 h-6 text-[#1a8870]" /> 
+        <SiOpenai className="w-6 h-6 text-[#1a8870]" /> 
       ),
       lastUsed: "1d ago",
       status: "Active",
@@ -44,7 +44,7 @@ export default function ActiveConnections({ connections, isLoading }: ActiveConn
     {
       name: "Anthropic",
       icon: (
-        <Atom weight="duotone" className="w-6 h-6 text-[#f02c56]" />
+        <TbAtom className="w-6 h-6 text-[#f02c56]" strokeWidth={2} fill="#f02c56" />
       ),
       lastUsed: "3d ago",
       status: "Active",
@@ -53,7 +53,7 @@ export default function ActiveConnections({ connections, isLoading }: ActiveConn
     {
       name: "Gemini AI",
       icon: (
-        <Star weight="duotone" className="w-6 h-6 text-[#2e77d0]" />
+        <SiGoogle className="w-6 h-6 text-[#2e77d0]" />
       ),
       lastUsed: "1w ago",
       status: "Active",
@@ -94,7 +94,7 @@ export default function ActiveConnections({ connections, isLoading }: ActiveConn
           {/* Add Connection Card */}
           <div className="flex-shrink-0 w-48 bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex flex-col items-center justify-center h-[106px]">
             <div className="w-10 h-10 rounded-full bg-[#1e3c0d]/10 flex items-center justify-center mb-2">
-              <PlusCircle weight="duotone" className="w-6 h-6 text-[#1e3c0d]" />
+              <MdAdd className="w-6 h-6 text-[#1e3c0d]" />
             </div>
             <span className="text-sm font-medium text-[#1e3c0d]">Add New</span>
           </div>

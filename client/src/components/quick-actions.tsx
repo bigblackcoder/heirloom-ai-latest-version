@@ -1,11 +1,15 @@
 import { useLocation } from "wouter";
 import { 
-  IdentificationBadge, 
-  Database, 
-  ShieldCheck, 
-  Robot, 
-  AppWindow 
-} from "phosphor-react";
+  BsPersonBadgeFill, 
+  BsDatabaseFill, 
+  BsShieldLockFill, 
+  BsRobot, 
+  BsGrid3X3GapFill 
+} from "react-icons/bs";
+import { IoShieldCheckmark } from "react-icons/io5";
+import { SiProbot } from "react-icons/si";
+import { GrCube } from "react-icons/gr";
+import { FaIdCard, FaDatabase } from "react-icons/fa";
 
 export default function QuickActions() {
   const [_, navigate] = useLocation();
@@ -14,31 +18,31 @@ export default function QuickActions() {
     {
       name: "Identity",
       icon: (
-        <IdentificationBadge weight="duotone" className="w-8 h-8 text-[#1e3c0d]" />
+        <FaIdCard className="w-8 h-8 text-[#1e3c0d]" />
       )
     },
     {
       name: "Data",
       icon: (
-        <Database weight="duotone" className="w-8 h-8 text-[#1e3c0d]" />
+        <FaDatabase className="w-8 h-8 text-[#1e3c0d]" />
       )
     },
     {
       name: "Capsule",
       icon: (
-        <ShieldCheck weight="duotone" className="w-8 h-8 text-[#1e3c0d]" />
+        <IoShieldCheckmark className="w-8 h-8 text-[#1e3c0d]" />
       )
     },
     {
       name: "AI",
       icon: (
-        <Robot weight="duotone" className="w-8 h-8 text-[#1e3c0d]" />
+        <SiProbot className="w-8 h-8 text-[#1e3c0d]" />
       )
     },
     {
       name: "Apps",
       icon: (
-        <AppWindow weight="duotone" className="w-8 h-8 text-[#1e3c0d]" />
+        <BsGrid3X3GapFill className="w-8 h-8 text-[#1e3c0d]" />
       )
     }
   ];
