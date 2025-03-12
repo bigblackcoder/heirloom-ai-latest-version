@@ -1,75 +1,109 @@
 import React from 'react';
+import { cn } from '../lib/utils';
 
-export function HeirloomLogo({ className = "w-6 h-6" }: { className?: string }) {
+interface HeirloomLogoProps {
+  className?: string;
+  variant?: 'icon' | 'full';
+  withText?: boolean;
+}
+
+export function HeirloomLogo({ 
+  className = "w-10 h-10", 
+  variant = 'icon',
+  withText = false
+}: HeirloomLogoProps) {
   return (
-    <svg 
-      className={className} 
-      width="100" 
-      height="100" 
-      viewBox="0 0 100 100" 
-      fill="none" 
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      {/* Rounded square background */}
-      <rect 
-        x="5" 
-        y="5" 
-        width="90" 
-        height="90" 
-        rx="24" 
-        fill="#B8D98B" 
-        stroke="#B8D98B" 
-      />
+    <div className={cn("flex items-center", className)}>
+      <svg 
+        className="shrink-0"
+        width="44" 
+        height="44" 
+        viewBox="0 0 160 160" 
+        fill="none" 
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        {/* Rounded square background */}
+        <rect 
+          x="0" 
+          y="0" 
+          width="160" 
+          height="160" 
+          rx="56" 
+          fill="#C9E9A0" 
+        />
+        {/* Inner lighter area */}
+        <rect 
+          x="40" 
+          y="40" 
+          width="80" 
+          height="80" 
+          rx="20" 
+          fill="#DBF4B7" 
+        />
+        {/* Stylized document/capsule icon */}
+        <path 
+          d="M65 60H95M65 100H95M65 60V100M95 60V100"
+          stroke="#23340E" 
+          strokeWidth="6" 
+          strokeLinecap="round" 
+          strokeLinejoin="round" 
+        />
+        <path 
+          d="M70 75H90M70 85H90" 
+          stroke="#23340E" 
+          strokeWidth="6" 
+          strokeLinecap="round" 
+          strokeLinejoin="round" 
+        />
+        <rect 
+          x="62" 
+          y="68" 
+          width="12" 
+          height="12" 
+          rx="2" 
+          stroke="#23340E" 
+          strokeWidth="4" 
+          fill="none" 
+        />
+        <rect 
+          x="86" 
+          y="68" 
+          width="12" 
+          height="12" 
+          rx="2" 
+          stroke="#23340E" 
+          strokeWidth="4" 
+          fill="none" 
+        />
+        <rect 
+          x="62" 
+          y="82" 
+          width="12" 
+          height="12" 
+          rx="2" 
+          stroke="#23340E" 
+          strokeWidth="4" 
+          fill="none" 
+        />
+        <rect 
+          x="86" 
+          y="82" 
+          width="12" 
+          height="12" 
+          rx="2" 
+          stroke="#23340E" 
+          strokeWidth="4" 
+          fill="none" 
+        />
+      </svg>
 
-      {/* Stylized H design */}
-      <path 
-        d="M35 30H65M35 70H65M35 30V70M65 30V70M40 43H60M40 57H60" 
-        stroke="#23340E" 
-        strokeWidth="4" 
-        strokeLinecap="round" 
-        strokeLinejoin="round" 
-      />
-      <rect 
-        x="30" 
-        y="38" 
-        width="10" 
-        height="10" 
-        rx="1" 
-        stroke="#23340E" 
-        strokeWidth="3" 
-        fill="none" 
-      />
-      <rect 
-        x="60" 
-        y="38" 
-        width="10" 
-        height="10" 
-        rx="1" 
-        stroke="#23340E" 
-        strokeWidth="3" 
-        fill="none" 
-      />
-      <rect 
-        x="30" 
-        y="52" 
-        width="10" 
-        height="10" 
-        rx="1" 
-        stroke="#23340E" 
-        strokeWidth="3" 
-        fill="none" 
-      />
-      <rect 
-        x="60" 
-        y="52" 
-        width="10" 
-        height="10" 
-        rx="1" 
-        stroke="#23340E" 
-        strokeWidth="3" 
-        fill="none" 
-      />
-    </svg>
+      {withText && (
+        <div className="ml-4">
+          <h2 className="text-2xl font-bold text-white">Heirloom</h2>
+          <p className="text-gray-300">Identity Platform</p>
+        </div>
+      )}
+    </div>
   );
 }
 
