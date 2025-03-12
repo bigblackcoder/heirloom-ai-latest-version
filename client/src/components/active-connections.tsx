@@ -5,8 +5,9 @@ import {
   SiMeta,
   SiAmazon
 } from "react-icons/si";
-import { TbBrain, TbRobot } from "react-icons/tb";
-import { GiArtificialIntelligence } from "react-icons/gi";
+import { TbBrain, TbRobot, TbBrandDiscord } from "react-icons/tb";
+import { GiWaveCrest } from "react-icons/gi";
+import { IoWaterOutline } from "react-icons/io5";
 
 interface Connection {
   id: number;
@@ -28,7 +29,7 @@ export default function ActiveConnections({ connections, isLoading }: ActiveConn
     {
       name: "Claude AI",
       icon: (
-        <GiArtificialIntelligence className="w-6 h-6 text-[#6333c4]" />
+        <GiWaveCrest className="w-6 h-6 text-[#6333c4]" />
       ),
       lastUsed: "2h ago",
       status: "Active",
@@ -46,11 +47,11 @@ export default function ActiveConnections({ connections, isLoading }: ActiveConn
     {
       name: "Anthropic",
       icon: (
-        <TbBrain className="w-6 h-6 text-[#f02c56]" strokeWidth={2} />
+        <IoWaterOutline className="w-6 h-6 text-[#5436DA]" />
       ),
       lastUsed: "3d ago",
       status: "Active",
-      color: "#f02c56"
+      color: "#5436DA"
     },
     {
       name: "Gemini AI",
