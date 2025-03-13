@@ -2,9 +2,9 @@ import React from 'react';
 import { cn } from '../lib/utils';
 
 // Import logo images directly
-import iconLogo from '../assets/heirloom-icon.png';
-import fullLogo from '../assets/heirloom-full.png';
-import transparentLogo from '../assets/heirloom-transparent.png';
+import iconLogo from '../assets/heirloom-white.png';
+import fullLogo from '../assets/heirloom-white.png';
+import transparentLogo from '../assets/heirloom-white.png';
 
 interface HeirloomLogoProps {
   className?: string;
@@ -18,9 +18,9 @@ export function HeirloomLogo({
   withText = false
 }: HeirloomLogoProps) {
   // Use imported logo assets
-  const logoIconPath = iconLogo;               // Green "H" logo
-  const logoFullPath = transparentLogo;        // Transparent white "H" logo
-  const logoCompletePath = transparentLogo;    // Using transparent logo for complete variant too
+  const logoIconPath = iconLogo;               // New white "H" logo
+  const logoFullPath = fullLogo;               // New white "H" logo
+  const logoCompletePath = transparentLogo;    // New white "H" logo
 
   return (
     <div className={cn("flex items-center", className)}>
@@ -34,7 +34,7 @@ export function HeirloomLogo({
           />
         </div>
       ) : variant === 'icon' ? (
-        // Small icon logo - green version on transparent background
+        // Small icon logo - white version
         <div className="relative flex items-center justify-center">
           <img 
             src={logoIconPath} 
@@ -43,7 +43,7 @@ export function HeirloomLogo({
           />
         </div>
       ) : (
-        // Full logo with emblem - transparent white version
+        // Full logo with emblem - white version
         <div className="relative flex items-center justify-center">
           <img 
             src={logoFullPath} 
