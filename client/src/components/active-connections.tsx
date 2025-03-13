@@ -24,7 +24,7 @@ export default function ActiveConnections({ connections, isLoading }: ActiveConn
     {
       name: "Claude AI",
       icon: (
-        <ClaudeLogo className="w-6 h-6" />
+        <ClaudeLogo className="w-5 h-5" />
       ),
       lastUsed: "2h ago",
       status: "Active",
@@ -33,7 +33,7 @@ export default function ActiveConnections({ connections, isLoading }: ActiveConn
     {
       name: "OpenAI ChatGPT",
       icon: (
-        <SiOpenai className="w-6 h-6 text-[#1a8870]" /> 
+        <SiOpenai className="w-5 h-5 text-[#1a8870]" /> 
       ),
       lastUsed: "1d ago",
       status: "Active",
@@ -42,7 +42,7 @@ export default function ActiveConnections({ connections, isLoading }: ActiveConn
     {
       name: "Anthropic",
       icon: (
-        <AnthropicLogo className="w-6 h-6" />
+        <AnthropicLogo className="w-5 h-5" />
       ),
       lastUsed: "3d ago",
       status: "Active",
@@ -51,7 +51,7 @@ export default function ActiveConnections({ connections, isLoading }: ActiveConn
     {
       name: "Gemini AI",
       icon: (
-        <GeminiLogo className="w-6 h-6" />
+        <GeminiLogo className="w-5 h-5" />
       ),
       lastUsed: "1w ago",
       status: "Active",
@@ -72,7 +72,7 @@ export default function ActiveConnections({ connections, isLoading }: ActiveConn
       <div className="relative">
         <div className="flex overflow-x-auto pb-6 hide-scrollbar space-x-4">
           {connectionsList.map((connection, index) => (
-            <div key={index} className="flex-shrink-0 w-48 bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+            <div key={index} className="flex-shrink-0 w-48 h-[106px] bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
               <div className="flex items-center mb-3">
                 <div className="w-10 h-10 rounded-full bg-[#f0f0f0] flex items-center justify-center mr-3 overflow-hidden">
                   <div className="flex items-center justify-center w-7 h-7">
@@ -84,7 +84,7 @@ export default function ActiveConnections({ connections, isLoading }: ActiveConn
                   <p className="text-xs text-gray-500">Last used {connection.lastUsed}</p>
                 </div>
               </div>
-              <div className="flex items-center justify-start h-5">
+              <div className="flex items-center justify-start h-5 mt-1">
                 <div className="w-2 h-2 bg-[#4caf50] rounded-full mr-2"></div>
                 <span className="text-xs text-gray-500">{connection.status}</span>
               </div>
