@@ -2,7 +2,7 @@ import React from 'react';
 import { cn } from '../lib/utils';
 
 // Import logo images directly
-import whiteLogo from '../assets/heirloom-white-logo.svg';
+import whiteLogo from '../assets/heirloom-white-logo.png';
 
 interface HeirloomLogoProps {
   className?: string;
@@ -15,10 +15,10 @@ export function HeirloomLogo({
   variant = 'icon',
   withText = false
 }: HeirloomLogoProps) {
-  // Use the same SVG white logo for all variants
-  const logoIconPath = whiteLogo;              // White "H" SVG logo
-  const logoFullPath = whiteLogo;              // White "H" SVG logo
-  const logoCompletePath = whiteLogo;          // White "H" SVG logo
+  // Use the official white Heirloom logo
+  const logoIconPath = whiteLogo;              // Official white Heirloom logo
+  const logoFullPath = whiteLogo;              // Official white Heirloom logo
+  const logoCompletePath = whiteLogo;          // Official white Heirloom logo
 
   return (
     <div className={cn("flex items-center", className)}>
