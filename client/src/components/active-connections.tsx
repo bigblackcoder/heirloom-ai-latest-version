@@ -1,13 +1,8 @@
 import { MdAdd } from "react-icons/md";
-import {
-  SiOpenai,
-  SiGoogle,
-  SiMeta,
-  SiAmazon
-} from "react-icons/si";
-import { TbBrain, TbRobot, TbBrandDiscord } from "react-icons/tb";
-import SunburstIcon from "@/components/ui/sunburst-icon";
+import { SiOpenai } from "react-icons/si";
+import ClaudeLogo from "@/components/ui/claude-logo";
 import AnthropicLogo from "@/components/ui/anthropic-logo";
+import GeminiLogo from "@/components/ui/gemini-logo";
 
 interface Connection {
   id: number;
@@ -29,7 +24,7 @@ export default function ActiveConnections({ connections, isLoading }: ActiveConn
     {
       name: "Claude AI",
       icon: (
-        <SunburstIcon className="w-6 h-6" color="#E57B52" />
+        <ClaudeLogo className="w-6 h-6" />
       ),
       lastUsed: "2h ago",
       status: "Active",
@@ -47,9 +42,7 @@ export default function ActiveConnections({ connections, isLoading }: ActiveConn
     {
       name: "Anthropic",
       icon: (
-        <div className="bg-[#5436DA] rounded-sm w-6 h-6 flex items-center justify-center">
-          <AnthropicLogo className="w-4 h-4" color="#FFFFFF" />
-        </div>
+        <AnthropicLogo className="w-6 h-6" />
       ),
       lastUsed: "3d ago",
       status: "Active",
@@ -58,7 +51,7 @@ export default function ActiveConnections({ connections, isLoading }: ActiveConn
     {
       name: "Gemini AI",
       icon: (
-        <SiGoogle className="w-6 h-6 text-[#2e77d0]" />
+        <GeminiLogo className="w-6 h-6" />
       ),
       lastUsed: "1w ago",
       status: "Active",
@@ -89,7 +82,7 @@ export default function ActiveConnections({ connections, isLoading }: ActiveConn
                   <p className="text-xs text-gray-500">Last used {connection.lastUsed}</p>
                 </div>
               </div>
-              <div className="flex items-center">
+              <div className="flex items-center justify-start h-5">
                 <div className="w-2 h-2 bg-[#4caf50] rounded-full mr-2"></div>
                 <span className="text-xs text-gray-500">{connection.status}</span>
               </div>
