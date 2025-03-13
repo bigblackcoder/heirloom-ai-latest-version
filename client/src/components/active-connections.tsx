@@ -74,8 +74,10 @@ export default function ActiveConnections({ connections, isLoading }: ActiveConn
           {connectionsList.map((connection, index) => (
             <div key={index} className="flex-shrink-0 w-48 bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
               <div className="flex items-center mb-3">
-                <div className="w-10 h-10 rounded-full bg-[#f0f0f0] flex items-center justify-center mr-3">
-                  {connection.icon}
+                <div className="w-10 h-10 rounded-full bg-[#f0f0f0] flex items-center justify-center mr-3 overflow-hidden">
+                  <div className="flex items-center justify-center w-7 h-7">
+                    {connection.icon}
+                  </div>
                 </div>
                 <div>
                   <h3 className="font-medium text-sm">{connection.name}</h3>

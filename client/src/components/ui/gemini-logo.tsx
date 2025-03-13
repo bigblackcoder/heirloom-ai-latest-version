@@ -1,4 +1,5 @@
 import React from 'react';
+import geminiImage from '../../gemini-color.png';
 
 interface GeminiLogoProps {
   className?: string;
@@ -10,7 +11,7 @@ export const GeminiLogo: React.FC<GeminiLogoProps> = ({
 }) => {
   return (
     <img 
-      src="/images/gemini-color.png" 
+      src={geminiImage} 
       alt="Gemini Logo" 
       className={className}
     />

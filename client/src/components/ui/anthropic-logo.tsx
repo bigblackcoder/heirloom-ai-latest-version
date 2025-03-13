@@ -1,4 +1,5 @@
 import React from 'react';
+import anthropicImage from '../../anthropic.png';
 
 interface AnthropicLogoProps {
   className?: string;
@@ -10,7 +11,7 @@ export const AnthropicLogo: React.FC<AnthropicLogoProps> = ({
 }) => {
   return (
     <img 
-      src="/images/anthropic.png" 
+      src={anthropicImage} 
       alt="Anthropic Logo" 
       className={className}
     />

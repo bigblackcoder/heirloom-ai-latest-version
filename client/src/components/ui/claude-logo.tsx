@@ -1,4 +1,5 @@
 import React from 'react';
+import claudeImage from '../../claude-color.png';
 
 interface ClaudeLogoProps {
   className?: string;
@@ -10,7 +11,7 @@ export const ClaudeLogo: React.FC<ClaudeLogoProps> = ({
 }) => {
   return (
     <img 
-      src="/images/claude-color.png" 
+      src={claudeImage} 
       alt="Claude Logo" 
       className={className}
     />
