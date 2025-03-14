@@ -3,8 +3,8 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
-// Using a manual path to the image
-const logoHeirloom = "/images/logo-heirloom.png";
+// Using a manual path to the white version of the logo
+const logoHeirloom = "/images/heirloom-white.png";
 
 interface IdentityCapsuleCardProps {
   userName: string;
@@ -66,7 +66,7 @@ export default function IdentityCapsuleCard({
         <img 
           src={logoHeirloom} 
           alt="Heirloom Logo" 
-          className="h-8 w-auto filter brightness-0 invert opacity-90"
+          className="h-10 w-auto opacity-90"
         />
       </div>
       
