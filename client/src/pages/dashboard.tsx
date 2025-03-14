@@ -157,6 +157,7 @@ export default function Dashboard() {
         verifiedData={`${stats.verifiedAssets} Assets`}
         isVerified={userData?.isVerified || true}
         avatar={userData?.avatar || "https://randomuser.me/api/portraits/women/44.jpg"}
+        theme="light"
       />
 
       {/* Quick Actions */}
