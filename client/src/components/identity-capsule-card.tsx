@@ -41,39 +41,39 @@ export default function IdentityCapsuleCard({
   // Theme-specific styles
   const cardStyle = theme === 'light' 
     ? "bg-white text-gray-800 border border-gray-200" 
-    : "bg-[#1e3c0d] text-white";
+    : "bg-white text-gray-800";
   
   const verifiedBadgeStyle = theme === 'light'
     ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
-    : "bg-[#2a5414] text-[#4caf50] hover:bg-[#2a5414]/80";
+    : "bg-[#f7f9f7] text-gray-700 hover:bg-[#f7f9f7]/90";
   
   const actionBtnStyle = theme === 'light'
     ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
-    : "bg-white/10 text-white hover:bg-white/20";
+    : "bg-[#f7f9f7] text-gray-700 hover:bg-[#f7f9f7]/90";
   
   const moreOptionsStyle = theme === 'light'
     ? "bg-gray-800 text-white hover:bg-gray-700"
-    : "bg-[#d4a166] hover:bg-[#d4a166]/80";
+    : "bg-[#273b37] text-white hover:bg-[#273b37]/90";
   
   const securityTextStyle = theme === 'light'
     ? "text-gray-500"
-    : "text-white/70";
+    : "text-gray-500";
   
   const subtitleStyle = theme === 'light'
     ? "text-gray-500"
-    : "text-white/70";
+    : "text-gray-500";
   
   const memberSinceStyle = theme === 'light'
     ? "text-gray-400"
-    : "text-white/60";
+    : "text-gray-400";
   
   const statsHeaderStyle = theme === 'light'
     ? "text-gray-700"
-    : "text-white";
+    : "text-gray-700";
   
   const statsValueStyle = theme === 'light'
     ? "text-gray-900 font-medium"
-    : "text-[#4caf50] font-medium";
+    : "text-gray-900 font-medium";
 
   return (
     <div className={`mx-4 mb-4 p-5 rounded-3xl shadow-lg ${cardStyle}`}>
