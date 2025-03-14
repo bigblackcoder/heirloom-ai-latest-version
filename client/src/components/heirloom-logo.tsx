@@ -2,7 +2,7 @@ import React from 'react';
 import { cn } from '../lib/utils';
 
 // Logo path as a string
-const newLogo = '/assets/logo-heirloom.png';
+const newLogo = '/logo-heirloom.png';
 
 interface HeirloomLogoProps {
   className?: string;
