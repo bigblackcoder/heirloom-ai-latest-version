@@ -24,7 +24,7 @@ function Router() {
 
 function App() {
   return (
-    <div className="min-h-screen bg-white max-w-md mx-auto overflow-hidden relative">
+    <div className="min-h-screen bg-white force-white-bg max-w-md mx-auto overflow-hidden relative" data-app-container="true">
       <Router />
       <Toaster />
     </div>
