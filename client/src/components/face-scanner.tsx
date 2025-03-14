@@ -80,19 +80,6 @@ export default function FaceScanner({ onProgress, onComplete, isComplete }: Face
       } catch (error) {
         setHasPermission(false);
         console.error("Camera permission denied:", error);
-        
-        // Simulate progress for demo purposes if camera isn't available
-        // This is just for demo - in a real app we'd require camera access
-        let fakeProgress = 0;
-        const interval = setInterval(() => {
-          fakeProgress += 2;
-          if (fakeProgress >= 100) {
-            clearInterval(interval);
-            onComplete();
-          } else {
-            onProgress(fakeProgress);
-          }
-        }, 200);
       }
     };
     
@@ -101,8 +88,13 @@ export default function FaceScanner({ onProgress, onComplete, isComplete }: Face
     return () => {
       // Clean up
       stopDetection();
+      // Clean up simulation if active
+      if (demoSimulationRef.current) {
+        demoSimulationRef.current();
+        demoSimulationRef.current = null;
+      }
     };
-  }, [stopDetection, onProgress, onComplete]);
+  }, [stopDetection, simulateVerification]);
   
   // Start detection when webcam is ready and permission is granted
   useEffect(() => {
@@ -116,6 +108,14 @@ export default function FaceScanner({ onProgress, onComplete, isComplete }: Face
   useEffect(() => {
     handleProgressUpdate(verificationProgress);
   }, [verificationProgress, handleProgressUpdate]);
+  
+  // Effect to handle simulation state changes
+  useEffect(() => {
+    if (isSimulating && verificationProgress === 100) {
+      // Simulation completed
+      onComplete();
+    }
+  }, [isSimulating, verificationProgress, onComplete]);
   
   // Add mouse tracking for face alignment simulation
   useEffect(() => {
