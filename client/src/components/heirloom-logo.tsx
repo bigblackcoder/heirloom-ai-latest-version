@@ -2,8 +2,8 @@ import React from 'react';
 import { cn } from '../lib/utils';
 
 // Logo paths for different variants
-const logoIconGreen = '/images/heirloom-icon.png'; // Green logo on transparent
-const logoIconWhite = '/images/heirloom-full.png'; // White logo on black
+const logoIconGreen = '/images/heirloom-green.png'; // Green logo (dark green on transparent)
+const logoIconWhite = '/images/heirloom-white.png'; // White logo (white on black)
 
 interface HeirloomLogoProps {
   className?: string;
