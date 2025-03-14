@@ -7,7 +7,7 @@ export default function Home() {
   const [_, navigate] = useLocation();
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-[#1e2610] via-[#232d12] to-[#273414] text-white">
+    <div className="min-h-screen flex flex-col bg-white text-gray-900">
       {/* Status bar area */}
       <div className="w-full px-4 pt-6 pb-2 flex items-center">
         <div className="text-sm opacity-70">9:41</div>
