@@ -62,8 +62,8 @@ export default function ActiveConnections({ connections, isLoading }: ActiveConn
   return (
     <div className="px-4 mt-6">
       <div className="flex justify-between items-center mb-3">
-        <h2 className="text-lg font-medium text-gray-900">Active Connections</h2>
-        <button className="text-sm text-gray-700 font-medium">
+        <h2 className="text-lg font-medium text-white">Active Connections</h2>
+        <button className="text-sm text-[#7c9861] font-medium">
           Manage
         </button>
       </div>
@@ -72,33 +72,33 @@ export default function ActiveConnections({ connections, isLoading }: ActiveConn
       <div className="relative">
         <div className="flex overflow-x-auto pb-6 hide-scrollbar space-x-4">
           {connectionsList.map((connection, index) => (
-            <div key={index} className="flex-shrink-0 w-48 h-[106px] bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex flex-col justify-between">
+            <div key={index} className="flex-shrink-0 w-48 h-[106px] bg-[#334218] rounded-2xl shadow-sm border border-[#4c6b24] p-4 flex flex-col justify-between">
               <div>
                 <div className="flex items-center mb-1">
-                  <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mr-3 overflow-hidden">
+                  <div className="w-10 h-10 rounded-full bg-[#243211] flex items-center justify-center mr-3 overflow-hidden">
                     <div className="flex items-center justify-center w-7 h-7">
                       {connection.icon}
                     </div>
                   </div>
                   <div>
-                    <h3 className="font-medium text-sm">{connection.name}</h3>
-                    <p className="text-xs text-gray-500">Last used {connection.lastUsed}</p>
+                    <h3 className="font-medium text-sm text-white">{connection.name}</h3>
+                    <p className="text-xs text-[#a3b88f]">Last used {connection.lastUsed}</p>
                   </div>
                 </div>
               </div>
               <div className="flex items-center justify-start h-5">
                 <div className="w-2 h-2 bg-[#4caf50] rounded-full mr-2"></div>
-                <span className="text-xs text-gray-500">{connection.status}</span>
+                <span className="text-xs text-[#a3b88f]">{connection.status}</span>
               </div>
             </div>
           ))}
           
           {/* Add Connection Card */}
-          <div className="flex-shrink-0 w-48 bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex flex-col items-center justify-center h-[106px]">
-            <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mb-2">
-              <MdAdd className="w-6 h-6 text-gray-700" />
+          <div className="flex-shrink-0 w-48 bg-[#334218] rounded-2xl shadow-sm border border-[#4c6b24] p-4 flex flex-col items-center justify-center h-[106px]">
+            <div className="w-10 h-10 rounded-full bg-[#243211] flex items-center justify-center mb-2">
+              <MdAdd className="w-6 h-6 text-[#7c9861]" />
             </div>
-            <span className="text-sm font-medium text-gray-700">Add New</span>
+            <span className="text-sm font-medium text-[#7c9861]">Add New</span>
           </div>
         </div>
       </div>

@@ -18,31 +18,31 @@ export default function QuickActions() {
     {
       name: "Identity",
       icon: (
-        <FaIdCard className="w-8 h-8 text-gray-700" />
+        <FaIdCard className="w-8 h-8 text-[#7c9861]" />
       )
     },
     {
       name: "Data",
       icon: (
-        <FaDatabase className="w-8 h-8 text-gray-700" />
+        <FaDatabase className="w-8 h-8 text-[#7c9861]" />
       )
     },
     {
       name: "Capsule",
       icon: (
-        <IoShieldCheckmark className="w-8 h-8 text-gray-700" />
+        <IoShieldCheckmark className="w-8 h-8 text-[#7c9861]" />
       )
     },
     {
       name: "AI",
       icon: (
-        <SiProbot className="w-8 h-8 text-gray-700" />
+        <SiProbot className="w-8 h-8 text-[#7c9861]" />
       )
     },
     {
       name: "Apps",
       icon: (
-        <BsGrid3X3GapFill className="w-8 h-8 text-gray-700" />
+        <BsGrid3X3GapFill className="w-8 h-8 text-[#7c9861]" />
       )
     }
   ];
@@ -50,8 +50,8 @@ export default function QuickActions() {
   return (
     <div className="mt-6">
       <div className="px-4 flex justify-between items-center mb-3">
-        <h2 className="text-lg font-medium text-gray-900">Quick Actions</h2>
-        <button className="text-sm text-gray-700 font-medium">
+        <h2 className="text-lg font-medium text-white">Quick Actions</h2>
+        <button className="text-sm text-[#7c9861] font-medium">
           View All
         </button>
       </div>
@@ -61,10 +61,10 @@ export default function QuickActions() {
         <div className="flex overflow-x-auto pb-4 hide-scrollbar px-4 space-x-4">
           {quickActions.map((action, index) => (
             <div key={index} className="flex-shrink-0 w-20 flex flex-col items-center">
-              <div className="w-16 h-16 rounded-full bg-white shadow-md flex items-center justify-center mb-2 border border-gray-100">
+              <div className="w-16 h-16 rounded-full bg-[#334218] shadow-md flex items-center justify-center mb-2 border border-[#4c6b24]">
                 {action.icon}
               </div>
-              <span className="text-xs text-gray-700 font-medium">{action.name}</span>
+              <span className="text-xs text-white font-medium">{action.name}</span>
             </div>
           ))}
         </div>

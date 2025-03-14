@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { User } from '@/lib/types';
+import { getQueryFn } from '@/lib/queryClient';
 import NavigationBar from '@/components/navigation-bar';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,8 +27,9 @@ export default function Profile() {
   const [activeTab, setActiveTab] = useState('personal');
 
   // Fetch user data
-  const { data: user, isLoading } = useQuery({ 
+  const { data: user, isLoading } = useQuery<User>({ 
     queryKey: ['/api/auth/me'],
+    queryFn: getQueryFn<User>({ on401: "returnNull" }),
     enabled: true
   });
 
