@@ -18,7 +18,7 @@ export default function Home() {
             <rect x="3" y="6" width="14" height="12" rx="2" fill="none" stroke="currentColor" strokeWidth="1.5" />
             <rect x="5" y="8" width="10" height="8" rx="1" fill="currentColor" fillOpacity="0.5" />
           </svg>
-          <div className="w-0.5 h-3 bg-white/40 rounded-full mx-0.5"></div>
+          <div className="w-0.5 h-3 bg-gray-300 rounded-full mx-0.5"></div>
           <img src="/attached_assets/heirloomlogo.png" alt="Heirloom Logo" className="w-5 h-5" />
         </div>
       </div>
@@ -38,14 +38,14 @@ export default function Home() {
           <h2 className="text-3xl font-bold leading-tight mb-3">
             Your Digital<br />Identity, Under<br />Your Control
           </h2>
-          <p className="text-white/80 leading-relaxed">
+          <p className="text-gray-600 leading-relaxed">
             Heirloom gives you complete control over your personal data and how it's shared with AI systems.
           </p>
         </div>
         
         {/* Features list */}
         <div className="space-y-5 mb-8">
-          <div className="flex items-center p-4 bg-white/10 backdrop-blur-sm rounded-2xl">
+          <div className="flex items-center p-4 bg-gray-50 rounded-2xl shadow-sm">
             <div className="w-12 h-12 rounded-full bg-[#273414] flex items-center justify-center mr-4 shadow-sm">
               <svg
                 className="w-6 h-6 text-[#7c9861]"
@@ -61,14 +61,14 @@ export default function Home() {
               </svg>
             </div>
             <div>
-              <h3 className="font-medium text-base">Verified Identity</h3>
-              <p className="text-sm text-white/70 mt-0.5 leading-snug">
+              <h3 className="font-medium text-base text-gray-900">Verified Identity</h3>
+              <p className="text-sm text-gray-600 mt-0.5 leading-snug">
                 Prove your humanness without compromising privacy
               </p>
             </div>
           </div>
           
-          <div className="flex items-center p-4 bg-white/10 backdrop-blur-sm rounded-2xl">
+          <div className="flex items-center p-4 bg-gray-50 rounded-2xl shadow-sm">
             <div className="w-12 h-12 rounded-full bg-[#273414] flex items-center justify-center mr-4 shadow-sm">
               <svg
                 className="w-6 h-6 text-[#7c9861]"
@@ -84,8 +84,8 @@ export default function Home() {
               </svg>
             </div>
             <div>
-              <h3 className="font-medium text-base">Data Ownership</h3>
-              <p className="text-sm text-white/70 mt-0.5 leading-snug">
+              <h3 className="font-medium text-base text-gray-900">Data Ownership</h3>
+              <p className="text-sm text-gray-600 mt-0.5 leading-snug">
                 Your data stays in your control at all times
               </p>
             </div>

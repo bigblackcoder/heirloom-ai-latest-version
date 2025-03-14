@@ -3,45 +3,16 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
-    --background: 0 0% 100%; /* White */
-    --foreground: 222.2 84% 4.9%;
-  }
-
   * {
     @apply border-border;
   }
 
-  html, body {
-    background-color: #ffffff !important;
-  }
-
   body {
-    @apply font-sans antialiased text-foreground;
-    background-color: #ffffff !important;
-  }
-
-  div[data-app-container="true"] {
-    background-color: #ffffff !important;
+    @apply font-sans antialiased bg-white text-foreground;
   }
 }
 
 @layer utilities {
-  /* Force white background */
-  .force-white-bg {
-    background-color: white !important;
-  }
-  
-  /* Custom white theme */
-  .white-theme {
-    --tw-bg-opacity: 1 !important;
-    background-color: rgba(255, 255, 255, var(--tw-bg-opacity)) !important;
-    border-color: rgba(229, 231, 235, var(--tw-border-opacity)) !important;
-    --tw-border-opacity: 1 !important;
-    color: rgba(17, 24, 39, var(--tw-text-opacity)) !important;
-    --tw-text-opacity: 1 !important;
-  }
-  
   /* Hide scrollbar but keep functionality */
   .hide-scrollbar::-webkit-scrollbar {
     display: none;

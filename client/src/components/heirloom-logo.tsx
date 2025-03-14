@@ -2,8 +2,7 @@ import React from 'react';
 import { cn } from '../lib/utils';
 
 // Import logo images directly
-import whiteLogo from '../assets/heirloom-white-logo.png';
-import darkLogo from '../assets/heirloom-dark-logo.png';
+import newLogo from '../assets/logo-heirloom.png';
 
 interface HeirloomLogoProps {
   className?: string;
@@ -18,8 +17,8 @@ export function HeirloomLogo({
   withText = false,
   theme = 'light'
 }: HeirloomLogoProps) {
-  // Use the appropriate logo based on theme
-  const logoPath = theme === 'light' ? darkLogo : whiteLogo;
+  // Use the new logo regardless of theme
+  const logoPath = newLogo;
   
   // All variants use the same logo file for now, but we could have different sizes/crops in the future
   const logoIconPath = logoPath;
