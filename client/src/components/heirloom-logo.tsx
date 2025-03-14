@@ -15,19 +15,8 @@ export function HeirloomLogo({
   theme = 'dark'
 }: HeirloomLogoProps) {
   
-  // Select the appropriate logo based on theme
-  const logoSrc = () => {
-    if (theme === 'outline') {
-      // Green outline logo
-      return "/attached_assets/heirloom_white.png";
-    } else if (theme === 'light') {
-      // Dark logo (for light backgrounds)
-      return "/attached_assets/heirloomlogotwo.png";
-    } else {
-      // White logo (for dark backgrounds)
-      return "/attached_assets/white-logo.png";
-    }
-  };
+  // Use the heirloom_white.png for all logo variations as requested
+  const logoSrc = "/attached_assets/heirloom_white.png";
 
   return (
     <div className={cn("flex items-center", className)}>
@@ -35,7 +24,7 @@ export function HeirloomLogo({
         // Complete logo with text included in the image
         <div className="relative flex items-center justify-center">
           <img 
-            src={logoSrc()} 
+            src={logoSrc} 
             alt="Heirloom Identity Platform" 
             className="w-full h-full object-contain"
           />
@@ -44,7 +33,7 @@ export function HeirloomLogo({
         // Small icon logo
         <div className="relative flex items-center justify-center">
           <img 
-            src={logoSrc()} 
+            src={logoSrc} 
             alt="Heirloom Logo" 
             className="w-full h-full object-contain"
           />
@@ -53,7 +42,7 @@ export function HeirloomLogo({
         // Full logo with emblem
         <div className="relative flex items-center justify-center">
           <img 
-            src={logoSrc()} 
+            src={logoSrc} 
             alt="Heirloom Logo" 
             className="w-full h-full object-contain"
           />
