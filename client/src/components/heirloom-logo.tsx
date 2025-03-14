@@ -1,8 +1,10 @@
 import React from 'react';
 import { cn } from '../lib/utils';
 
-// Logo path as a string
-const newLogo = '/logo-heirloom.png';
+// Logo paths for different variants
+const logoIcon = '/images/heirloom-icon.png';
+const logoFull = '/images/heirloom-full.png';
+const logoComplete = '/images/heirloom-complete.png';
 
 interface HeirloomLogoProps {
   className?: string;
@@ -17,13 +19,10 @@ export function HeirloomLogo({
   withText = false,
   theme = 'light'
 }: HeirloomLogoProps) {
-  // Use the new logo regardless of theme
-  const logoPath = newLogo;
-  
-  // All variants use the same logo file for now, but we could have different sizes/crops in the future
-  const logoIconPath = logoPath;
-  const logoFullPath = logoPath;
-  const logoCompletePath = logoPath;
+  // Set logo paths based on variant
+  const logoIconPath = logoIcon;
+  const logoFullPath = logoFull;
+  const logoCompletePath = logoComplete;
 
   // Text color based on theme
   const textColorClass = theme === 'light' ? 'text-gray-900' : 'text-white';
