@@ -1,6 +1,16 @@
+
 {
   "variant": "professional",
   "primary": "#273414",
-  "appearance": "light",
+  "appearance": {
+    "dark": {
+      "background": "#273414",
+      "foreground": "#ffffff"
+    },
+    "light": {
+      "background": "#ffffff",
+      "foreground": "#273414"
+    }
+  },
   "radius": 0.75
 }
