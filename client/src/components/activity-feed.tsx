@@ -35,7 +35,7 @@ export default function ActivityFeed({ today, yesterday, older, isLoading }: Act
   if (isLoading) {
     return (
       <div className="px-4 sm:px-6 py-8 flex justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-700"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1e3c0d]"></div>
       </div>
     );
   }
@@ -54,13 +54,13 @@ export default function ActivityFeed({ today, yesterday, older, isLoading }: Act
         key={activity.id} 
         className="flex items-start py-3 border-b border-gray-100 last:border-0"
       >
-        <div className={`rounded-full bg-gray-100 p-2 mr-3 ${isMobile ? 'mt-0.5' : 'mt-0'}`}>
+        <div className={`rounded-full bg-[#e6efe6] p-2 mr-3 ${isMobile ? 'mt-0.5' : 'mt-0'}`}>
           {activity.type === 'verification' ? (
-            <IoShieldCheckmarkSharp className="w-5 h-5 text-gray-700" />
+            <IoShieldCheckmarkSharp className="w-5 h-5 text-[#1e3c0d]" />
           ) : activity.type === 'login' ? (
-            <IoCheckmarkCircleSharp className="w-5 h-5 text-gray-700" />
+            <IoCheckmarkCircleSharp className="w-5 h-5 text-[#1e3c0d]" />
           ) : (
-            <IoDocumentTextSharp className="w-5 h-5 text-gray-700" />
+            <IoDocumentTextSharp className="w-5 h-5 text-[#1e3c0d]" />
           )}
         </div>
         <div className="flex-1">
@@ -113,64 +113,74 @@ function ActivityFeedHorizontal() {
   // Mock activity data for the scrollable design
   const activities = [
     {
-      type: "permission_granted",
-      title: "Permission Granted",
-      description: "Claude AI now has access to your verified identity data.",
-      time: "5:43 PM",
-      icon: (
-        <SunburstIcon className="w-5 h-5" color="#1e3c0d" />
-      ),
-      iconBg: "bg-[#1e3c0d]/10"
-    },
-    {
-      type: "data_added",
-      title: "New Verification",
-      description: "Your work email has been verified and added to your capsule.",
-      time: "Yesterday",
-      icon: (
-        <IoDocumentTextSharp className="w-5 h-5 text-[#1e3c0d]" />
-      ),
-      iconBg: "bg-[#1e3c0d]/10"
-    },
-    {
       type: "identity_verified",
       title: "Identity Verified",
       description: "Your identity has been successfully verified through biometric scan.",
-      time: "Mar 10",
+      time: "Today, 10:32 AM",
       icon: (
-        <IoShieldCheckmarkSharp className="w-5 h-5 text-[#1e3c0d]" />
+        <IoShieldCheckmarkSharp className="w-5 h-5 text-[#d4a166]" />
       ),
-      iconBg: "bg-[#1e3c0d]/10"
+      iconBg: "bg-[#d4a166]/10"
+    },
+    {
+      type: "ai_connected",
+      title: "Claude AI Connected",
+      description: "Claude AI now has limited access to your identity information.",
+      time: "Today, 11:45 AM",
+      icon: (
+        <SunburstIcon className="w-5 h-5" color="#E57B52" />
+      ),
+      iconBg: "bg-[#E57B52]/10"
+    },
+    {
+      type: "data_added",
+      title: "New Data Added",
+      description: "Your driver's license has been added to your identity capsule.",
+      time: "Yesterday, 4:15 PM",
+      icon: (
+        <IoDocumentTextSharp className="w-5 h-5 text-[#2196f3]" />
+      ),
+      iconBg: "bg-[#2196f3]/10"
     },
     {
       type: "login_attempt",
       title: "Login Attempt",
       description: "Unusual login attempt detected from a new location.",
-      time: "Mar 8",
+      time: "3 days ago",
       icon: (
-        <IoWarningSharp className="w-5 h-5 text-[#1e3c0d]" />
+        <IoWarningSharp className="w-5 h-5 text-[#f44336]" />
       ),
-      iconBg: "bg-[#1e3c0d]/10"
+      iconBg: "bg-[#f44336]/10"
     }
   ];
 
   const renderActivity = (activity: any) => (
-    <div className="flex-shrink-0 w-[85vw] max-w-[320px] bg-white rounded-2xl shadow-sm p-4">
+    <div className="flex-shrink-0 w-80 bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
       <div className="flex">
         <div className={`w-10 h-10 rounded-full ${activity.iconBg} flex items-center justify-center mr-3 flex-shrink-0`}>
           {activity.icon}
         </div>
         <div>
-          <h3 className="text-sm font-medium text-[#1e3c0d]">{activity.title}</h3>
-          <p className="text-xs text-[#4A566B] mt-0.5">{activity.description}</p>
-          <p className="text-xs text-[#8996A5] mt-1">{activity.time}</p>
+          <h3 className="text-sm font-medium">{activity.title}</h3>
+          <p className="text-xs text-gray-600 mt-0.5">{activity.description}</p>
+          <p className="text-xs text-gray-400 mt-1">{activity.time}</p>
         </div>
       </div>
     </div>
   );
 
   return (
-    <div className="px-4 mb-24">      
+    <div className="px-4 mt-6 mb-24">
+      <div className="flex justify-between items-center mb-3">
+        <h2 className="text-lg font-medium text-gray-900">Connection History</h2>
+        <button 
+          className="text-sm text-[#1e3c0d] font-medium"
+          onClick={() => navigate("/notifications")}
+        >
+          View all
+        </button>
+      </div>
+      
       {/* Horizontal scrolling activity feed */}
       <div className="relative">
         <div className="flex overflow-x-auto pb-6 hide-scrollbar space-x-4">
@@ -178,15 +188,6 @@ function ActivityFeedHorizontal() {
             <div key={index}>{renderActivity(activity)}</div>
           ))}
         </div>
-      </div>
-      
-      <div className="flex justify-center mt-2">
-        <button 
-          className="text-sm text-[#4A566B] font-medium flex items-center"
-          onClick={() => navigate("/notifications")}
-        >
-          View all
-        </button>
       </div>
     </div>
   );

@@ -94,50 +94,34 @@ export default function Dashboard() {
   const stats = getStats();
 
   return (
-    <div className="min-h-screen bg-white pb-20">
+    <div className="min-h-screen bg-[#f8f9fa] pb-20">
       {/* Status bar area */}
       <div className="w-full px-4 pt-6 pb-2 flex items-center bg-white">
-        <div className="text-sm text-gray-700">9:41</div>
+        <div className="text-sm text-gray-500">9:41</div>
         <div className="flex-1"></div>
         <div className="flex items-center gap-1">
-          <svg className="w-4 h-4 text-gray-700" viewBox="0 0 24 24" fill="none">
+          <svg className="w-4 h-4 text-gray-500" viewBox="0 0 24 24" fill="none">
             <path d="M18 10a6 6 0 0 0-12 0v7h12v-7z" stroke="currentColor" strokeWidth="1.5" />
             <path d="M10 2a2 2 0 1 0 4 0v1a2 2 0 1 0-4 0v-1z" stroke="currentColor" strokeWidth="1.5" />
           </svg>
-          <svg className="w-4 h-4 text-gray-700" viewBox="0 0 24 24" fill="none">
+          <svg className="w-4 h-4 text-gray-500" viewBox="0 0 24 24" fill="none">
             <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7 7-7Z" stroke="currentColor" strokeWidth="1.5" />
           </svg>
         </div>
       </div>
 
       {/* Header */}
-      <header className="px-5 pt-6 pb-4 bg-white">
+      <header className="px-5 pt-6 pb-4 bg-white border-b border-gray-100">
         <div className="flex justify-between items-center">
           <div className="flex items-center">
-            <div className="flex-shrink-0 mr-3">
-              <svg 
-                width="32" 
-                height="32" 
-                viewBox="0 0 44 44" 
-                fill="none" 
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M35.75,8.25h-4.667c-2.578,0-4.666,2.088-4.666,4.667v4.666H17.583v-4.666c0-2.578-2.088-4.667-4.666-4.667H8.25
-                  c-2.578,0-4.667,2.088-4.667,4.667v4.666c0,2.578,2.088,4.667,4.667,4.667h4.667v4.667c0,2.578,2.088,4.666,4.666,4.666h4.667
-                  v4.667c0,2.578,2.088,4.667,4.667,4.667h4.667c2.578,0,4.666-2.088,4.666-4.667v-4.667c0-2.578-2.088-4.666-4.666-4.666h-4.667
-                  v-4.667h8.834c2.578,0,4.666-2.088,4.666-4.667v-4.666C40.417,10.338,38.328,8.25,35.75,8.25z"
-                  stroke="#1e3c0d"
-                  strokeWidth="1.5"
-                  fill="none"
-                />
-              </svg>
+            <div className="w-10 h-10 rounded-xl bg-[#8ccc5c] flex items-center justify-center shadow mr-3">
+              <HeirloomLogo className="w-6 h-6 text-white" />
             </div>
             <div>
               <h1 className="text-lg font-semibold text-gray-900">
-                {getGreeting()}, {userData?.firstName || "Leslie"}
+                {getGreeting()}, {userData?.firstName || "User"}
               </h1>
-              <p className="text-xs text-[#6b7280]">Connecting You Safely to AI</p>
+              <p className="text-xs text-gray-500">Your Identity Platform</p>
             </div>
           </div>
           
@@ -173,7 +157,6 @@ export default function Dashboard() {
         verifiedData={`${stats.verifiedAssets} Assets`}
         isVerified={userData?.isVerified || true}
         avatar={userData?.avatar || "https://randomuser.me/api/portraits/women/44.jpg"}
-        theme="dark"
       />
 
       {/* Quick Actions */}
@@ -196,7 +179,7 @@ export default function Dashboard() {
       {/* Test buttons - Remove in production */}
       <div className="fixed bottom-24 right-4 z-30 flex flex-col gap-2">
         <button 
-          className="bg-gray-800 text-white text-xs py-2 px-3 rounded-full shadow-lg"
+          className="bg-[#8ccc5c] text-white text-xs py-2 px-3 rounded-full shadow-lg"
           onClick={() => {
             setShowVerificationSuccess(true);
             

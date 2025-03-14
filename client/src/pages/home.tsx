@@ -20,21 +20,7 @@ export default function Home() {
           </svg>
           <div className="w-0.5 h-3 bg-white/40 rounded-full mx-0.5"></div>
           <div className="w-5 h-5">
-            <svg 
-              width="100%" 
-              height="100%" 
-              viewBox="0 0 44 44" 
-              fill="none" 
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M35.75,8.25h-4.667c-2.578,0-4.666,2.088-4.666,4.667v4.666H17.583v-4.666c0-2.578-2.088-4.667-4.666-4.667H8.25
-                c-2.578,0-4.667,2.088-4.667,4.667v4.666c0,2.578,2.088,4.667,4.667,4.667h4.667v4.667c0,2.578,2.088,4.666,4.666,4.666h4.667
-                v4.667c0,2.578,2.088,4.667,4.667,4.667h4.667c2.578,0,4.666-2.088,4.666-4.667v-4.667c0-2.578-2.088-4.666-4.666-4.666h-4.667
-                v-4.667h8.834c2.578,0,4.666-2.088,4.666-4.667v-4.666C40.417,10.338,38.328,8.25,35.75,8.25z"
-                fill="#ffffff"
-              />
-            </svg>
+            <HeirloomLogo className="w-full h-full" variant="icon" theme="outline" />
           </div>
         </div>
       </div>
@@ -42,21 +28,7 @@ export default function Home() {
       {/* Logo and brand */}
       <div className="pt-8 pb-6 px-6 flex items-center">
         <div className="w-10 h-10 mr-3">
-          <svg 
-            width="100%" 
-            height="100%" 
-            viewBox="0 0 44 44" 
-            fill="none" 
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="M35.75,8.25h-4.667c-2.578,0-4.666,2.088-4.666,4.667v4.666H17.583v-4.666c0-2.578-2.088-4.667-4.666-4.667H8.25
-              c-2.578,0-4.667,2.088-4.667,4.667v4.666c0,2.578,2.088,4.667,4.667,4.667h4.667v4.667c0,2.578,2.088,4.666,4.666,4.666h4.667
-              v4.667c0,2.578,2.088,4.667,4.667,4.667h4.667c2.578,0,4.666-2.088,4.666-4.667v-4.667c0-2.578-2.088-4.666-4.666-4.666h-4.667
-              v-4.667h8.834c2.578,0,4.666-2.088,4.666-4.667v-4.666C40.417,10.338,38.328,8.25,35.75,8.25z"
-              fill="#ffffff"
-            />
-          </svg>
+          <HeirloomLogo className="w-full h-full" variant="icon" theme="outline" />
         </div>
         <h1 className="text-2xl font-bold">Heirloom</h1>
       </div>
@@ -149,26 +121,12 @@ export default function Home() {
           <div className="absolute -right-4 top-3 w-36 h-36 rounded-full bg-[#d4a166]/20 blur-2xl"></div>
           <div className="absolute -left-4 -bottom-4 w-28 h-28 rounded-full bg-[#7c9861]/20 blur-2xl"></div>
           
-          <div className="relative mx-auto w-48 h-48 border-4 border-white/20 rounded-3xl overflow-hidden backdrop-blur-sm bg-white flex items-center justify-center">
+          <div className="relative mx-auto w-48 h-48 border-4 border-white/20 rounded-3xl overflow-hidden backdrop-blur-sm bg-white/5 flex items-center justify-center">
             <div className="text-center">
               <div className="w-24 h-24 mx-auto mb-4 flex justify-center items-center">
-                <svg 
-                  width="100%" 
-                  height="100%" 
-                  viewBox="0 0 44 44" 
-                  fill="none" 
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M35.75,8.25h-4.667c-2.578,0-4.666,2.088-4.666,4.667v4.666H17.583v-4.666c0-2.578-2.088-4.667-4.666-4.667H8.25
-                    c-2.578,0-4.667,2.088-4.667,4.667v4.666c0,2.578,2.088,4.667,4.667,4.667h4.667v4.667c0,2.578,2.088,4.666,4.666,4.666h4.667
-                    v4.667c0,2.578,2.088,4.667,4.667,4.667h4.667c2.578,0,4.666-2.088,4.666-4.667v-4.667c0-2.578-2.088-4.666-4.666-4.666h-4.667
-                    v-4.667h8.834c2.578,0,4.666-2.088,4.666-4.667v-4.666C40.417,10.338,38.328,8.25,35.75,8.25z"
-                    fill="#1e3c0d"
-                  />
-                </svg>
+                <HeirloomLogo className="w-full h-full" variant="icon" theme="outline" />
               </div>
-              <p className="text-[#1e3c0d] text-base leading-tight px-2">Your identity capsule<br />awaits activation</p>
+              <p className="text-white/90 text-base leading-tight px-2">Your identity capsule<br />awaits activation</p>
             </div>
           </div>
         </div>
