@@ -95,10 +95,10 @@ export default function ActiveConnections({ connections, isLoading }: ActiveConn
           
           {/* Add Connection Card */}
           <div className="flex-shrink-0 w-48 bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex flex-col items-center justify-center h-[106px]">
-            <div className="w-10 h-10 rounded-full bg-[#1e3c0d]/10 flex items-center justify-center mb-2">
-              <MdAdd className="w-6 h-6 text-[#1e3c0d]" />
+            <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mb-2">
+              <MdAdd className="w-6 h-6 text-gray-700" />
             </div>
-            <span className="text-sm font-medium text-[#1e3c0d]">Add New</span>
+            <span className="text-sm font-medium text-gray-700">Add New</span>
           </div>
         </div>
       </div>

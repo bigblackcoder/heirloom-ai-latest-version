@@ -18,31 +18,31 @@ export default function QuickActions() {
     {
       name: "Identity",
       icon: (
-        <FaIdCard className="w-8 h-8 text-[#1e3c0d]" />
+        <FaIdCard className="w-8 h-8 text-gray-700" />
       )
     },
     {
       name: "Data",
       icon: (
-        <FaDatabase className="w-8 h-8 text-[#1e3c0d]" />
+        <FaDatabase className="w-8 h-8 text-gray-700" />
       )
     },
     {
       name: "Capsule",
       icon: (
-        <IoShieldCheckmark className="w-8 h-8 text-[#1e3c0d]" />
+        <IoShieldCheckmark className="w-8 h-8 text-gray-700" />
       )
     },
     {
       name: "AI",
       icon: (
-        <SiProbot className="w-8 h-8 text-[#1e3c0d]" />
+        <SiProbot className="w-8 h-8 text-gray-700" />
       )
     },
     {
       name: "Apps",
       icon: (
-        <BsGrid3X3GapFill className="w-8 h-8 text-[#1e3c0d]" />
+        <BsGrid3X3GapFill className="w-8 h-8 text-gray-700" />
       )
     }
   ];
@@ -51,7 +51,7 @@ export default function QuickActions() {
     <div className="mt-6">
       <div className="px-4 flex justify-between items-center mb-3">
         <h2 className="text-lg font-medium text-gray-900">Quick Actions</h2>
-        <button className="text-sm text-[#1e3c0d] font-medium">
+        <button className="text-sm text-gray-700 font-medium">
           View All
         </button>
       </div>

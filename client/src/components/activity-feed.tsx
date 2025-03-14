@@ -35,7 +35,7 @@ export default function ActivityFeed({ today, yesterday, older, isLoading }: Act
   if (isLoading) {
     return (
       <div className="px-4 sm:px-6 py-8 flex justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1e3c0d]"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-700"></div>
       </div>
     );
   }
@@ -54,13 +54,13 @@ export default function ActivityFeed({ today, yesterday, older, isLoading }: Act
         key={activity.id} 
         className="flex items-start py-3 border-b border-gray-100 last:border-0"
       >
-        <div className={`rounded-full bg-[#e6efe6] p-2 mr-3 ${isMobile ? 'mt-0.5' : 'mt-0'}`}>
+        <div className={`rounded-full bg-gray-100 p-2 mr-3 ${isMobile ? 'mt-0.5' : 'mt-0'}`}>
           {activity.type === 'verification' ? (
-            <IoShieldCheckmarkSharp className="w-5 h-5 text-[#1e3c0d]" />
+            <IoShieldCheckmarkSharp className="w-5 h-5 text-gray-700" />
           ) : activity.type === 'login' ? (
-            <IoCheckmarkCircleSharp className="w-5 h-5 text-[#1e3c0d]" />
+            <IoCheckmarkCircleSharp className="w-5 h-5 text-gray-700" />
           ) : (
-            <IoDocumentTextSharp className="w-5 h-5 text-[#1e3c0d]" />
+            <IoDocumentTextSharp className="w-5 h-5 text-gray-700" />
           )}
         </div>
         <div className="flex-1">
@@ -174,7 +174,7 @@ function ActivityFeedHorizontal() {
       <div className="flex justify-between items-center mb-3">
         <h2 className="text-lg font-medium text-gray-900">Connection History</h2>
         <button 
-          className="text-sm text-[#1e3c0d] font-medium"
+          className="text-sm text-gray-700 font-medium"
           onClick={() => navigate("/notifications")}
         >
           View all
