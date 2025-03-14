@@ -94,43 +94,43 @@ export default function Dashboard() {
   const stats = getStats();
 
   return (
-    <div className="min-h-screen bg-[#273414] pb-20 text-white">
+    <div className="min-h-screen bg-white pb-20">
       {/* Status bar area */}
-      <div className="w-full px-4 pt-6 pb-2 flex items-center bg-[#273414]">
-        <div className="text-sm text-white/70">9:41</div>
+      <div className="w-full px-4 pt-6 pb-2 flex items-center bg-white">
+        <div className="text-sm text-gray-500">9:41</div>
         <div className="flex-1"></div>
         <div className="flex items-center gap-1">
-          <svg className="w-4 h-4 text-white/70" viewBox="0 0 24 24" fill="none">
+          <svg className="w-4 h-4 text-gray-500" viewBox="0 0 24 24" fill="none">
             <path d="M18 10a6 6 0 0 0-12 0v7h12v-7z" stroke="currentColor" strokeWidth="1.5" />
             <path d="M10 2a2 2 0 1 0 4 0v1a2 2 0 1 0-4 0v-1z" stroke="currentColor" strokeWidth="1.5" />
           </svg>
-          <svg className="w-4 h-4 text-white/70" viewBox="0 0 24 24" fill="none">
+          <svg className="w-4 h-4 text-gray-500" viewBox="0 0 24 24" fill="none">
             <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7 7-7Z" stroke="currentColor" strokeWidth="1.5" />
           </svg>
         </div>
       </div>
 
       {/* Header */}
-      <header className="px-5 pt-6 pb-4 bg-[#273414] border-b border-white/10">
+      <header className="px-5 pt-6 pb-4 bg-white border-b border-gray-100">
         <div className="flex justify-between items-center">
           <div className="flex items-center">
-            <div className="w-10 h-10 rounded-xl bg-[#334218] border border-white/10 flex items-center justify-center shadow mr-3">
-              <HeirloomLogo className="w-7 h-7" theme="dark" />
+            <div className="w-10 h-10 rounded-xl bg-white border border-gray-100 flex items-center justify-center shadow mr-3">
+              <HeirloomLogo className="w-7 h-7" theme="light" />
             </div>
             <div>
-              <h1 className="text-lg font-semibold text-white">
+              <h1 className="text-lg font-semibold text-gray-900">
                 {getGreeting()}, {userData?.firstName || "User"}
               </h1>
-              <p className="text-xs text-white/70">Your Identity Platform</p>
+              <p className="text-xs text-gray-500">Your Identity Platform</p>
             </div>
           </div>
           
           <button 
-            className="w-10 h-10 bg-[#334218] rounded-full flex items-center justify-center relative"
+            className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center relative"
             onClick={handleNotificationsClick}
           >
             <svg
-              className="w-5 h-5 text-white"
+              className="w-5 h-5 text-gray-700"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -157,7 +157,7 @@ export default function Dashboard() {
         verifiedData={`${stats.verifiedAssets} Assets`}
         isVerified={userData?.isVerified || true}
         avatar={userData?.avatar || "https://randomuser.me/api/portraits/women/44.jpg"}
-        theme="dark"
+        theme="light"
       />
 
       {/* Quick Actions */}
@@ -180,7 +180,7 @@ export default function Dashboard() {
       {/* Test buttons - Remove in production */}
       <div className="fixed bottom-24 right-4 z-30 flex flex-col gap-2">
         <button 
-          className="bg-[#7c9861] text-white text-xs py-2 px-3 rounded-full shadow-lg"
+          className="bg-gray-800 text-white text-xs py-2 px-3 rounded-full shadow-lg"
           onClick={() => {
             setShowVerificationSuccess(true);
             

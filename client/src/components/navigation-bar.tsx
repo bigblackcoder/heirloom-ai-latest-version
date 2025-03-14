@@ -108,13 +108,13 @@ export default function NavigationBar({ currentPath }: NavigationBarProps) {
     ];
 
     return (
-      <div className="fixed bottom-0 left-0 right-0 bg-[#273414] border-0 z-40 max-w-md mx-auto overflow-hidden">
-        {/* Dark Background */}
-        <div className="absolute bottom-0 left-0 right-0 h-16 bg-[#273414] rounded-t-3xl z-0"></div>
+      <div className="fixed bottom-0 left-0 right-0 bg-background border-0 z-40 max-w-md mx-auto overflow-hidden">
+        {/* Light Background */}
+        <div className="absolute bottom-0 left-0 right-0 h-16 bg-background rounded-t-3xl z-0"></div>
         
         {/* Home indicator line for iPhone */}
         <div className="w-full flex justify-center pb-1 pt-2 relative z-10">
-          <div className="w-10 h-1 bg-white/30 rounded-full"></div>
+          <div className="w-10 h-1 bg-gray-300 rounded-full"></div>
         </div>
         
         <div className="grid grid-cols-5 px-2 py-1 relative z-10">
@@ -124,22 +124,22 @@ export default function NavigationBar({ currentPath }: NavigationBarProps) {
               <button 
                 key={item.path}
                 className={`flex flex-col items-center justify-center py-2 relative ${
-                  isActive ? "text-[#7c9861]" : "text-white/70"
+                  isActive ? "text-[#1e3c0d]" : "text-gray-500"
                 }`}
                 onClick={() => navigate(item.path)}
               >
                 {isActive && (
-                  <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-10 h-1 bg-[#7c9861] rounded-full"></div>
+                  <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-10 h-1 bg-[#1e3c0d] rounded-full"></div>
                 )}
                 
                 <div className={`w-12 h-12 flex items-center justify-center rounded-full ${
-                  isActive ? "bg-[#334218]" : ""
+                  isActive ? "bg-[#1e3c0d]/5" : ""
                 }`}>
                   {item.icon}
                 </div>
                 
                 <span className={`text-xs mt-1 font-medium ${
-                  isActive ? "text-[#7c9861]" : "text-white/70"
+                  isActive ? "text-[#1e3c0d]" : "text-gray-500"
                 }`}>
                   {item.name}
                 </span>
@@ -152,11 +152,11 @@ export default function NavigationBar({ currentPath }: NavigationBarProps) {
   } else {
     // Simpler 5-item navigation
     return (
-      <nav className="fixed bottom-0 left-0 right-0 border-0 bg-[#273414] py-2 px-4 z-40">
-        <div className="absolute bottom-0 left-0 right-0 h-full bg-[#273414] z-0"></div>
+      <nav className="fixed bottom-0 left-0 right-0 border-0 bg-background py-2 px-4 z-40">
+        <div className="absolute bottom-0 left-0 right-0 h-full bg-background z-0"></div>
         <div className="max-w-md mx-auto flex justify-between items-center relative z-10">
           <Link href="/dashboard">
-            <a className={`flex flex-col items-center ${currentPath === "/dashboard" ? "text-[#7c9861]" : "text-white/70"}`}>
+            <a className={`flex flex-col items-center ${currentPath === "/dashboard" ? "text-[#1e3c0d]" : "text-gray-500"}`}>
               <svg 
                 className={`w-6 h-6 ${isMobile ? 'mb-1' : 'mb-1.5'}`} 
                 viewBox="0 0 24 24" 
@@ -172,7 +172,7 @@ export default function NavigationBar({ currentPath }: NavigationBarProps) {
           </Link>
           
           <Link href="/capsule">
-            <a className={`flex flex-col items-center ${currentPath === "/capsule" ? "text-[#7c9861]" : "text-white/70"}`}>
+            <a className={`flex flex-col items-center ${currentPath === "/capsule" ? "text-[#1e3c0d]" : "text-gray-500"}`}>
               <svg 
                 className={`w-6 h-6 ${isMobile ? 'mb-1' : 'mb-1.5'}`} 
                 viewBox="0 0 24 24" 
@@ -189,7 +189,7 @@ export default function NavigationBar({ currentPath }: NavigationBarProps) {
           </Link>
           
           <Link href="/verification">
-            <a className={`flex flex-col items-center ${currentPath === "/verification" ? "text-[#7c9861]" : "text-white/70"}`}>
+            <a className={`flex flex-col items-center ${currentPath === "/verification" ? "text-[#1e3c0d]" : "text-gray-500"}`}>
               <svg 
                 className={`w-6 h-6 ${isMobile ? 'mb-1' : 'mb-1.5'}`} 
                 viewBox="0 0 24 24" 
@@ -206,7 +206,7 @@ export default function NavigationBar({ currentPath }: NavigationBarProps) {
           </Link>
           
           <Link href="/notifications">
-            <a className={`flex flex-col items-center ${currentPath === "/notifications" ? "text-[#7c9861]" : "text-white/70"}`}>
+            <a className={`flex flex-col items-center ${currentPath === "/notifications" ? "text-[#1e3c0d]" : "text-gray-500"}`}>
               <svg 
                 className={`w-6 h-6 ${isMobile ? 'mb-1' : 'mb-1.5'}`} 
                 viewBox="0 0 24 24" 
@@ -222,7 +222,7 @@ export default function NavigationBar({ currentPath }: NavigationBarProps) {
           </Link>
           
           <Link href="/profile">
-            <a className={`flex flex-col items-center ${currentPath === "/profile" ? "text-[#7c9861]" : "text-white/70"}`}>
+            <a className={`flex flex-col items-center ${currentPath === "/profile" ? "text-[#1e3c0d]" : "text-gray-500"}`}>
               <svg 
                 className={`w-6 h-6 ${isMobile ? 'mb-1' : 'mb-1.5'}`} 
                 viewBox="0 0 24 24" 

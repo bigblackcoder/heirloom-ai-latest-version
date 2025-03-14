@@ -56,12 +56,12 @@ export default function Notifications() {
   const groupedActivities = groupActivitiesByDate(activities);
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-[#1e3c0d] text-white pb-20">
       {/* Header */}
-      <header className="px-4 sm:px-5 pt-10 sm:pt-12 pb-3 sm:pb-4 flex items-center">
+      <header className="px-4 sm:px-5 pt-10 sm:pt-12 pb-3 sm:pb-4 flex items-center bg-[#273414] border-b border-[#344919]">
         <button 
           onClick={handleBackClick}
-          className="mr-3 sm:mr-4"
+          className="mr-3 sm:mr-4 text-white"
         >
           <svg
             className="w-5 h-5 sm:w-6 sm:h-6"
@@ -76,9 +76,9 @@ export default function Notifications() {
             <path d="M15 18l-6-6 6-6" />
           </svg>
         </button>
-        <h1 className="text-lg sm:text-xl font-semibold">Identity Capsule</h1>
+        <h1 className="text-lg sm:text-xl font-semibold text-white">Identity Capsule</h1>
         <div className="ml-auto">
-          <button onClick={handleSettingsClick}>
+          <button onClick={handleSettingsClick} className="text-white">
             <svg
               className="w-5 h-5 sm:w-6 sm:h-6"
               xmlns="http://www.w3.org/2000/svg"

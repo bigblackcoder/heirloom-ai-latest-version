@@ -7,7 +7,7 @@ export default function Home() {
   const [_, navigate] = useLocation();
 
   return (
-    <div className="min-h-screen flex flex-col bg-white text-gray-900">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-[#1e2610] via-[#232d12] to-[#273414] text-white">
       {/* Status bar area */}
       <div className="w-full px-4 pt-6 pb-2 flex items-center">
         <div className="text-sm opacity-70">9:41</div>
@@ -18,10 +18,8 @@ export default function Home() {
             <rect x="3" y="6" width="14" height="12" rx="2" fill="none" stroke="currentColor" strokeWidth="1.5" />
             <rect x="5" y="8" width="10" height="8" rx="1" fill="currentColor" fillOpacity="0.5" />
           </svg>
-          <div className="w-0.5 h-3 bg-gray-300 rounded-full mx-0.5"></div>
-          <div className="w-5 h-5">
-            <HeirloomLogo className="w-full h-full" variant="icon" />
-          </div>
+          <div className="w-0.5 h-3 bg-white/40 rounded-full mx-0.5"></div>
+          <img src="/attached_assets/heirloomlogo.png" alt="Heirloom Logo" className="w-5 h-5" />
         </div>
       </div>
 
@@ -40,15 +38,15 @@ export default function Home() {
           <h2 className="text-3xl font-bold leading-tight mb-3">
             Your Digital<br />Identity, Under<br />Your Control
           </h2>
-          <p className="text-gray-600 leading-relaxed">
+          <p className="text-white/80 leading-relaxed">
             Heirloom gives you complete control over your personal data and how it's shared with AI systems.
           </p>
         </div>
         
         {/* Features list */}
         <div className="space-y-5 mb-8">
-          <div className="flex items-center p-4 bg-[#273414] rounded-2xl">
-            <div className="w-12 h-12 rounded-full bg-[#273414] flex items-center justify-center mr-4 shadow-sm border border-white/20">
+          <div className="flex items-center p-4 bg-white/10 backdrop-blur-sm rounded-2xl">
+            <div className="w-12 h-12 rounded-full bg-[#273414] flex items-center justify-center mr-4 shadow-sm">
               <svg
                 className="w-6 h-6 text-[#7c9861]"
                 viewBox="0 0 24 24"
@@ -63,15 +61,15 @@ export default function Home() {
               </svg>
             </div>
             <div>
-              <h3 className="font-medium text-base text-white">Verified Identity</h3>
+              <h3 className="font-medium text-base">Verified Identity</h3>
               <p className="text-sm text-white/70 mt-0.5 leading-snug">
                 Prove your humanness without compromising privacy
               </p>
             </div>
           </div>
           
-          <div className="flex items-center p-4 bg-[#273414] rounded-2xl">
-            <div className="w-12 h-12 rounded-full bg-[#273414] flex items-center justify-center mr-4 shadow-sm border border-white/20">
+          <div className="flex items-center p-4 bg-white/10 backdrop-blur-sm rounded-2xl">
+            <div className="w-12 h-12 rounded-full bg-[#273414] flex items-center justify-center mr-4 shadow-sm">
               <svg
                 className="w-6 h-6 text-[#7c9861]"
                 viewBox="0 0 24 24"
@@ -86,15 +84,15 @@ export default function Home() {
               </svg>
             </div>
             <div>
-              <h3 className="font-medium text-base text-white">Data Ownership</h3>
+              <h3 className="font-medium text-base">Data Ownership</h3>
               <p className="text-sm text-white/70 mt-0.5 leading-snug">
                 Your data stays in your control at all times
               </p>
             </div>
           </div>
           
-          <div className="flex items-center p-4 bg-[#273414] rounded-2xl">
-            <div className="w-12 h-12 rounded-full bg-[#273414] flex items-center justify-center mr-4 shadow-sm border border-white/20">
+          <div className="flex items-center p-4 bg-white/10 backdrop-blur-sm rounded-2xl">
+            <div className="w-12 h-12 rounded-full bg-[#273414] flex items-center justify-center mr-4 shadow-sm">
               <svg
                 className="w-6 h-6 text-[#7c9861]"
                 viewBox="0 0 24 24"
@@ -108,7 +106,7 @@ export default function Home() {
               </svg>
             </div>
             <div>
-              <h3 className="font-medium text-base text-white">AI Permissions</h3>
+              <h3 className="font-medium text-base">AI Permissions</h3>
               <p className="text-sm text-white/70 mt-0.5 leading-snug">
                 Choose what to share with each AI service
               </p>
@@ -118,15 +116,15 @@ export default function Home() {
 
         {/* Mobile mockup design element */}
         <div className="relative mb-10">
-          <div className="absolute -right-4 top-3 w-36 h-36 rounded-full bg-[#d4a166]/10 blur-2xl"></div>
-          <div className="absolute -left-4 -bottom-4 w-28 h-28 rounded-full bg-[#7c9861]/10 blur-2xl"></div>
+          <div className="absolute -right-4 top-3 w-36 h-36 rounded-full bg-[#d4a166]/20 blur-2xl"></div>
+          <div className="absolute -left-4 -bottom-4 w-28 h-28 rounded-full bg-[#7c9861]/20 blur-2xl"></div>
           
-          <div className="relative mx-auto w-48 h-48 border-4 border-gray-100 rounded-3xl overflow-hidden shadow-md bg-white flex items-center justify-center">
+          <div className="relative mx-auto w-48 h-48 border-4 border-white/20 rounded-3xl overflow-hidden backdrop-blur-sm bg-white/5 flex items-center justify-center">
             <div className="text-center">
               <div className="w-24 h-24 mx-auto mb-4 flex justify-center items-center">
                 <HeirloomLogo className="w-full h-full" variant="icon" />
               </div>
-              <p className="text-gray-700 text-base leading-tight px-2">Your identity capsule<br />awaits activation</p>
+              <p className="text-white/90 text-base leading-tight px-2">Your identity capsule<br />awaits activation</p>
             </div>
           </div>
         </div>
@@ -143,7 +141,7 @@ export default function Home() {
           <div className="mt-4 text-center">
             <Button 
               variant="link" 
-              className="text-sm text-[#7c9861] hover:text-[#273414] font-medium"
+              className="text-sm text-white/70 hover:text-white"
               onClick={() => navigate("/dashboard")}
             >
               Already verified? Sign in
