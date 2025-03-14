@@ -21,8 +21,10 @@ interface FaceScannerProps {
 export default function FaceScanner({ onProgress, onComplete, isComplete }: FaceScannerProps) {
   const webcamRef = useRef<Webcam>(null);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
-  const { startDetection, stopDetection, verificationProgress } = useFaceVerification();
+  const [isSimulating, setIsSimulating] = useState(false);
+  const { startDetection, stopDetection, verificationProgress, simulateVerification } = useFaceVerification();
   const isMobile = useIsMobile();
+  const demoSimulationRef = useRef<(() => void) | null>(null);
   
   // Use a ref to track previous progress to avoid unnecessary updates
   const lastProgressRef = useRef<number>(0);
@@ -236,7 +238,7 @@ export default function FaceScanner({ onProgress, onComplete, isComplete }: Face
                     <button 
                       onClick={() => {
                         if (!isSimulating) {
-                          demoSimulation = faceVerification.simulateVerification();
+                          demoSimulationRef.current = simulateVerification();
                           setIsSimulating(true);
                         }
                       }}
