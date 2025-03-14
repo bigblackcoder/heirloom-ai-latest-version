@@ -45,8 +45,8 @@ export default function Home() {
         
         {/* Features list */}
         <div className="space-y-5 mb-8">
-          <div className="flex items-center p-4 bg-gray-50 rounded-2xl shadow-sm">
-            <div className="w-12 h-12 rounded-full bg-[#273414] flex items-center justify-center mr-4 shadow-sm">
+          <div className="flex items-center p-4 bg-[#273414] rounded-2xl">
+            <div className="w-12 h-12 rounded-full bg-[#273414] flex items-center justify-center mr-4 shadow-sm border border-white/20">
               <svg
                 className="w-6 h-6 text-[#7c9861]"
                 viewBox="0 0 24 24"
@@ -61,15 +61,15 @@ export default function Home() {
               </svg>
             </div>
             <div>
-              <h3 className="font-medium text-base text-gray-900">Verified Identity</h3>
-              <p className="text-sm text-gray-600 mt-0.5 leading-snug">
+              <h3 className="font-medium text-base text-white">Verified Identity</h3>
+              <p className="text-sm text-white/70 mt-0.5 leading-snug">
                 Prove your humanness without compromising privacy
               </p>
             </div>
           </div>
           
-          <div className="flex items-center p-4 bg-gray-50 rounded-2xl shadow-sm">
-            <div className="w-12 h-12 rounded-full bg-[#273414] flex items-center justify-center mr-4 shadow-sm">
+          <div className="flex items-center p-4 bg-[#273414] rounded-2xl">
+            <div className="w-12 h-12 rounded-full bg-[#273414] flex items-center justify-center mr-4 shadow-sm border border-white/20">
               <svg
                 className="w-6 h-6 text-[#7c9861]"
                 viewBox="0 0 24 24"
@@ -84,15 +84,15 @@ export default function Home() {
               </svg>
             </div>
             <div>
-              <h3 className="font-medium text-base text-gray-900">Data Ownership</h3>
-              <p className="text-sm text-gray-600 mt-0.5 leading-snug">
+              <h3 className="font-medium text-base text-white">Data Ownership</h3>
+              <p className="text-sm text-white/70 mt-0.5 leading-snug">
                 Your data stays in your control at all times
               </p>
             </div>
           </div>
           
-          <div className="flex items-center p-4 bg-gray-50 rounded-2xl shadow-sm">
-            <div className="w-12 h-12 rounded-full bg-[#273414] flex items-center justify-center mr-4 shadow-sm">
+          <div className="flex items-center p-4 bg-[#273414] rounded-2xl">
+            <div className="w-12 h-12 rounded-full bg-[#273414] flex items-center justify-center mr-4 shadow-sm border border-white/20">
               <svg
                 className="w-6 h-6 text-[#7c9861]"
                 viewBox="0 0 24 24"
@@ -106,8 +106,8 @@ export default function Home() {
               </svg>
             </div>
             <div>
-              <h3 className="font-medium text-base text-gray-900">AI Permissions</h3>
-              <p className="text-sm text-gray-600 mt-0.5 leading-snug">
+              <h3 className="font-medium text-base text-white">AI Permissions</h3>
+              <p className="text-sm text-white/70 mt-0.5 leading-snug">
                 Choose what to share with each AI service
               </p>
             </div>
