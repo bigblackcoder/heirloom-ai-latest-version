@@ -1,10 +1,6 @@
 import React from 'react';
 import { cn } from '../lib/utils';
 
-// Import logo images directly
-import whiteLogo from '../assets/heirloom-white-logo.png';
-import darkLogo from '../assets/heirloom-dark-logo.png';
-
 interface HeirloomLogoProps {
   className?: string;
   variant?: 'icon' | 'full' | 'complete';
@@ -18,53 +14,67 @@ export function HeirloomLogo({
   withText = false,
   theme = 'light'
 }: HeirloomLogoProps) {
-  // Use the appropriate logo based on theme
-  const logoPath = theme === 'light' ? darkLogo : whiteLogo;
-  
-  // All variants use the same logo file for now, but we could have different sizes/crops in the future
-  const logoIconPath = logoPath;
-  const logoFullPath = logoPath;
-  const logoCompletePath = logoPath;
-
   // Text color based on theme
   const textColorClass = theme === 'light' ? 'text-gray-900' : 'text-white';
   const subtextColorClass = theme === 'light' ? 'text-gray-500' : 'text-gray-300';
+  
+  // Logo fill color based on theme
+  const logoFillColor = theme === 'light' ? '#1e3c0d' : '#ffffff';
+  
+  // SVG logo
+  const HLogoSvg = (
+    <svg 
+      width="100%" 
+      height="100%" 
+      viewBox="0 0 44 44" 
+      fill="none" 
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M35.75,8.25h-4.667c-2.578,0-4.666,2.088-4.666,4.667v4.666H17.583v-4.666c0-2.578-2.088-4.667-4.666-4.667H8.25
+        c-2.578,0-4.667,2.088-4.667,4.667v4.666c0,2.578,2.088,4.667,4.667,4.667h4.667v4.667c0,2.578,2.088,4.666,4.666,4.666h4.667
+        v4.667c0,2.578,2.088,4.667,4.667,4.667h4.667c2.578,0,4.666-2.088,4.666-4.667v-4.667c0-2.578-2.088-4.666-4.666-4.666h-4.667
+        v-4.667h8.834c2.578,0,4.666-2.088,4.666-4.667v-4.666C40.417,10.338,38.328,8.25,35.75,8.25z"
+        fill={logoFillColor}
+      />
+    </svg>
+  );
+
+  // Complete logo component with text
+  const CompleteLogo = (
+    <div className="flex items-center">
+      <div className="flex-shrink-0">
+        {HLogoSvg}
+      </div>
+      <div className="ml-3">
+        <h2 className={`text-2xl font-bold ${textColorClass}`}>Heirloom</h2>
+        <p className={subtextColorClass}>Identity Platform</p>
+      </div>
+    </div>
+  );
 
   return (
     <div className={cn("flex items-center", className)}>
       {variant === 'complete' ? (
-        // Complete logo with text included in the image
-        <div className="relative flex items-center justify-center">
-          <img 
-            src={logoCompletePath} 
-            alt="Heirloom Identity Platform" 
-            className="shrink-0 h-auto w-auto"
-          />
-        </div>
+        // Complete logo with text
+        CompleteLogo
       ) : variant === 'icon' ? (
         // Small icon logo
         <div className="relative flex items-center justify-center">
-          <img 
-            src={logoIconPath} 
-            alt="Heirloom Logo" 
-            className="shrink-0 w-full h-full object-contain"
-          />
+          {HLogoSvg}
         </div>
       ) : (
-        // Full logo with emblem
-        <div className="relative flex items-center justify-center">
-          <img 
-            src={logoFullPath} 
-            alt="Heirloom Logo" 
-            className="shrink-0 w-full h-full object-contain"
-          />
-        </div>
-      )}
-
-      {withText && variant !== 'complete' && (
-        <div className="ml-4">
-          <h2 className={`text-2xl font-bold ${textColorClass}`}>Heirloom</h2>
-          <p className={subtextColorClass}>Identity Platform</p>
+        // Full logo with emblem and text
+        <div className="flex items-center">
+          <div className="relative flex items-center justify-center">
+            {HLogoSvg}
+          </div>
+          {withText && (
+            <div className="ml-4">
+              <h2 className={`text-2xl font-bold ${textColorClass}`}>Heirloom</h2>
+              <p className={subtextColorClass}>Identity Platform</p>
+            </div>
+          )}
         </div>
       )}
     </div>

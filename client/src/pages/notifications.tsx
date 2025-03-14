@@ -97,21 +97,21 @@ export default function Notifications() {
       </header>
       
       {/* Tabs */}
-      <div className="flex border-b px-2 sm:px-4">
+      <div className="flex border-b border-[#344919] px-2 sm:px-4 bg-[#273414]">
         <button 
-          className={`px-3 sm:px-6 py-2 text-sm sm:text-base ${activeTab === "activity" ? "border-b-2 border-[#1e3c0d] text-[#1e3c0d] font-medium" : "text-gray-500"}`}
+          className={`px-3 sm:px-6 py-2 text-sm sm:text-base ${activeTab === "activity" ? "border-b-2 border-[#7c9861] text-[#7c9861] font-medium" : "text-white/70"}`}
           onClick={() => handleTabChange("activity")}
         >
           Activity
         </button>
         <button 
-          className={`px-3 sm:px-6 py-2 text-sm sm:text-base ${activeTab === "updates" ? "border-b-2 border-[#1e3c0d] text-[#1e3c0d] font-medium" : "text-gray-500"}`}
+          className={`px-3 sm:px-6 py-2 text-sm sm:text-base ${activeTab === "updates" ? "border-b-2 border-[#7c9861] text-[#7c9861] font-medium" : "text-white/70"}`}
           onClick={() => handleTabChange("updates")}
         >
           Updates
         </button>
         <button 
-          className={`px-3 sm:px-6 py-2 text-sm sm:text-base ${activeTab === "tips" ? "border-b-2 border-[#1e3c0d] text-[#1e3c0d] font-medium" : "text-gray-500"}`}
+          className={`px-3 sm:px-6 py-2 text-sm sm:text-base ${activeTab === "tips" ? "border-b-2 border-[#7c9861] text-[#7c9861] font-medium" : "text-white/70"}`}
           onClick={() => handleTabChange("tips")}
         >
           Tips
@@ -130,14 +130,14 @@ export default function Notifications() {
       
       {/* Updates Tab Content */}
       {activeTab === "updates" && (
-        <div className="px-6 py-8 text-center text-gray-500">
+        <div className="px-6 py-8 text-center text-white/60">
           <p>No updates available at this time.</p>
         </div>
       )}
       
       {/* Tips Tab Content */}
       {activeTab === "tips" && (
-        <div className="px-6 py-8 text-center text-gray-500">
+        <div className="px-6 py-8 text-center text-white/60">
           <p>Tips and best practices coming soon.</p>
         </div>
       )}
