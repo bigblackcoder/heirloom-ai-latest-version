@@ -19,14 +19,44 @@ export default function Home() {
             <rect x="5" y="8" width="10" height="8" rx="1" fill="currentColor" fillOpacity="0.5" />
           </svg>
           <div className="w-0.5 h-3 bg-white/40 rounded-full mx-0.5"></div>
-          <img src="/attached_assets/heirloomlogo.png" alt="Heirloom Logo" className="w-5 h-5" />
+          <div className="w-5 h-5">
+            <svg 
+              width="100%" 
+              height="100%" 
+              viewBox="0 0 44 44" 
+              fill="none" 
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M35.75,8.25h-4.667c-2.578,0-4.666,2.088-4.666,4.667v4.666H17.583v-4.666c0-2.578-2.088-4.667-4.666-4.667H8.25
+                c-2.578,0-4.667,2.088-4.667,4.667v4.666c0,2.578,2.088,4.667,4.667,4.667h4.667v4.667c0,2.578,2.088,4.666,4.666,4.666h4.667
+                v4.667c0,2.578,2.088,4.667,4.667,4.667h4.667c2.578,0,4.666-2.088,4.666-4.667v-4.667c0-2.578-2.088-4.666-4.666-4.666h-4.667
+                v-4.667h8.834c2.578,0,4.666-2.088,4.666-4.667v-4.666C40.417,10.338,38.328,8.25,35.75,8.25z"
+                fill="#ffffff"
+              />
+            </svg>
+          </div>
         </div>
       </div>
 
       {/* Logo and brand */}
       <div className="pt-8 pb-6 px-6 flex items-center">
         <div className="w-10 h-10 mr-3">
-          <HeirloomLogo className="w-full h-full" variant="icon" />
+          <svg 
+            width="100%" 
+            height="100%" 
+            viewBox="0 0 44 44" 
+            fill="none" 
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M35.75,8.25h-4.667c-2.578,0-4.666,2.088-4.666,4.667v4.666H17.583v-4.666c0-2.578-2.088-4.667-4.666-4.667H8.25
+              c-2.578,0-4.667,2.088-4.667,4.667v4.666c0,2.578,2.088,4.667,4.667,4.667h4.667v4.667c0,2.578,2.088,4.666,4.666,4.666h4.667
+              v4.667c0,2.578,2.088,4.667,4.667,4.667h4.667c2.578,0,4.666-2.088,4.666-4.667v-4.667c0-2.578-2.088-4.666-4.666-4.666h-4.667
+              v-4.667h8.834c2.578,0,4.666-2.088,4.666-4.667v-4.666C40.417,10.338,38.328,8.25,35.75,8.25z"
+              fill="#ffffff"
+            />
+          </svg>
         </div>
         <h1 className="text-2xl font-bold">Heirloom</h1>
       </div>
@@ -122,7 +152,21 @@ export default function Home() {
           <div className="relative mx-auto w-48 h-48 border-4 border-white/20 rounded-3xl overflow-hidden backdrop-blur-sm bg-white flex items-center justify-center">
             <div className="text-center">
               <div className="w-24 h-24 mx-auto mb-4 flex justify-center items-center">
-                <img src="/attached_assets/logo-heirloom.png" alt="Heirloom Logo" className="w-full h-full object-contain" />
+                <svg 
+                  width="100%" 
+                  height="100%" 
+                  viewBox="0 0 44 44" 
+                  fill="none" 
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M35.75,8.25h-4.667c-2.578,0-4.666,2.088-4.666,4.667v4.666H17.583v-4.666c0-2.578-2.088-4.667-4.666-4.667H8.25
+                    c-2.578,0-4.667,2.088-4.667,4.667v4.666c0,2.578,2.088,4.667,4.667,4.667h4.667v4.667c0,2.578,2.088,4.666,4.666,4.666h4.667
+                    v4.667c0,2.578,2.088,4.667,4.667,4.667h4.667c2.578,0,4.666-2.088,4.666-4.667v-4.667c0-2.578-2.088-4.666-4.666-4.666h-4.667
+                    v-4.667h8.834c2.578,0,4.666-2.088,4.666-4.667v-4.666C40.417,10.338,38.328,8.25,35.75,8.25z"
+                    fill="#1e3c0d"
+                  />
+                </svg>
               </div>
               <p className="text-[#1e3c0d] text-base leading-tight px-2">Your identity capsule<br />awaits activation</p>
             </div>
