@@ -19,7 +19,7 @@ export function HeirloomLogo({
     <div className={cn("flex items-center", className)}>
       <div className="relative flex items-center justify-center w-full h-full">
         <img 
-          src="/attached_assets/logo-heirloom.png" 
+          src="/images/logo-heirloom.png" 
           alt="Heirloom Logo" 
           className="w-full h-full object-contain"
         />
