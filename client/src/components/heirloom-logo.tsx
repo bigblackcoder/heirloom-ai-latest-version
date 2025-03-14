@@ -1,8 +1,8 @@
 import React from 'react';
 import { cn } from '../lib/utils';
 
-// Import logo images directly
-import newLogo from '../assets/logo-heirloom.png';
+// Logo path as a string
+const newLogo = '/assets/logo-heirloom.png';
 
 interface HeirloomLogoProps {
   className?: string;

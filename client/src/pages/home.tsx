@@ -19,7 +19,7 @@ export default function Home() {
             <rect x="5" y="8" width="10" height="8" rx="1" fill="currentColor" fillOpacity="0.5" />
           </svg>
           <div className="w-0.5 h-3 bg-gray-300 rounded-full mx-0.5"></div>
-          <img src="/attached_assets/heirloomlogo.png" alt="Heirloom Logo" className="w-5 h-5" />
+          <img src="/assets/logo-heirloom.png" alt="Heirloom Logo" className="w-5 h-5" />
         </div>
       </div>
 
@@ -91,7 +91,7 @@ export default function Home() {
             </div>
           </div>
           
-          <div className="flex items-center p-4 bg-white/10 backdrop-blur-sm rounded-2xl">
+          <div className="flex items-center p-4 bg-gray-50 rounded-2xl shadow-sm">
             <div className="w-12 h-12 rounded-full bg-[#273414] flex items-center justify-center mr-4 shadow-sm">
               <svg
                 className="w-6 h-6 text-[#7c9861]"
@@ -106,8 +106,8 @@ export default function Home() {
               </svg>
             </div>
             <div>
-              <h3 className="font-medium text-base">AI Permissions</h3>
-              <p className="text-sm text-white/70 mt-0.5 leading-snug">
+              <h3 className="font-medium text-base text-gray-900">AI Permissions</h3>
+              <p className="text-sm text-gray-600 mt-0.5 leading-snug">
                 Choose what to share with each AI service
               </p>
             </div>
@@ -116,15 +116,15 @@ export default function Home() {
 
         {/* Mobile mockup design element */}
         <div className="relative mb-10">
-          <div className="absolute -right-4 top-3 w-36 h-36 rounded-full bg-[#d4a166]/20 blur-2xl"></div>
-          <div className="absolute -left-4 -bottom-4 w-28 h-28 rounded-full bg-[#7c9861]/20 blur-2xl"></div>
+          <div className="absolute -right-4 top-3 w-36 h-36 rounded-full bg-[#d4a166]/10 blur-2xl"></div>
+          <div className="absolute -left-4 -bottom-4 w-28 h-28 rounded-full bg-[#7c9861]/10 blur-2xl"></div>
           
-          <div className="relative mx-auto w-48 h-48 border-4 border-white/20 rounded-3xl overflow-hidden backdrop-blur-sm bg-white/5 flex items-center justify-center">
+          <div className="relative mx-auto w-48 h-48 border-4 border-gray-100 rounded-3xl overflow-hidden shadow-md bg-white flex items-center justify-center">
             <div className="text-center">
               <div className="w-24 h-24 mx-auto mb-4 flex justify-center items-center">
                 <HeirloomLogo className="w-full h-full" variant="icon" />
               </div>
-              <p className="text-white/90 text-base leading-tight px-2">Your identity capsule<br />awaits activation</p>
+              <p className="text-gray-700 text-base leading-tight px-2">Your identity capsule<br />awaits activation</p>
             </div>
           </div>
         </div>
@@ -141,7 +141,7 @@ export default function Home() {
           <div className="mt-4 text-center">
             <Button 
               variant="link" 
-              className="text-sm text-white/70 hover:text-white"
+              className="text-sm text-[#7c9861] hover:text-[#273414] font-medium"
               onClick={() => navigate("/dashboard")}
             >
               Already verified? Sign in
