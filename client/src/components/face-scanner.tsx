@@ -233,9 +233,17 @@ export default function FaceScanner({ onProgress, onComplete, isComplete }: Face
                     <p className="text-white font-medium mb-1">Camera access required</p>
                     <p className="text-sm text-white/80 mb-3">For security purposes, we need to verify your identity</p>
                     
-                    <div className="mx-auto bg-[#91c35c] text-white py-2 px-3 rounded-lg text-sm font-medium w-max">
-                      Demo mode: Auto-completing...
-                    </div>
+                    <button 
+                      onClick={() => {
+                        if (!isSimulating) {
+                          demoSimulation = faceVerification.simulateVerification();
+                          setIsSimulating(true);
+                        }
+                      }}
+                      className="mx-auto bg-[#91c35c] text-white py-2 px-3 rounded-lg text-sm font-medium w-max hover:bg-[#7dac4c] transition-colors"
+                    >
+                      {isSimulating ? "Demo mode: Auto-completing..." : "Continue with Demo Mode"}
+                    </button>
                   </div>
                 </div>
               )}

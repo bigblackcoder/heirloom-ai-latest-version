@@ -2,6 +2,10 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 
+// For detecting dev/demo environment
+const isDemoMode = process.env.NODE_ENV === 'development' || 
+                    window.location.search.includes('demo=true');
+
 // Face detection results
 interface DetectionFrame {
   success: boolean;
@@ -266,6 +270,46 @@ export function useFaceVerification() {
     return () => clearInterval(progressInterval);
   }, [isDetecting]);
   
+  // Function to simulate a demo verification for testing purposes
+  const simulateVerification = useCallback(() => {
+    setIsDetecting(true);
+    isDetectingRef.current = true;
+    setVerificationProgress(0);
+    
+    // Simulate progress over time
+    let progress = 0;
+    const simulationInterval = setInterval(() => {
+      progress += 1.5;
+      
+      if (progress >= 100) {
+        // Complete the verification
+        clearInterval(simulationInterval);
+        setVerificationProgress(100);
+        setVerificationResults({
+          success: true,
+          confidence: 0.95,
+          verified: true,
+          results: {
+            age: 30,
+            gender: "Man",
+            dominant_race: "caucasian",
+            dominant_emotion: "neutral"
+          }
+        });
+        setIsDetecting(false);
+        isDetectingRef.current = false;
+      } else {
+        setVerificationProgress(progress);
+      }
+    }, 100);
+    
+    return () => {
+      clearInterval(simulationInterval);
+      setIsDetecting(false);
+      isDetectingRef.current = false;
+    };
+  }, []);
+  
   return {
     isDetecting,
     verificationProgress,
@@ -273,6 +317,8 @@ export function useFaceVerification() {
     isProcessing,
     startDetection,
     stopDetection,
-    detectedFrames
+    detectedFrames,
+    simulateVerification,
+    isDemoMode
   };
 }
