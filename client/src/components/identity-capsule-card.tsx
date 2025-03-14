@@ -3,6 +3,9 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
+// Using a manual path to the image
+const logoHeirloom = "/images/logo-heirloom.png";
+
 interface IdentityCapsuleCardProps {
   userName: string;
   memberSince: number;
@@ -57,7 +60,15 @@ export default function IdentityCapsuleCard({
         </svg>
       </div>
       
-      <p className="text-white/70 text-xs mb-2">Identity Capsule Snapshot</p>
+      {/* Logo and header */}
+      <div className="flex justify-between items-center mb-3">
+        <p className="text-white/70 text-xs">Identity Capsule Snapshot</p>
+        <img 
+          src={logoHeirloom} 
+          alt="Heirloom Logo" 
+          className="h-8 w-auto filter brightness-0 invert opacity-90"
+        />
+      </div>
       
       {/* User profile section */}
       <div className="flex items-center mb-4">
