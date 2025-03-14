@@ -119,12 +119,12 @@ export default function Home() {
           <div className="absolute -right-4 top-3 w-36 h-36 rounded-full bg-[#d4a166]/20 blur-2xl"></div>
           <div className="absolute -left-4 -bottom-4 w-28 h-28 rounded-full bg-[#7c9861]/20 blur-2xl"></div>
           
-          <div className="relative mx-auto w-48 h-48 border-4 border-white/20 rounded-3xl overflow-hidden backdrop-blur-sm bg-white/5 flex items-center justify-center">
+          <div className="relative mx-auto w-48 h-48 border-4 border-white/20 rounded-3xl overflow-hidden backdrop-blur-sm bg-white flex items-center justify-center">
             <div className="text-center">
               <div className="w-24 h-24 mx-auto mb-4 flex justify-center items-center">
-                <HeirloomLogo className="w-full h-full" variant="icon" />
+                <img src="/attached_assets/logo-heirloom.png" alt="Heirloom Logo" className="w-full h-full object-contain" />
               </div>
-              <p className="text-white/90 text-base leading-tight px-2">Your identity capsule<br />awaits activation</p>
+              <p className="text-[#1e3c0d] text-base leading-tight px-2">Your identity capsule<br />awaits activation</p>
             </div>
           </div>
         </div>
