@@ -19,7 +19,9 @@ export default function Home() {
             <rect x="5" y="8" width="10" height="8" rx="1" fill="currentColor" fillOpacity="0.5" />
           </svg>
           <div className="w-0.5 h-3 bg-gray-300 rounded-full mx-0.5"></div>
-          <img src="/assets/logo-heirloom.png" alt="Heirloom Logo" className="w-5 h-5" />
+          <div className="w-5 h-5">
+            <HeirloomLogo className="w-full h-full" variant="icon" />
+          </div>
         </div>
       </div>
 
