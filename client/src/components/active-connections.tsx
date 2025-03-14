@@ -63,7 +63,7 @@ export default function ActiveConnections({ connections, isLoading }: ActiveConn
     <div className="px-4 mt-6">
       <div className="flex justify-between items-center mb-3">
         <h2 className="text-lg font-medium text-gray-900">Active Connections</h2>
-        <button className="text-sm text-[#1e3c0d] font-medium">
+        <button className="text-sm text-gray-700 font-medium">
           Manage
         </button>
       </div>

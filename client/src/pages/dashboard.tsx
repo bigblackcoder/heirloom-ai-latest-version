@@ -94,7 +94,7 @@ export default function Dashboard() {
   const stats = getStats();
 
   return (
-    <div className="min-h-screen bg-[#f8f9fa] pb-20">
+    <div className="min-h-screen bg-white pb-20">
       {/* Status bar area */}
       <div className="w-full px-4 pt-6 pb-2 flex items-center bg-white">
         <div className="text-sm text-gray-500">9:41</div>
