@@ -1,6 +1,10 @@
 import React from 'react';
 import { cn } from '../lib/utils';
 
+// Logo paths for different variants
+const logoIconGreen = '/images/heirloom-icon.png'; // Green logo on transparent
+const logoIconWhite = '/images/heirloom-full.png'; // White logo on black
+
 interface HeirloomLogoProps {
   className?: string;
   variant?: 'icon' | 'full' | 'complete';
@@ -14,10 +18,8 @@ export function HeirloomLogo({
   withText = false,
   theme = 'light'
 }: HeirloomLogoProps) {
-  // Logo colors based on theme
-  const logoColor = theme === 'light' 
-    ? 'bg-white border-green-800/10 text-green-800' 
-    : 'bg-green-800 border-white/10 text-white';
+  // Determine which logo to use based on theme
+  const logoSrc = theme === 'light' ? logoIconGreen : logoIconWhite;
   
   // Text color based on theme
   const textColorClass = theme === 'light' ? 'text-gray-900' : 'text-white';
@@ -27,11 +29,12 @@ export function HeirloomLogo({
     <div className={cn("flex items-center", className)}>
       {variant === 'complete' ? (
         // Complete logo with text included in the image
-        <div className="flex flex-col items-start">
-          <div className={`relative w-10 h-10 rounded-full ${logoColor} flex items-center justify-center border`}>
-            <div className="absolute w-5 h-5 rounded-full bg-green-100 top-1 left-1"></div>
-            <div className="w-3 h-3 rotate-45 rounded-sm bg-green-800"></div>
-          </div>
+        <div className="flex items-center">
+          <img 
+            src={logoSrc} 
+            alt="Heirloom Identity Platform" 
+            className="h-auto w-auto object-contain"
+          />
           <div className="ml-4">
             <h2 className={`text-2xl font-bold ${textColorClass}`}>Heirloom</h2>
             <p className={subtextColorClass}>Identity Platform</p>
@@ -39,19 +42,31 @@ export function HeirloomLogo({
         </div>
       ) : variant === 'icon' ? (
         // Small icon logo
-        <div className={`relative w-full h-full max-w-[40px] max-h-[40px] rounded-full ${logoColor} flex items-center justify-center border`}>
-          <div className="absolute w-1/2 h-1/2 rounded-full bg-green-100 top-1 left-1"></div>
-          <div className="w-1/3 h-1/3 rotate-45 rounded-sm bg-green-800"></div>
+        <div className="relative flex items-center justify-center">
+          <img 
+            src={logoSrc} 
+            alt="Heirloom Logo" 
+            className="w-full h-full object-contain"
+          />
         </div>
       ) : (
-        // Full logo with emblem
-        <div className={`relative w-10 h-10 rounded-full ${logoColor} flex items-center justify-center border`}>
-          <div className="absolute w-5 h-5 rounded-full bg-green-100 top-1 left-1"></div>
-          <div className="w-3 h-3 rotate-45 rounded-sm bg-green-800"></div>
+        // Full logo with emblem and text
+        <div className="flex items-center">
+          <img 
+            src={logoSrc} 
+            alt="Heirloom Logo" 
+            className="w-10 h-10 object-contain"
+          />
+          {withText && (
+            <div className="ml-4">
+              <h2 className={`text-2xl font-bold ${textColorClass}`}>Heirloom</h2>
+              <p className={subtextColorClass}>Identity Platform</p>
+            </div>
+          )}
         </div>
       )}
 
-      {withText && variant !== 'complete' && (
+      {withText && variant !== 'complete' && variant !== 'full' && (
         <div className="ml-4">
           <h2 className={`text-2xl font-bold ${textColorClass}`}>Heirloom</h2>
           <p className={subtextColorClass}>Identity Platform</p>
