@@ -114,8 +114,8 @@ export default function Dashboard() {
       <header className="px-5 pt-6 pb-4 bg-white border-b border-gray-100">
         <div className="flex justify-between items-center">
           <div className="flex items-center">
-            <div className="w-10 h-10 rounded-xl bg-[#8ccc5c] flex items-center justify-center shadow mr-3">
-              <HeirloomLogo className="w-6 h-6 text-white" />
+            <div className="w-10 h-10 rounded-xl bg-white border border-gray-100 flex items-center justify-center shadow mr-3">
+              <HeirloomLogo className="w-7 h-7" theme="light" />
             </div>
             <div>
               <h1 className="text-lg font-semibold text-gray-900">
@@ -179,7 +179,7 @@ export default function Dashboard() {
       {/* Test buttons - Remove in production */}
       <div className="fixed bottom-24 right-4 z-30 flex flex-col gap-2">
         <button 
-          className="bg-[#8ccc5c] text-white text-xs py-2 px-3 rounded-full shadow-lg"
+          className="bg-gray-800 text-white text-xs py-2 px-3 rounded-full shadow-lg"
           onClick={() => {
             setShowVerificationSuccess(true);
             

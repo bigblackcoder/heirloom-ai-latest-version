@@ -10,6 +10,7 @@ interface IdentityCapsuleCardProps {
   verifiedData: string;
   isVerified: boolean;
   avatar?: string;
+  theme?: 'light' | 'dark';
 }
 
 export default function IdentityCapsuleCard({
@@ -18,7 +19,8 @@ export default function IdentityCapsuleCard({
   aiConnections,
   verifiedData,
   isVerified,
-  avatar
+  avatar,
+  theme = 'light'
 }: IdentityCapsuleCardProps) {
   const [_, navigate] = useLocation();
   const { toast } = useToast();
@@ -35,17 +37,54 @@ export default function IdentityCapsuleCard({
   };
 
   const defaultAvatar = "https://api.dicebear.com/7.x/avataaars/svg?seed=user";
+  
+  // Theme-specific styles
+  const cardStyle = theme === 'light' 
+    ? "bg-white text-gray-800 border border-gray-200" 
+    : "bg-[#1e3c0d] text-white";
+  
+  const verifiedBadgeStyle = theme === 'light'
+    ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
+    : "bg-[#2a5414] text-[#4caf50] hover:bg-[#2a5414]/80";
+  
+  const actionBtnStyle = theme === 'light'
+    ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
+    : "bg-white/10 text-white hover:bg-white/20";
+  
+  const moreOptionsStyle = theme === 'light'
+    ? "bg-gray-800 text-white hover:bg-gray-700"
+    : "bg-[#d4a166] hover:bg-[#d4a166]/80";
+  
+  const securityTextStyle = theme === 'light'
+    ? "text-gray-500"
+    : "text-white/70";
+  
+  const subtitleStyle = theme === 'light'
+    ? "text-gray-500"
+    : "text-white/70";
+  
+  const memberSinceStyle = theme === 'light'
+    ? "text-gray-400"
+    : "text-white/60";
+  
+  const statsHeaderStyle = theme === 'light'
+    ? "text-gray-700"
+    : "text-white";
+  
+  const statsValueStyle = theme === 'light'
+    ? "text-gray-900 font-medium"
+    : "text-[#4caf50] font-medium";
 
   return (
-    <div className="mx-4 mb-4 p-5 rounded-3xl bg-[#1e3c0d] text-white shadow-lg">
+    <div className={`mx-4 mb-4 p-5 rounded-3xl shadow-lg ${cardStyle}`}>
       {/* Security status indicator */}
       <div className="flex justify-between items-center mb-3">
         <div className="flex items-center">
-          <div className="w-2 h-2 bg-[#4caf50] rounded-full mr-2"></div>
-          <span className="text-xs text-white/70">Secure | 2FA Enabled</span>
+          <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+          <span className={`text-xs ${securityTextStyle}`}>Secure | 2FA Enabled</span>
         </div>
         <svg
-          className="w-5 h-5 text-white/70"
+          className={`w-5 h-5 ${securityTextStyle}`}
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -57,7 +96,7 @@ export default function IdentityCapsuleCard({
         </svg>
       </div>
       
-      <p className="text-white/70 text-xs mb-2">Identity Capsule Snapshot</p>
+      <p className={`text-xs mb-2 ${subtitleStyle}`}>Identity Capsule Snapshot</p>
       
       {/* User profile section */}
       <div className="flex items-center mb-4">
@@ -70,19 +109,19 @@ export default function IdentityCapsuleCard({
         </div>
         <div>
           <h3 className="font-medium text-lg">{userName}</h3>
-          <p className="text-xs text-white/60">Member Since {memberSince}</p>
+          <p className={`text-xs ${memberSinceStyle}`}>Member Since {memberSince}</p>
         </div>
       </div>
       
       {/* Stats section */}
       <div className="flex justify-between mb-5">
         <div>
-          <h4 className="text-white text-sm mb-0.5">AI Connections:</h4>
-          <p className="text-[#4caf50] font-medium">{aiConnections}</p>
+          <h4 className={`text-sm mb-0.5 ${statsHeaderStyle}`}>AI Connections:</h4>
+          <p className={statsValueStyle}>{aiConnections}</p>
         </div>
         <div>
-          <h4 className="text-white text-sm mb-0.5">Verified Data:</h4>
-          <p className="text-[#4caf50] font-medium">{verifiedData}</p>
+          <h4 className={`text-sm mb-0.5 ${statsHeaderStyle}`}>Verified Data:</h4>
+          <p className={statsValueStyle}>{verifiedData}</p>
         </div>
       </div>
       
@@ -90,9 +129,7 @@ export default function IdentityCapsuleCard({
       <div className="flex justify-between">
         <Button 
           className={`py-2 px-5 rounded-full flex items-center justify-center ${
-            isVerified 
-              ? "bg-[#2a5414] text-[#4caf50] hover:bg-[#2a5414]/80" 
-              : "bg-white/10 text-white hover:bg-white/20"
+            isVerified ? verifiedBadgeStyle : actionBtnStyle
           }`}
           disabled={!isVerified}
           onClick={() => navigate("/verification")}
@@ -116,7 +153,7 @@ export default function IdentityCapsuleCard({
         </Button>
         
         <Button 
-          className="py-2 px-5 rounded-full bg-white/10 text-white hover:bg-white/20 flex items-center justify-center"
+          className={`py-2 px-5 rounded-full flex items-center justify-center ${actionBtnStyle}`}
           onClick={handleAddData}
         >
           <svg
@@ -134,7 +171,7 @@ export default function IdentityCapsuleCard({
         </Button>
         
         <Button 
-          className="w-10 h-10 rounded-full bg-[#d4a166] hover:bg-[#d4a166]/80 flex items-center justify-center"
+          className={`w-10 h-10 rounded-full flex items-center justify-center ${moreOptionsStyle}`}
           onClick={handleMoreOptions}
           variant="ghost"
         >
