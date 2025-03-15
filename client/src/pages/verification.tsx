@@ -169,6 +169,7 @@ export default function Verification() {
           message="Your identity has been securely verified. Welcome to the Heirloom ecosystem."
           buttonText="Continue to Dashboard"
           onButtonClick={() => navigate("/dashboard")}
+          verificationData={verificationData}
         />
       )}
     </div>

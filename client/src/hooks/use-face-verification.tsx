@@ -276,10 +276,16 @@ export function useFaceVerification() {
     isDetectingRef.current = true;
     setVerificationProgress(0);
     
-    // Simulate progress over time
+    // Simulate progress over time with variable speed for realism
     let progress = 0;
+    let lastIncrease = 1.5;
+    
     const simulationInterval = setInterval(() => {
-      progress += 1.5;
+      // Vary the progress increment for a more realistic simulation
+      const variationFactor = 0.8 + (Math.random() * 0.4); // Random factor between 0.8 and 1.2
+      lastIncrease = Math.min(lastIncrease * variationFactor, 2.5);
+      
+      progress += lastIncrease;
       
       if (progress >= 100) {
         // Complete the verification
@@ -290,7 +296,7 @@ export function useFaceVerification() {
           confidence: 0.95,
           verified: true,
           results: {
-            age: 30,
+            age: 28,
             gender: "Man",
             dominant_race: "caucasian",
             dominant_emotion: "neutral"
@@ -299,6 +305,18 @@ export function useFaceVerification() {
         setIsDetecting(false);
         isDetectingRef.current = false;
       } else {
+        // Simulated checkpoints in verification process
+        if (progress > 30 && progress < 32) {
+          // Slow down during "analysis" phase
+          lastIncrease = 0.8;
+        } else if (progress > 60 && progress < 62) {
+          // Slow down during "verification" phase
+          lastIncrease = 0.5;
+        } else if (progress > 85) {
+          // Final slowdown during verification confirmation
+          lastIncrease = 0.3;
+        }
+        
         setVerificationProgress(progress);
       }
     }, 100);

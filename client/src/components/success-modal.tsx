@@ -5,13 +5,23 @@ interface SuccessModalProps {
   message: string;
   buttonText: string;
   onButtonClick: () => void;
+  verificationData?: {
+    confidence: number;
+    results?: {
+      age?: number;
+      gender?: string;
+      dominant_race?: string;
+      dominant_emotion?: string;
+    };
+  } | null;
 }
 
 export default function SuccessModal({
   title,
   message,
   buttonText,
-  onButtonClick
+  onButtonClick,
+  verificationData
 }: SuccessModalProps) {
   return (
     <div className="fixed inset-0 bg-white/40 backdrop-blur-sm flex items-end px-4 pb-8 z-50">
@@ -50,16 +60,57 @@ export default function SuccessModal({
             <div className="text-[#4caf50] font-medium">3 LLMs | 7 Agents</div>
           </div>
           
-          {/* Badge & button */}
-          <div className="flex items-center justify-between mt-3">
-            <div className="flex items-center bg-[#2a5414] rounded-full px-4 py-1">
-              <svg className="w-4 h-4 text-[#4caf50] mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path d="M20 6 9 17l-5-5" />
-              </svg>
-              <span className="text-white text-sm">Verified</span>
+          {/* Verification status & attributes */}
+          <div className="flex flex-col mt-3 space-y-2">
+            {/* Verification confidence badge */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center bg-[#2a5414] rounded-full px-4 py-1">
+                <svg className="w-4 h-4 text-[#4caf50] mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M20 6 9 17l-5-5" />
+                </svg>
+                <span className="text-white text-sm">Verified</span>
+              </div>
+              
+              <div className="text-white text-sm">
+                {verificationData ? `${Math.round(verificationData.confidence)}% match` : '95% match'}
+              </div>
             </div>
             
-            <div className="flex gap-2">
+            {/* Detected attributes */}
+            {verificationData?.results && (
+              <div className="grid grid-cols-2 gap-2 bg-[#2a5414]/30 p-2 rounded-lg">
+                {verificationData.results.age && (
+                  <div className="flex flex-col">
+                    <span className="text-white/70 text-xs">Age</span>
+                    <span className="text-white text-sm">{verificationData.results.age}</span>
+                  </div>
+                )}
+                
+                {verificationData.results.gender && (
+                  <div className="flex flex-col">
+                    <span className="text-white/70 text-xs">Gender</span>
+                    <span className="text-white text-sm">{verificationData.results.gender}</span>
+                  </div>
+                )}
+                
+                {verificationData.results.dominant_race && (
+                  <div className="flex flex-col">
+                    <span className="text-white/70 text-xs">Ethnicity</span>
+                    <span className="text-white text-sm capitalize">{verificationData.results.dominant_race}</span>
+                  </div>
+                )}
+                
+                {verificationData.results.dominant_emotion && (
+                  <div className="flex flex-col">
+                    <span className="text-white/70 text-xs">Expression</span>
+                    <span className="text-white text-sm capitalize">{verificationData.results.dominant_emotion}</span>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {/* Action buttons */}
+            <div className="flex justify-end gap-2 pt-1">
               <div className="w-9 h-9 bg-white/20 rounded-full flex items-center justify-center text-white p-2">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M12 5v14M5 12h14" />
