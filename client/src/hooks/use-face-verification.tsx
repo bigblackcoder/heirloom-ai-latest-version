@@ -82,7 +82,7 @@ export function useFaceVerification() {
       
       const newProgress = Math.min(
         progressRef.current + progressIncrement, // Slower progress that depends on alignment
-        90 // Only go to 90% until verification completes
+        99 // Go all the way to 99% so that we don't prematurely complete
       );
       
       setVerificationProgress(newProgress);
@@ -256,9 +256,11 @@ export function useFaceVerification() {
     
     // Slow continuous progress to provide feedback even if verification is taking time
     const progressInterval = setInterval(() => {
-      if (progressRef.current < 90) { // Only go to 90% until verification completes
+      // Allow progress to reach 100% for a more satisfying user experience
+      if (progressRef.current < 100) {
         setVerificationProgress(prev => {
-          const newProgress = Math.min(prev + 0.2, 90); // Very slow artificial progress
+          // Very slow artificial progress, but will eventually reach 100%
+          const newProgress = Math.min(prev + 0.2, 100); 
           progressRef.current = newProgress;
           return newProgress;
         });

@@ -126,8 +126,8 @@ export default function FaceScanner({ onProgress, onComplete, isComplete }: Face
 
   // Effect to handle simulation state changes
   useEffect(() => {
-    if (isSimulating && verificationProgress === 100) {
-      // Simulation completed - send mock image data
+    if (isSimulating && verificationProgress >= 99) {
+      // Simulation completed - send mock image data and force completion
       onComplete(mockImageData);
     }
   }, [isSimulating, verificationProgress, onComplete, mockImageData]);
