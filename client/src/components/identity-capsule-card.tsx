@@ -3,8 +3,8 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
-// Using a manual path to the white version of the logo
-const logoHeirloom = "/images/heirloom-white.png";
+// Using a direct path to the white version of the logo
+const logoHeirloom = "/heirloom_white.png";
 
 interface IdentityCapsuleCardProps {
   userName: string;
