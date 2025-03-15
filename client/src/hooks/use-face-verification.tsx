@@ -277,6 +277,7 @@ export function useFaceVerification() {
     setIsDetecting(true);
     isDetectingRef.current = true;
     setVerificationProgress(0);
+    progressRef.current = 0;
     
     // Simulate progress over time with variable speed for realism
     let progress = 0;
@@ -292,7 +293,12 @@ export function useFaceVerification() {
       if (progress >= 100) {
         // Complete the verification
         clearInterval(simulationInterval);
+        
+        // Make sure we set progress to 100
         setVerificationProgress(100);
+        progressRef.current = 100;
+        
+        // Set verification results
         setVerificationResults({
           success: true,
           confidence: 0.95,
@@ -304,8 +310,12 @@ export function useFaceVerification() {
             dominant_emotion: "neutral"
           }
         });
-        setIsDetecting(false);
-        isDetectingRef.current = false;
+        
+        // Turn off detection mode 
+        setTimeout(() => {
+          setIsDetecting(false);
+          isDetectingRef.current = false;
+        }, 500); // Small delay to ensure state updates properly
       } else {
         // Simulated checkpoints in verification process
         if (progress > 30 && progress < 32) {
@@ -319,7 +329,9 @@ export function useFaceVerification() {
           lastIncrease = 0.3;
         }
         
+        // Update both state and ref
         setVerificationProgress(progress);
+        progressRef.current = progress;
       }
     }, 100);
     
