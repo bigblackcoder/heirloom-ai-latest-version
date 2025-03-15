@@ -28,19 +28,20 @@ export default function SuccessModal({
   const [isExiting, setIsExiting] = useState(false);
   
   useEffect(() => {
-    // Show the modal with animation
+    // Show the modal with animation after a short delay
     const showTimer = setTimeout(() => {
       setIsVisible(true);
     }, 100);
     
     // Auto-dismiss after 5 seconds
     const dismissTimer = setTimeout(() => {
+      // Start exit animation
       setIsExiting(true);
       
-      // Allow time for exit animation before calling onButtonClick
+      // Navigate to dashboard after animation completes
       const exitTimer = setTimeout(() => {
         onButtonClick();
-      }, 500);
+      }, 700); // This matches our transition duration
       
       return () => clearTimeout(exitTimer);
     }, 5000);
@@ -54,7 +55,7 @@ export default function SuccessModal({
   return (
     <div className="fixed inset-0 bg-white/40 backdrop-blur-sm flex items-end px-4 z-50 pb-8">
       <div 
-        className={`bg-white w-full max-w-md mx-auto rounded-3xl shadow-lg overflow-hidden transform transition-all duration-500 ease-in-out ${
+        className={`bg-white w-full max-w-md mx-auto rounded-3xl shadow-lg overflow-hidden transform transition-all duration-700 ease-out ${
           isVisible ? 'translate-y-0' : 'translate-y-full'
         } ${isExiting ? 'translate-y-full' : ''}`}
       >
