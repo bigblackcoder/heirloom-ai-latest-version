@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
 
 interface SuccessModalProps {
   title: string;
@@ -23,9 +24,40 @@ export default function SuccessModal({
   onButtonClick,
   verificationData
 }: SuccessModalProps) {
+  const [isVisible, setIsVisible] = useState(false);
+  const [isExiting, setIsExiting] = useState(false);
+  
+  useEffect(() => {
+    // Show the modal with animation
+    const showTimer = setTimeout(() => {
+      setIsVisible(true);
+    }, 100);
+    
+    // Auto-dismiss after 5 seconds
+    const dismissTimer = setTimeout(() => {
+      setIsExiting(true);
+      
+      // Allow time for exit animation before calling onButtonClick
+      const exitTimer = setTimeout(() => {
+        onButtonClick();
+      }, 500);
+      
+      return () => clearTimeout(exitTimer);
+    }, 5000);
+    
+    return () => {
+      clearTimeout(showTimer);
+      clearTimeout(dismissTimer);
+    };
+  }, [onButtonClick]);
+  
   return (
-    <div className="fixed inset-0 bg-white/40 backdrop-blur-sm flex items-end px-4 pb-8 z-50">
-      <div className="bg-white w-full rounded-3xl shadow-lg overflow-hidden">
+    <div className="fixed inset-0 bg-white/40 backdrop-blur-sm flex items-end px-4 z-50 pb-8">
+      <div 
+        className={`bg-white w-full max-w-md mx-auto rounded-3xl shadow-lg overflow-hidden transform transition-all duration-500 ease-in-out ${
+          isVisible ? 'translate-y-0' : 'translate-y-full'
+        } ${isExiting ? 'translate-y-full' : ''}`}
+      >
         {/* Identity capsule mock at the top */}
         <div className="bg-[#1e3c0d] p-5">
           {/* Security indicator */}
@@ -72,7 +104,7 @@ export default function SuccessModal({
               </div>
               
               <div className="text-white text-sm">
-                {verificationData ? `${Math.round(verificationData.confidence)}% match` : '95% match'}
+                {verificationData ? `${Math.round(verificationData.confidence * 100)}% match` : '1% match'}
               </div>
             </div>
             
