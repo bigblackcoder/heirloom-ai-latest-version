@@ -52,8 +52,9 @@ export default function FaceScanner({ onProgress, onComplete, isComplete }: Face
       onProgress(progress);
     }
     
-    // Call onComplete once when progress reaches 100% and isComplete is false
-    if (progress >= 100 && !isCompleteRef.current) {
+    // Call onComplete when progress reaches 98% or higher and isComplete is false
+    if (progress >= 98 && !isCompleteRef.current) {
+      console.log('Triggering completion at progress:', progress);
       stopDetection();
       
       // Capture the current frame for verification
