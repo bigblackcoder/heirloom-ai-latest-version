@@ -14,7 +14,7 @@ declare global {
 
 interface FaceScannerProps {
   onProgress: (progress: number) => void;
-  onComplete: () => void;
+  onComplete: (imageData?: string) => void;
   isComplete: boolean;
 }
 
@@ -35,6 +35,15 @@ export default function FaceScanner({ onProgress, onComplete, isComplete }: Face
     isCompleteRef.current = isComplete;
   }, [isComplete]);
   
+  // Function to capture the current frame from webcam
+  const captureFrame = useCallback(() => {
+    if (!webcamRef.current) return null;
+    
+    // Capture image as data URL
+    const imageSrc = webcamRef.current.getScreenshot();
+    return imageSrc;
+  }, [webcamRef]);
+  
   // Memoized callback for updating progress
   const handleProgressUpdate = useCallback((progress: number) => {
     // Only call onProgress if the progress has changed by at least 1%
@@ -46,9 +55,12 @@ export default function FaceScanner({ onProgress, onComplete, isComplete }: Face
     // Call onComplete once when progress reaches 100% and isComplete is false
     if (progress >= 100 && !isCompleteRef.current) {
       stopDetection();
-      onComplete();
+      
+      // Capture the current frame for verification
+      const imageData = captureFrame();
+      onComplete(imageData || undefined);
     }
-  }, [onProgress, onComplete, stopDetection]);
+  }, [onProgress, onComplete, stopDetection, captureFrame]);
   
   // Request camera permission when component mounts
   useEffect(() => {

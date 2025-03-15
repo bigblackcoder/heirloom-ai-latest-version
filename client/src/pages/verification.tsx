@@ -21,21 +21,37 @@ export default function Verification() {
     setVerificationProgress(progress);
   };
 
-  const handleVerificationComplete = async () => {
+  const [verificationData, setVerificationData] = useState<{
+    confidence: number;
+    results?: {
+      age?: number;
+      gender?: string;
+      dominant_race?: string;
+      dominant_emotion?: string;
+    };
+  } | null>(null);
+  
+  const handleVerificationComplete = async (imageData?: string) => {
     setIsVerificationComplete(true);
     
     try {
-      // Call backend verification endpoint
-      await apiRequest("POST", "/api/verification/face", {});
+      // Call backend verification endpoint with the captured image data if available
+      const response = await apiRequest("POST", "/api/verification/face", { 
+        image: imageData 
+      });
       
-      // Show success modal
-      setShowSuccessModal(true);
-      
-      // After a delay, navigate to dashboard
-      setTimeout(() => {
-        setShowSuccessModal(false);
-        navigate("/dashboard");
-      }, 3000);
+      if (response && response.success) {
+        // Store verification data for display in the success modal
+        setVerificationData({
+          confidence: response.confidence,
+          results: response.results
+        });
+        
+        // Show success modal
+        setShowSuccessModal(true);
+      } else {
+        throw new Error(response?.message || "Verification failed");
+      }
     } catch (error) {
       toast({
         title: "Verification Failed",
