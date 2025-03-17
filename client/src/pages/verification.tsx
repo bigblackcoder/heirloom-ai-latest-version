@@ -12,15 +12,6 @@ export default function Verification() {
   const [verificationProgress, setVerificationProgress] = useState(0);
   const [isVerificationComplete, setIsVerificationComplete] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-
-  const handleBackClick = () => {
-    navigate("/");
-  };
-
-  const handleVerificationProgress = (progress: number) => {
-    setVerificationProgress(progress);
-  };
-
   const [verificationData, setVerificationData] = useState<{
     confidence: number;
     results?: {
@@ -30,6 +21,32 @@ export default function Verification() {
       dominant_emotion?: string;
     };
   } | null>(null);
+
+  // Handle navigation to dashboard when success modal should show
+  useEffect(() => {
+    if (showSuccessModal) {
+      // Save verification result in localStorage
+      localStorage.setItem('showVerificationSuccess', 'true');
+      
+      // Store verification data if available
+      if (verificationData) {
+        localStorage.setItem('verificationData', JSON.stringify(verificationData));
+      }
+      
+      // Navigate to dashboard with a slight delay to ensure localStorage is set
+      setTimeout(() => {
+        navigate("/dashboard");
+      }, 50);
+    }
+  }, [showSuccessModal, verificationData, navigate]);
+
+  const handleBackClick = () => {
+    navigate("/");
+  };
+
+  const handleVerificationProgress = (progress: number) => {
+    setVerificationProgress(progress);
+  };
   
   const handleVerificationComplete = async (imageData?: string) => {
     console.log("Verification complete, progress:", verificationProgress);
@@ -214,25 +231,10 @@ export default function Verification() {
         </div>
       </div>
 
-      {/* Success Modal - Navigate to dashboard first then show modal */}
-      {/* Use a top-level useEffect to handle navigation when success modal shows */}
-      <div style={{ display: 'none' }}>{/* Hidden div to fix React rendering */}</div>
-      {useEffect(() => {
-        if (showSuccessModal) {
-          // Save verification result in localStorage
-          localStorage.setItem('showVerificationSuccess', 'true');
-          
-          // Store verification data if available
-          if (verificationData) {
-            localStorage.setItem('verificationData', JSON.stringify(verificationData));
-          }
-          
-          // Navigate to dashboard with a slight delay to ensure localStorage is set
-          setTimeout(() => {
-            navigate("/dashboard");
-          }, 50);
-        }
-      }, [showSuccessModal, verificationData, navigate])}
+      {/* Success Modal - Hidden content for modal display logic */}
+      <div style={{ display: 'none' }}>
+        {/* Hidden div to contain any dynamic content if needed */}
+      </div>
     </div>
   );
 }
