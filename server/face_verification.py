@@ -64,7 +64,7 @@ def verify_face(image_data):
                 # Construct result object
                 success_result = {
                     "success": True,
-                    "confidence": 0.85,  # We're using a high baseline confidence since DeepFace detected a face
+                    "confidence": 85,  # We're using a high baseline confidence (85%) since DeepFace detected a face
                     "message": "Face verification successful",
                     "results": {
                         "age": result.get('age'),
@@ -114,8 +114,8 @@ def verify_face(image_data):
             image_area = gray.shape[0] * gray.shape[1]
             size_factor = min(1.0, face_area / (image_area * 0.1))  # Face takes up at least 10% of image
             
-            # Final confidence score (between 0.4 and 0.7)
-            confidence = 0.4 + (size_factor * 0.3)
+            # Final confidence score (between 40 and 70 percent)
+            confidence = 40 + (size_factor * 30)
             
             print(json.dumps({
                 "success": True,

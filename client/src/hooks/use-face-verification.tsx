@@ -143,7 +143,7 @@ export function useFaceVerification() {
         // Add a basic frame to keep trying
         processDetection({
           success: true,
-          confidence: 0.5,
+          confidence: 50, // 50% confidence
           alignment: 50
         });
       }
@@ -187,8 +187,8 @@ export function useFaceVerification() {
     // Is face sufficiently centered?
     const isFaceCentered = alignment > 60;
     
-    // Confidence based on alignment with a base minimum
-    const confidence = 0.5 + (alignment / 200); // 0.5-1.0
+    // Confidence based on alignment with a base minimum (50-100%)
+    const confidence = 50 + (alignment / 2); // 50-100 range
     
     return {
       success: isFaceCentered,
