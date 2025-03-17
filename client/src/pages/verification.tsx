@@ -215,24 +215,23 @@ export default function Verification() {
       </div>
 
       {/* Success Modal - Navigate to dashboard first then show modal */}
-      {showSuccessModal && (
-        <>
-          {useEffect(() => {
-            // Save verification result in localStorage
-            localStorage.setItem('showVerificationSuccess', 'true');
-            
-            // Store verification data if available
-            if (verificationData) {
-              localStorage.setItem('verificationData', JSON.stringify(verificationData));
-            }
-            
-            // Navigate to dashboard with a slight delay to ensure localStorage is set
-            setTimeout(() => {
-              navigate("/dashboard");
-            }, 50);
-          }, [])}
-        </>
-      )}
+      {/* Use a top-level useEffect to handle navigation when success modal shows */}
+      {useEffect(() => {
+        if (showSuccessModal) {
+          // Save verification result in localStorage
+          localStorage.setItem('showVerificationSuccess', 'true');
+          
+          // Store verification data if available
+          if (verificationData) {
+            localStorage.setItem('verificationData', JSON.stringify(verificationData));
+          }
+          
+          // Navigate to dashboard with a slight delay to ensure localStorage is set
+          setTimeout(() => {
+            navigate("/dashboard");
+          }, 50);
+        }
+      }, [showSuccessModal, verificationData, navigate])}
     </div>
   );
 }
