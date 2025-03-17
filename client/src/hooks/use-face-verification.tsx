@@ -98,7 +98,7 @@ export function useFaceVerification() {
   }, []);
 
   // Capture frame and send to server for DeepFace verification
-  const captureAndVerify = useCallback(async (videoElement: HTMLVideoElement) => {
+  const captureAndVerify = useCallback(async (videoElement: HTMLVideoElement, saveToDb: boolean = false) => {
     if (!videoElement || isProcessing) return;
     
     try {
@@ -124,10 +124,14 @@ export function useFaceVerification() {
       const imageData = canvas.toDataURL('image/jpeg');
       
       // Send the image data to the server for verification
+      // Include saveToDb option to store the face for future matching if verified
       const response = await apiRequest({
         url: '/api/verification/face',
         method: 'POST',
-        body: { image: imageData },
+        body: { 
+          image: imageData,
+          saveToDb: saveToDb 
+        },
       }) as VerificationResponse;
       
       // If verification was successful
@@ -226,7 +230,10 @@ export function useFaceVerification() {
     captureTimeoutRef.current = setTimeout(function capture() {
       if (!isDetectingRef.current) return;
       
-      captureAndVerify(videoElement).then(() => {
+      // Save to database after the first few frames
+      const saveToDb = framesRef.current.length > 5 && progressRef.current > 40;
+      
+      captureAndVerify(videoElement, saveToDb).then(() => {
         // Schedule next capture if still detecting and not at 100%
         if (isDetectingRef.current && progressRef.current < 100) {
           captureTimeoutRef.current = setTimeout(capture, 1500); // Every 1.5 seconds
@@ -305,6 +312,8 @@ export function useFaceVerification() {
           success: true,
           confidence: 95, // 95% confidence (using percentage scale)
           verified: true,
+          matched: Math.random() > 0.5, // Randomly simulate a matched face
+          face_id: Math.random() > 0.5 ? "e5a7b45c-8f92-4c3a-b8e2-9d8a7bb1df47" : undefined,
           results: {
             age: 28,
             gender: "Man",

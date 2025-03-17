@@ -8,6 +8,8 @@ interface SuccessModalProps {
   onButtonClick: () => void;
   verificationData?: {
     confidence: number;
+    matched?: boolean;
+    face_id?: string;
     results?: {
       age?: number;
       gender?: string;
@@ -101,13 +103,31 @@ export default function SuccessModal({
                 <svg className="w-4 h-4 text-[#4caf50] mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <path d="M20 6 9 17l-5-5" />
                 </svg>
-                <span className="text-white text-sm">Verified</span>
+                <span className="text-white text-sm">
+                  {verificationData?.matched ? 'Known Identity' : 'Verified'}
+                </span>
               </div>
               
               <div className="text-white text-sm">
                 {verificationData ? `${Math.round(verificationData.confidence)}% match` : '1% match'}
               </div>
             </div>
+            
+            {/* Face match notification */}
+            {verificationData?.matched && (
+              <div className="flex items-center bg-[#4caf50]/20 rounded-lg p-2 text-sm text-white">
+                <svg className="w-5 h-5 text-[#4caf50] mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                  <path d="M20 6 9 17l-5-5" />
+                </svg>
+                <span>
+                  Your face matched with an existing record in our secure database
+                  {verificationData.face_id && 
+                    <span className="block text-xs opacity-70">ID: {verificationData.face_id.substring(0, 8)}...</span>
+                  }
+                </span>
+              </div>
+            )}
             
             {/* Detected attributes */}
             {verificationData?.results && (
@@ -181,8 +201,14 @@ export default function SuccessModal({
           
           <h2 className="text-2xl font-bold text-center text-gray-900 mb-2">{title}</h2>
           <p className="text-center text-gray-600 mb-6">
-            Welcome to <span className="font-medium">Heirloom</span>!<br />
-            {message}
+            {verificationData?.matched ? 
+              <>Welcome back to <span className="font-medium">Heirloom</span>!</> : 
+              <>Welcome to <span className="font-medium">Heirloom</span>!</>
+            }<br />
+            {verificationData?.matched ? 
+              'Your identity has been verified with an existing record.' : 
+              message
+            }
           </p>
           
           <Button 
