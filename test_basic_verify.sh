@@ -1,10 +1,10 @@
 #!/bin/bash
 
-echo "=== DeepFace Basic Verification Test ==="
-echo "This test will verify basic face detection functionality"
+echo "=== Testing Basic Face Detection ==="
+echo "This test will perform basic face detection without DeepFace"
 echo 
 
-# Run the basic verification test script
+# Run the basic face detection test
 python3 server/test_basic_verify.py
 
 echo
