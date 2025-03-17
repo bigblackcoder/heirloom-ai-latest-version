@@ -10,9 +10,11 @@ export interface FaceVerificationResult {
   success: boolean;
   confidence: number;
   message?: string;
+  matched?: boolean;
+  face_id?: string;
   results?: {
     age?: number;
-    gender?: string;
+    gender?: string | Record<string, number>;
     dominant_race?: string;
     dominant_emotion?: string;
   };
@@ -22,9 +24,15 @@ export interface FaceVerificationResult {
 /**
  * Verifies a face using the Python DeepFace library
  * @param imageBase64 - Base64 encoded image data
+ * @param userId - Optional user ID to check against in the database
+ * @param saveToDb - Whether to save the face to the database if verified
  * @returns Promise with verification result
  */
-export async function verifyFace(imageBase64: string): Promise<FaceVerificationResult> {
+export async function verifyFace(
+  imageBase64: string, 
+  userId?: number, 
+  saveToDb = false
+): Promise<FaceVerificationResult> {
   return new Promise<FaceVerificationResult>((resolve) => {
     try {
       // Remove data URL prefix if present
@@ -37,9 +45,19 @@ export async function verifyFace(imageBase64: string): Promise<FaceVerificationR
       // Write base64 data to temporary file
       fs.writeFileSync(tempFilePath, base64Data, { encoding: 'base64' });
       
-      // Create a Python script to call face verification
+      // Create a Python script to call face verification with optional userId and save parameters
       const scriptPath = path.join(process.cwd(), 'server', 'face_verification.py');
-      const pythonCommand = `python3 ${scriptPath} "${tempFilePath}"`;
+      
+      // Build command with optional parameters
+      let pythonCommand = `python3 ${scriptPath} "${tempFilePath}"`;
+      if (userId !== undefined) {
+        pythonCommand += ` ${userId}`;
+        
+        // Add save parameter if requested
+        if (saveToDb) {
+          pythonCommand += ' save';
+        }
+      }
       
       log(`Executing face verification with Python: ${pythonCommand}`);
       
@@ -71,6 +89,8 @@ export async function verifyFace(imageBase64: string): Promise<FaceVerificationR
             success: result.success,
             confidence: result.confidence || 0,
             message: result.message,
+            matched: result.matched || false,
+            face_id: result.face_id,
             results: result.results || {}
           });
         } catch (parseError) {

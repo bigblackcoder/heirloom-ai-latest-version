@@ -19,6 +19,8 @@ interface VerificationResponse {
   confidence: number;
   message?: string;
   verified?: boolean;
+  matched?: boolean;
+  face_id?: string;
   results?: {
     age?: number;
     gender?: string;

@@ -109,7 +109,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // For development, allow unauthenticated requests for testing
       const userId = req.session?.userId || 1; // Default to user ID 1 for testing
       
-      const { image } = req.body;
+      const { image, saveToDb = false } = req.body;
       
       if (!image) {
         return res.status(200).json({ 
@@ -118,9 +118,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Verify the face using DeepFace
+      // Verify the face using DeepFace, pass userId for face matching
       console.log("Processing face verification with DeepFace...");
-      const verificationResult = await verifyFace(image);
+      const verificationResult = await verifyFace(image, userId, saveToDb);
       
       if (!verificationResult.success) {
         return res.status(200).json({
@@ -175,10 +175,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
             
             if (gender) {
+              // Handle both string and object gender formats
+              let genderValue = '';
+              if (typeof gender === 'string') {
+                genderValue = gender;
+              } else if (gender && typeof gender === 'object') {
+                // Get the dominant gender by highest confidence
+                const entries = Object.entries(gender);
+                if (entries.length > 0) {
+                  entries.sort((a, b) => b[1] - a[1]);
+                  genderValue = entries[0][0];
+                }
+              }
+              
+              if (genderValue) {
+                await storage.createVerifiedData({
+                  capsuleId: primaryCapsule.id,
+                  dataType: "gender",
+                  value: genderValue,
+                  verificationMethod: "face-scan",
+                  issuanceDate: new Date()
+                });
+              }
+            }
+            
+            // Store face ID if available
+            if (verificationResult.face_id) {
               await storage.createVerifiedData({
                 capsuleId: primaryCapsule.id,
-                dataType: "gender",
-                value: gender,
+                dataType: "face_id",
+                value: verificationResult.face_id,
                 verificationMethod: "face-scan",
                 issuanceDate: new Date()
               });
@@ -186,14 +212,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
         
-        // Log activity
+        // Log activity with additional details about face matching
         await storage.createActivity({
           userId: userId,
           type: "identity-verified",
-          description: "Identity verification was completed successfully",
+          description: verificationResult.matched 
+            ? "Identity verified against existing face record" 
+            : "Identity verification was completed successfully",
           metadata: { 
             method: "face",
             confidence: verificationResult.confidence,
+            matched: verificationResult.matched || false,
+            face_id: verificationResult.face_id,
             ...(verificationResult.results || {})
           }
         });
@@ -201,9 +231,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.status(200).json({ 
         success: true,
-        message: "Face verification successful", 
+        message: verificationResult.matched 
+          ? "Face verified and matched with existing record" 
+          : "Face verification successful", 
         verified: true,
         confidence: verificationResult.confidence,
+        matched: verificationResult.matched || false,
+        face_id: verificationResult.face_id,
         results: verificationResult.results
       });
     } catch (error) {
