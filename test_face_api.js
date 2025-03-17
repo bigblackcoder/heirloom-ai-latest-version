@@ -36,7 +36,7 @@ const requestOptions = {
 // Test function to make the request
 function makeRequest(saveToDb, callback) {
   const postData = JSON.stringify({
-    imageData,
+    image: imageData,
     userId: USER_ID,
     saveToDb
   });
