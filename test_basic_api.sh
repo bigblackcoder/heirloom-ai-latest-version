@@ -31,15 +31,24 @@ fi
 echo -e "${YELLOW}Converting image to base64...${NC}"
 BASE64_IMAGE=$(base64 -w 0 "$SAMPLE_IMAGE")
 
+# Create a temporary file to store the JSON request
+TEMP_JSON=$(mktemp)
+
+# Write the JSON data to the temporary file
+echo '{
+  "image": "data:image/jpeg;base64,'"$BASE64_IMAGE"'",
+  "useBasicDetection": true
+}' > "$TEMP_JSON"
+
 # Make the API call with basic detection mode
 echo -e "${YELLOW}Making API request with basic detection mode...${NC}"
 RESPONSE=$(curl -s -X POST \
   -H "Content-Type: application/json" \
-  -d '{
-    "image": "data:image/jpeg;base64,'$BASE64_IMAGE'",
-    "useBasicDetection": true
-  }' \
+  --data @"$TEMP_JSON" \
   http://localhost:5000/api/verification/face)
+
+# Remove the temporary file
+rm "$TEMP_JSON"
 
 # Display the response
 echo -e "${YELLOW}API Response:${NC}"
