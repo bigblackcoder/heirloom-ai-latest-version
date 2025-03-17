@@ -301,7 +301,7 @@ export function useFaceVerification() {
         // Set verification results
         setVerificationResults({
           success: true,
-          confidence: 0.95,
+          confidence: 95, // 95% confidence (using percentage scale)
           verified: true,
           results: {
             age: 28,
