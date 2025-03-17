@@ -1,6 +1,7 @@
 import os
 import urllib.request
 import ssl
+import requests
 
 def download_sample_face():
     """
@@ -13,19 +14,24 @@ def download_sample_face():
     url = "https://raw.githubusercontent.com/serengil/deepface/master/tests/dataset/img1.jpg"
     
     try:
-        # Create an SSL context that doesn't verify certificates (for simplicity)
-        context = ssl._create_unverified_context()
-        
-        # Download the file
+        # Download the file using requests
         print(f"Downloading sample face from {url}")
-        urllib.request.urlretrieve(url, "sample_face.jpg", context=context)
+        response = requests.get(url, verify=False)
         
-        # Check if file exists and has content
-        if os.path.exists("sample_face.jpg") and os.path.getsize("sample_face.jpg") > 0:
-            print("✅ Sample face downloaded successfully!")
-            print(f"File saved as sample_face.jpg ({os.path.getsize('sample_face.jpg')} bytes)")
+        # Check if download was successful
+        if response.status_code == 200:
+            # Save the content to a file
+            with open("sample_face.jpg", "wb") as file:
+                file.write(response.content)
+            
+            # Check if file exists and has content
+            if os.path.exists("sample_face.jpg") and os.path.getsize("sample_face.jpg") > 0:
+                print("✅ Sample face downloaded successfully!")
+                print(f"File saved as sample_face.jpg ({os.path.getsize('sample_face.jpg')} bytes)")
+            else:
+                print("❌ Download failed - empty file.")
         else:
-            print("❌ Download failed - empty file.")
+            print(f"❌ Download failed - HTTP status code: {response.status_code}")
             
     except Exception as e:
         print(f"❌ Error downloading sample face: {e}")

@@ -60,9 +60,19 @@ export async function verifyFace(imageBase64: string): Promise<FaceVerificationR
       }
       
       try {
-        // Parse the JSON output from the Python script
-        console.log('Trying to parse Python output:', dataReceived);
-        const result = JSON.parse(dataReceived);
+        // Clean up the output in case there are any print statements before the JSON
+        let jsonData = dataReceived;
+        
+        // Find the first occurrence of '{'
+        const firstBrace = dataReceived.indexOf('{');
+        if (firstBrace > 0) {
+          console.log('Cleaning up non-JSON output before parsing');
+          jsonData = dataReceived.substring(firstBrace);
+        }
+        
+        // Parse the cleaned JSON output from the Python script
+        console.log('Trying to parse Python output:', jsonData);
+        const result = JSON.parse(jsonData);
         resolve(result);
       } catch (error) {
         console.error('Failed to parse Python output:', error);

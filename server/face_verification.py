@@ -37,7 +37,7 @@ def verify_face(image_data):
             }
         
         # Save temporarily for verification
-        temp_path = "temp_face.jpg"
+        temp_path = os.path.join(os.getcwd(), "temp_face.jpg")
         cv2.imwrite(temp_path, img)
         
         # Simple face detection first for faster performance
@@ -83,9 +83,11 @@ def verify_face(image_data):
         # Now use DeepFace for detailed analysis (if alignment is reasonable)
         if alignment > 40:  # Only run deep analysis if basic alignment is ok
             try:
-                results = DeepFace.analyze(img_path=temp_path, 
+                # Use img array directly instead of a temp file path
+                results = DeepFace.analyze(img_path=img, 
                                       actions=['age', 'gender', 'race', 'emotion'],
-                                      detector_backend='opencv')  # Use faster detector
+                                      detector_backend='opencv',  # Use faster detector
+                                      enforce_detection=False)  # Continue even if face detector struggles
                 
                 # Clean up temp file
                 if os.path.exists(temp_path):
