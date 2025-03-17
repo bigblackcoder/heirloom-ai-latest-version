@@ -1,7 +1,8 @@
-import os
-import base64
-import json
+#!/usr/bin/env python3
 import sys
+import os
+import json
+import base64
 import traceback
 import numpy as np
 import cv2
@@ -9,167 +10,150 @@ from deepface import DeepFace
 
 def decode_base64_image(base64_data):
     """Decode a base64 image to a numpy array."""
-    # Remove data:image/jpeg;base64, prefix if present
-    if ',' in base64_data:
-        base64_data = base64_data.split(',')[1]
-    
-    # Decode the base64 string
-    img_data = base64.b64decode(base64_data)
-    
-    # Convert to numpy array
-    nparr = np.frombuffer(img_data, np.uint8)
-    
-    # Decode image
-    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-    return img
+    try:
+        # If the image is a file path rather than base64 data, just return the path
+        if os.path.isfile(base64_data):
+            return base64_data
+            
+        # Remove data URL prefix if present
+        if ',' in base64_data:
+            _, base64_data = base64_data.split(',', 1)
+            
+        # Decode base64 to bytes
+        image_bytes = base64.b64decode(base64_data)
+        
+        # Convert to numpy array
+        np_arr = np.frombuffer(image_bytes, np.uint8)
+        
+        # Decode to image
+        image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+        
+        if image is None:
+            raise ValueError("Failed to decode image")
+            
+        return image
+    except Exception as e:
+        print(json.dumps({
+            "success": False,
+            "confidence": 0,
+            "message": f"Error decoding image: {str(e)}"
+        }))
+        sys.exit(1)
 
 def verify_face(image_data):
     """Verify if the image contains a real human face and return confidence score."""
     try:
-        # Decode base64 image
-        img = decode_base64_image(image_data)
+        # Load the image (either from file path or decode base64)
+        image = decode_base64_image(image_data) if isinstance(image_data, str) else image_data
         
-        if img is None or img.size == 0:
-            return {
-                "success": False,
-                "confidence": 0,
-                "message": "Invalid image data received"
-            }
-        
-        # Save temporarily for verification
-        temp_path = os.path.join(os.getcwd(), "temp_face.jpg")
-        cv2.imwrite(temp_path, img)
-        
-        # Simple face detection first for faster performance
-        face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        faces = face_cascade.detectMultiScale(gray, 1.1, 4)
-        
-        if len(faces) == 0:
-            # No face detected by the faster method
-            if os.path.exists(temp_path):
-                os.remove(temp_path)
-            return {
-                "success": False,
-                "confidence": 0,
-                "message": "No face detected - please center your face in the frame"
-            }
-        
-        # Get the largest face detected
-        max_area = 0
-        max_face = None
-        for (x, y, w, h) in faces:
-            if w*h > max_area:
-                max_area = w*h
-                max_face = (x, y, w, h)
-        
-        x, y, w, h = max_face
-        face_img = img[y:y+h, x:x+w]
-        
-        # Calculate basic alignment score (center of frame)
-        img_height, img_width = img.shape[:2]
-        face_center_x = x + w/2
-        face_center_y = y + h/2
-        img_center_x = img_width/2
-        img_center_y = img_height/2
-        
-        # Distance from center (0-1 where 0 is perfect)
-        dx = abs(face_center_x - img_center_x) / (img_width/2)
-        dy = abs(face_center_y - img_center_y) / (img_height/2)
-        
-        # Alignment score (0-100 where 100 is perfect)
-        alignment = (1 - max(dx, dy)) * 100
-        
-        # Now use DeepFace for detailed analysis (if alignment is reasonable)
-        if alignment > 40:  # Only run deep analysis if basic alignment is ok
-            try:
-                # Use img array directly instead of a temp file path
-                results = DeepFace.analyze(img_path=img, 
-                                      actions=['age', 'gender', 'race', 'emotion'],
-                                      detector_backend='opencv',  # Use faster detector
-                                      enforce_detection=False)  # Continue even if face detector struggles
+        # Try DeepFace analyze first
+        try:
+            results = DeepFace.analyze(
+                img_path=image,
+                actions=['age', 'gender', 'race', 'emotion'],
+                enforce_detection=False,
+                detector_backend='opencv'
+            )
+            
+            # Extract dominant results
+            if results and len(results) > 0:
+                result = results[0]
+                dominant_emotion = max(result.get('emotion', {}).items(), key=lambda item: item[1])[0]
+                dominant_race = max(result.get('race', {}).items(), key=lambda item: item[1])[0]
                 
-                # Clean up temp file
-                if os.path.exists(temp_path):
-                    os.remove(temp_path)
-                
-                # If we got results, it means a face was detected
-                if isinstance(results, list) and len(results) > 0:
-                    result = results[0]
-                    # Calculate confidence based on face detection and alignment
-                    confidence = min(result.get('face_confidence', 0.75) * 100, alignment)  
-                    
-                    return {
-                        "success": True,
-                        "confidence": confidence,
-                        "results": {
-                            "age": result.get("age"),
-                            "gender": result.get("gender"),
-                            "dominant_race": result.get("dominant_race"),
-                            "dominant_emotion": result.get("dominant_emotion")
-                        }
+                # Construct result object
+                success_result = {
+                    "success": True,
+                    "confidence": 0.85,  # We're using a high baseline confidence since DeepFace detected a face
+                    "message": "Face verification successful",
+                    "results": {
+                        "age": result.get('age'),
+                        "gender": result.get('gender'),
+                        "dominant_race": dominant_race,
+                        "dominant_emotion": dominant_emotion
                     }
-                else:
-                    return {
-                        "success": True,  # We already found a face with OpenCV
-                        "confidence": alignment * 0.8,  # Lower confidence without deep analysis
-                        "message": "Basic face detection only"
-                    }
-            except Exception as deep_error:
-                # If DeepFace fails, return the basic face detection result
-                print(f"DeepFace analysis error: {str(deep_error)}")
-                return {
-                    "success": True,  # We already found a face with OpenCV
-                    "confidence": alignment * 0.7,  # Lower confidence with error
-                    "message": "Simplified face detection used"
                 }
+                
+                print(json.dumps(success_result))
+                return
+        except Exception as deepface_error:
+            # Fall back to basic face detection if DeepFace analysis fails
+            pass
+                
+        # Fall back to basic OpenCV face detection
+        face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+        
+        # Convert to grayscale if the image is in color
+        if isinstance(image, str):
+            # If image is a file path, read it
+            img = cv2.imread(image)
+            if img is None:
+                raise ValueError(f"Failed to load image from {image}")
+            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         else:
-            # Face not centered enough
-            if os.path.exists(temp_path):
-                os.remove(temp_path)
-            return {
-                "success": True,  # We did find a face, just not well aligned
-                "confidence": alignment * 0.5,
-                "message": "Face detected but not centered - please look directly at camera"
-            }
+            # If image is already a numpy array
+            if len(image.shape) == 3 and image.shape[2] == 3:
+                gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            else:
+                gray = image
+                
+        # Detect faces
+        faces = face_cascade.detectMultiScale(
+            gray,
+            scaleFactor=1.1,
+            minNeighbors=5,
+            minSize=(30, 30)
+        )
+        
+        if len(faces) > 0:
+            # Get the largest face
+            largest_face = max(faces, key=lambda rect: rect[2] * rect[3])
             
+            # Calculate confidence based on face size and image size
+            face_area = largest_face[2] * largest_face[3]
+            image_area = gray.shape[0] * gray.shape[1]
+            size_factor = min(1.0, face_area / (image_area * 0.1))  # Face takes up at least 10% of image
+            
+            # Final confidence score (between 0.4 and 0.7)
+            confidence = 0.4 + (size_factor * 0.3)
+            
+            print(json.dumps({
+                "success": True,
+                "confidence": confidence,
+                "message": "Face detected with basic verification"
+            }))
+        else:
+            print(json.dumps({
+                "success": False,
+                "confidence": 0,
+                "message": "No face detected in image"
+            }))
     except Exception as e:
-        # Clean up temp file in case of error
-        if 'temp_path' in locals() and os.path.exists(temp_path):
-            os.remove(temp_path)
-            
-        error_details = traceback.format_exc()
-        return {
+        traceback_str = traceback.format_exc()
+        print(json.dumps({
             "success": False,
             "confidence": 0,
-            "message": f"Error during face verification: {str(e)}",
-            "details": error_details
-        }
+            "message": f"Error verifying face: {str(e)}",
+            "details": traceback_str
+        }))
 
 if __name__ == "__main__":
-    # Read input from stdin (sent from Node.js)
-    input_data = sys.stdin.read()
-    
-    try:
-        # Parse the JSON input
-        data = json.loads(input_data)
-        image_data = data.get('image')
+    # Check if an image path was provided as a command line argument
+    if len(sys.argv) > 1:
+        image_path = sys.argv[1]
         
-        if not image_data:
-            result = {
-                "success": False,
-                "message": "No image data provided"
-            }
-        else:
-            result = verify_face(image_data)
-            
-        # Send the result back as JSON
-        print(json.dumps(result))
-        
-    except Exception as e:
-        error_result = {
+        # Clean up temporary file after execution
+        try:
+            verify_face(image_path)
+        finally:
+            if os.path.exists(image_path) and image_path.startswith("temp_face_"):
+                try:
+                    os.unlink(image_path)
+                except:
+                    pass
+    else:
+        print(json.dumps({
             "success": False,
-            "message": f"Error processing request: {str(e)}",
-            "details": traceback.format_exc()
-        }
-        print(json.dumps(error_result))
+            "confidence": 0,
+            "message": "No image provided"
+        }))

@@ -1,12 +1,18 @@
 #!/bin/bash
 
-echo "=== DeepFace Integration Test ==="
-echo "Step 1: Downloading sample face image..."
+echo "=== Heirloom Identity Verification Testing Suite ==="
+echo "This script will set up the testing environment for face verification"
+echo 
+
+# Download sample face image
+echo "Step 1: Download sample face for testing"
 python3 server/download_sample_face.py
 
-echo ""
-echo "Step 2: Running face verification test..."
-python3 server/test_face_verification.py
+# Run basic face detection test
+echo 
+echo "Step 2: Run basic face verification test"
+python3 server/test_basic_verify.py
 
-echo ""
-echo "=== Test Complete ==="
+echo
+echo "=== Setup Complete ==="
+echo "You can now test the face verification API endpoint"

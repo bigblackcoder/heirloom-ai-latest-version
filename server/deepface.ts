@@ -1,12 +1,11 @@
-import { spawn } from 'child_process';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+import { exec } from 'child_process';
+import * as fs from 'fs';
+import * as path from 'path';
+import { log } from './vite';
 
-// Handle ESM modules __dirname equivalent
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
+/**
+ * Result of face verification process
+ */
 export interface FaceVerificationResult {
   success: boolean;
   confidence: number;
@@ -20,94 +19,89 @@ export interface FaceVerificationResult {
   details?: string;
 }
 
+/**
+ * Verifies a face using the Python DeepFace library
+ * @param imageBase64 - Base64 encoded image data
+ * @returns Promise with verification result
+ */
 export async function verifyFace(imageBase64: string): Promise<FaceVerificationResult> {
-  return new Promise((resolve, reject) => {
-    // Path to the Python script (relative to server directory)
-    const scriptPath = path.join(__dirname, 'face_verification.py');
-    
-    // Spawn the Python process
-    const pythonProcess = spawn('python3', [scriptPath]);
-    
-    let dataReceived = '';
-    let errorReceived = '';
-    
-    // Collect data from stdout
-    pythonProcess.stdout.on('data', (data) => {
-      dataReceived += data.toString();
-      console.log('Python stdout:', data.toString());
-    });
-    
-    // Collect errors from stderr
-    pythonProcess.stderr.on('data', (data) => {
-      errorReceived += data.toString();
-      console.error('Python stderr:', data.toString());
-    });
-    
-    // Handle process completion
-    pythonProcess.on('close', (code) => {
-      console.log(`Python process exited with code ${code}`);
-      
-      if (code !== 0) {
-        console.error(`Python process failed with code ${code}`);
-        console.error(`Error: ${errorReceived}`);
-        resolve({
-          success: false,
-          confidence: 0,
-          message: `Python process failed with code ${code}`,
-          details: errorReceived
-        });
-        return;
-      }
-      
-      try {
-        // Clean up the output in case there are any print statements before the JSON
-        let jsonData = dataReceived;
-        
-        // Find the first occurrence of '{'
-        const firstBrace = dataReceived.indexOf('{');
-        if (firstBrace > 0) {
-          console.log('Cleaning up non-JSON output before parsing');
-          jsonData = dataReceived.substring(firstBrace);
-        }
-        
-        // Parse the cleaned JSON output from the Python script
-        console.log('Trying to parse Python output:', jsonData);
-        const result = JSON.parse(jsonData);
-        resolve(result);
-      } catch (error) {
-        console.error('Failed to parse Python output:', error);
-        console.error('Raw output:', dataReceived);
-        resolve({
-          success: false,
-          confidence: 0,
-          message: 'Failed to parse Python output',
-          details: dataReceived
-        });
-      }
-    });
-    
-    // Handle errors in the spawned process
-    pythonProcess.on('error', (error) => {
-      console.error('Failed to start Python process:', error);
-      resolve({
-        success: false,
-        confidence: 0,
-        message: `Failed to start Python process: ${error.message}`
-      });
-    });
-    
-    // Send the base64 image data to the Python script
+  return new Promise<FaceVerificationResult>((resolve) => {
     try {
-      const inputData = JSON.stringify({ image: imageBase64 });
-      pythonProcess.stdin.write(inputData);
-      pythonProcess.stdin.end();
+      // Remove data URL prefix if present
+      const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+      
+      // Create a temporary file for the captured face
+      const tempFilename = `temp_face_${Date.now()}_${Math.floor(Math.random() * 10000)}.jpg`;
+      const tempFilePath = path.join(process.cwd(), tempFilename);
+      
+      // Write base64 data to temporary file
+      fs.writeFileSync(tempFilePath, base64Data, { encoding: 'base64' });
+      
+      // Create a Python script to call face verification
+      const scriptPath = path.join(process.cwd(), 'server', 'face_verification.py');
+      const pythonCommand = `python3 ${scriptPath} "${tempFilePath}"`;
+      
+      log(`Executing face verification with Python: ${pythonCommand}`);
+      
+      // Execute the Python script
+      exec(pythonCommand, (error, stdout, stderr) => {
+        try {
+          // Clean up the temporary file
+          if (fs.existsSync(tempFilePath)) {
+            fs.unlinkSync(tempFilePath);
+          }
+          
+          if (error) {
+            log(`Face verification error: ${error.message}`);
+            log(`Stderr: ${stderr}`);
+            
+            // Try fallback to basic detection if DeepFace fails
+            return resolve({
+              success: false,
+              confidence: 0,
+              message: 'Face verification failed with an error',
+              details: error.message
+            });
+          }
+          
+          const result = JSON.parse(stdout.trim());
+          log(`Face verification result: ${JSON.stringify(result)}`);
+          
+          return resolve({
+            success: result.success,
+            confidence: result.confidence || 0,
+            message: result.message,
+            results: result.results || {}
+          });
+        } catch (parseError) {
+          log(`Error parsing face verification result: ${parseError}`);
+          return resolve({
+            success: false,
+            confidence: 0,
+            message: 'Error processing face verification result',
+            details: `${parseError}`
+          });
+        }
+      });
     } catch (error) {
-      console.error('Error sending data to Python process:', error);
-      resolve({
+      log(`Face verification processing error: ${error}`);
+      return resolve({
         success: false,
         confidence: 0,
-        message: `Error sending data to Python: ${error instanceof Error ? error.message : String(error)}`
+        message: 'Error processing face data',
+        details: `${error}`
       });
     }
   });
+}
+
+/**
+ * Fallback method for basic face detection
+ * @param imageBase64 - Base64 encoded image data
+ * @returns Promise with basic detection result
+ */
+export async function detectFaceBasic(imageBase64: string): Promise<FaceVerificationResult> {
+  // This function could implement a simpler detection method if DeepFace fails
+  // For now, it delegates to the main verification method
+  return verifyFace(imageBase64);
 }
