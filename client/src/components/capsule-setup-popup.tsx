@@ -66,9 +66,16 @@ export default function CapsuleSetupPopup({ isOpen, onClose }: CapsuleSetupPopup
         <button 
           className="w-full bg-[#273414] hover:bg-[#324319] text-white font-medium py-3.5 rounded-xl transition-colors shadow-sm"
           onClick={() => {
+            console.log("Set up button clicked, navigating to /capsule");
+            // First close the popup
             setIsVisible(false);
+            
+            // Then navigate after animation completes
             setTimeout(() => {
+              // Call the onClose callback
               onClose();
+              
+              // Navigate to the capsule page
               navigate("/capsule");
             }, 300);
           }}

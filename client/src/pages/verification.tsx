@@ -216,6 +216,7 @@ export default function Verification() {
 
       {/* Success Modal - Navigate to dashboard first then show modal */}
       {/* Use a top-level useEffect to handle navigation when success modal shows */}
+      <div style={{ display: 'none' }}>{/* Hidden div to fix React rendering */}</div>
       {useEffect(() => {
         if (showSuccessModal) {
           // Save verification result in localStorage
