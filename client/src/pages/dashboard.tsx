@@ -70,15 +70,44 @@ export default function Dashboard() {
 
   // Show verification success popup if the user just verified
   useEffect(() => {
-    const justVerified = sessionStorage.getItem("justVerified");
-    if (justVerified === "true") {
+    // Check if we should show verification success popup from localStorage
+    const showVerificationSuccess = localStorage.getItem('showVerificationSuccess') === 'true';
+    
+    if (showVerificationSuccess) {
+      // Clear localStorage flags
+      localStorage.removeItem('showVerificationSuccess');
+      
+      // Show verification success popup
       setShowVerificationSuccess(true);
-      sessionStorage.removeItem("justVerified");
+      
+      // Get verification data if available
+      const verificationDataStr = localStorage.getItem('verificationData');
+      if (verificationDataStr) {
+        try {
+          const verificationData = JSON.parse(verificationDataStr);
+          console.log('Verification data:', verificationData);
+          localStorage.removeItem('verificationData');
+        } catch (e) {
+          console.error('Error parsing verification data:', e);
+        }
+      }
       
       // Show capsule setup notification after verification success closes
       setTimeout(() => {
         setShowCapsuleSetupPopup(true);
       }, 6000); // 6 seconds (5s display + 1s transition)
+    } else {
+      // Legacy check for session storage
+      const justVerified = sessionStorage.getItem("justVerified");
+      if (justVerified === "true") {
+        setShowVerificationSuccess(true);
+        sessionStorage.removeItem("justVerified");
+        
+        // Show capsule setup notification after verification success closes
+        setTimeout(() => {
+          setShowCapsuleSetupPopup(true);
+        }, 6000); // 6 seconds (5s display + 1s transition)
+      }
     }
   }, []);
 

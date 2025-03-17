@@ -214,15 +214,20 @@ export default function Verification() {
         </div>
       </div>
 
-      {/* Success Modal */}
+      {/* Success Modal - Navigate to dashboard first then show modal */}
       {showSuccessModal && (
-        <SuccessModal 
-          title="Verification Successful!" 
-          message="Your identity has been securely verified. Welcome to the Heirloom ecosystem."
-          buttonText="Continue to Dashboard"
-          onButtonClick={() => navigate("/dashboard")}
-          verificationData={verificationData}
-        />
+        <>
+          {/* Navigate to dashboard first */}
+          {useEffect(() => {
+            // Navigate to dashboard first
+            navigate("/dashboard");
+            
+            // After a short delay, we would trigger the verification success popup on dashboard
+            // This would be handled by the dashboard component using state management
+            localStorage.setItem('showVerificationSuccess', 'true');
+            localStorage.setItem('verificationData', JSON.stringify(verificationData));
+          }, [])}
+        </>
       )}
     </div>
   );

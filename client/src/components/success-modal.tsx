@@ -55,11 +55,15 @@ export default function SuccessModal({
   }, [onButtonClick]);
   
   return (
-    <div className="fixed inset-0 bg-white/40 backdrop-blur-sm flex items-end px-4 z-50 pb-8">
+    <div className="fixed inset-0 z-50 flex items-end justify-center">
+      {/* Semi-transparent overlay */}
+      <div className="fixed inset-0 bg-black/30 backdrop-blur-sm"></div>
+      
       <div 
-        className={`bg-white w-full max-w-md mx-auto rounded-3xl shadow-lg overflow-hidden transform transition-all duration-700 ease-out ${
+        className={`bg-white w-full max-w-md mx-auto rounded-t-3xl shadow-lg overflow-hidden transform transition-all duration-700 ease-out relative z-10 ${
           isVisible ? 'translate-y-0' : 'translate-y-full'
         } ${isExiting ? 'translate-y-full' : ''}`}
+        style={{marginBottom: 0, paddingBottom: "calc(1.5rem + env(safe-area-inset-bottom, 0rem))"}}
       >
         {/* Identity capsule mock at the top */}
         <div className="bg-[#1e3c0d] p-5">
