@@ -14,6 +14,11 @@ import fs from 'fs';
 import path from 'path';
 import https from 'https';
 import http from 'http';
+import { fileURLToPath } from 'url';
+
+// Get directory name in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Configuration
 const API_URL = 'http://localhost:5000/api/verification/face';
@@ -82,7 +87,7 @@ function makeRequest(saveToDb, callback) {
   
   // Prepare the request data
   const reqData = JSON.stringify({
-    imageData: imageBase64,
+    image: `data:image/jpeg;base64,${imageBase64}`,
     userId: USER_ID,
     saveToDb: saveToDb
   });
