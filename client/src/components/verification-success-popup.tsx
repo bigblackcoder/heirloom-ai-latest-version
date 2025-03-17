@@ -4,9 +4,18 @@ import { useLocation } from "wouter";
 interface VerificationSuccessPopupProps {
   isOpen: boolean;
   onClose: () => void;
+  verificationData?: {
+    confidence: number;
+    results?: {
+      age?: number;
+      gender?: string;
+      dominant_race?: string;
+      dominant_emotion?: string;
+    };
+  } | null;
 }
 
-export default function VerificationSuccessPopup({ isOpen, onClose }: VerificationSuccessPopupProps) {
+export default function VerificationSuccessPopup({ isOpen, onClose, verificationData }: VerificationSuccessPopupProps) {
   const [, navigate] = useLocation();
   const [isVisible, setIsVisible] = useState(false);
   
@@ -58,7 +67,36 @@ export default function VerificationSuccessPopup({ isOpen, onClose }: Verificati
         <h2 className="text-2xl font-bold text-center mb-2 text-[#273414]">Identity Verified!</h2>
         
         <p className="text-gray-700 text-center mb-1">Welcome to <span className="font-semibold text-[#273414]">Heirloom</span>!</p>
-        <p className="text-gray-600 text-center mb-6">You've successfully verified your identity with biometric authentication. Your Identity Capsule is now active.</p>
+        <p className="text-gray-600 text-center mb-4">You've successfully verified your identity with biometric authentication. Your Identity Capsule is now active.</p>
+        
+        {/* Verification details */}
+        {verificationData && (
+          <div className="bg-gray-50 rounded-xl p-3 mb-6">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-xs text-gray-500">Verification confidence</span>
+              <span className="text-sm font-medium text-[#273414]">
+                {Math.round(verificationData.confidence * 100)}%
+              </span>
+            </div>
+            
+            {verificationData.results && (
+              <div className="grid grid-cols-2 gap-2">
+                {verificationData.results.age && (
+                  <div className="bg-white rounded-lg p-2 shadow-sm">
+                    <span className="text-xs text-gray-500 block">Age</span>
+                    <span className="text-sm font-medium">{verificationData.results.age}</span>
+                  </div>
+                )}
+                {verificationData.results.gender && (
+                  <div className="bg-white rounded-lg p-2 shadow-sm">
+                    <span className="text-xs text-gray-500 block">Gender</span>
+                    <span className="text-sm font-medium">{verificationData.results.gender}</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
         
         <button 
           className="w-full bg-[#273414] hover:bg-[#324319] text-white font-medium py-3.5 rounded-xl transition-colors shadow-sm"

@@ -217,15 +217,19 @@ export default function Verification() {
       {/* Success Modal - Navigate to dashboard first then show modal */}
       {showSuccessModal && (
         <>
-          {/* Navigate to dashboard first */}
           {useEffect(() => {
-            // Navigate to dashboard first
-            navigate("/dashboard");
-            
-            // After a short delay, we would trigger the verification success popup on dashboard
-            // This would be handled by the dashboard component using state management
+            // Save verification result in localStorage
             localStorage.setItem('showVerificationSuccess', 'true');
-            localStorage.setItem('verificationData', JSON.stringify(verificationData));
+            
+            // Store verification data if available
+            if (verificationData) {
+              localStorage.setItem('verificationData', JSON.stringify(verificationData));
+            }
+            
+            // Navigate to dashboard with a slight delay to ensure localStorage is set
+            setTimeout(() => {
+              navigate("/dashboard");
+            }, 50);
           }, [])}
         </>
       )}

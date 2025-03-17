@@ -47,6 +47,7 @@ export default function Dashboard() {
   const queryClient = useQueryClient();
   const [showVerificationSuccess, setShowVerificationSuccess] = useState(false);
   const [showCapsuleSetupPopup, setShowCapsuleSetupPopup] = useState(false);
+  const [verificationData, setVerificationData] = useState<any>(null);
 
   // Get current user data
   const { data: userData, isLoading: userLoading } = useQuery<User>({
@@ -84,8 +85,10 @@ export default function Dashboard() {
       const verificationDataStr = localStorage.getItem('verificationData');
       if (verificationDataStr) {
         try {
-          const verificationData = JSON.parse(verificationDataStr);
-          console.log('Verification data:', verificationData);
+          const parsedData = JSON.parse(verificationDataStr);
+          console.log('Verification data:', parsedData);
+          // Set verification data state
+          setVerificationData(parsedData);
           localStorage.removeItem('verificationData');
         } catch (e) {
           console.error('Error parsing verification data:', e);
@@ -210,6 +213,18 @@ export default function Dashboard() {
         <button 
           className="bg-[#8ccc5c] text-white text-xs py-2 px-3 rounded-full shadow-lg"
           onClick={() => {
+            // Set demo verification data
+            setVerificationData({
+              confidence: 0.95,
+              results: {
+                age: 28,
+                gender: "Man",
+                dominant_race: "caucasian",
+                dominant_emotion: "neutral"
+              }
+            });
+            
+            // Show verification success
             setShowVerificationSuccess(true);
             
             // Show capsule setup after verification success closes
@@ -229,6 +244,7 @@ export default function Dashboard() {
       <VerificationSuccessPopup 
         isOpen={showVerificationSuccess}
         onClose={() => setShowVerificationSuccess(false)}
+        verificationData={verificationData}
       />
 
       {/* Capsule Setup Popup */}
