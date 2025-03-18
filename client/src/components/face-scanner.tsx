@@ -196,10 +196,20 @@ export default function FaceScanner({ onProgress, onComplete, isComplete }: Face
     facingMode: "user"
   };
   
-  // Track face position relative to center to give feedback
+  // Enhanced face position tracking with additional feedback states
   const [facePosition, setFacePosition] = useState<string>("center");
+  const [feedbackState, setFeedbackState] = useState({
+    tooFarLeft: false,
+    tooFarRight: false,
+    tooHigh: false,
+    tooLow: false,
+    notStable: false,
+    poorLighting: false,
+    tooClose: false,
+    tooFar: false
+  });
   
-  // Update face position based on mouse/touch position
+  // Update face position and feedback state based on mouse/touch position
   useEffect(() => {
     const updatePosition = () => {
       if (!window.mouseX || !window.mouseY) return;
@@ -214,9 +224,42 @@ export default function FaceScanner({ onProgress, onComplete, isComplete }: Face
       const distanceX = window.mouseX - centerX;
       const distanceY = window.mouseY - centerY;
       
+      // Calculate normalized distance from center (0-100%)
+      const normalizedDistanceX = Math.abs(distanceX) / (rect.width / 2) * 100;
+      const normalizedDistanceY = Math.abs(distanceY) / (rect.height / 2) * 100;
+      
+      // Simulate additional detection factors
+      const isStable = Math.random() > 0.15; // 85% chance of being stable
+      const hasGoodLighting = Math.random() > 0.1; // 90% chance of good lighting
+      const isProperDistance = Math.random() > 0.1; // 90% chance of proper distance
+      
+      // Determine detailed feedback state
+      const newFeedbackState = {
+        tooFarLeft: distanceX < -rect.width * 0.15,
+        tooFarRight: distanceX > rect.width * 0.15,
+        tooHigh: distanceY < -rect.height * 0.15,
+        tooLow: distanceY > rect.height * 0.15,
+        notStable: !isStable,
+        poorLighting: !hasGoodLighting,
+        tooClose: !isProperDistance && Math.random() > 0.5,
+        tooFar: !isProperDistance && Math.random() <= 0.5
+      };
+      
+      setFeedbackState(newFeedbackState);
+      
       // Determine position based on distance from center
       if (Math.abs(distanceX) < rect.width * 0.15 && Math.abs(distanceY) < rect.height * 0.15) {
-        setFacePosition("center");
+        if (!isStable) {
+          setFacePosition("hold still");
+        } else if (!hasGoodLighting) {
+          setFacePosition("improve lighting");
+        } else if (newFeedbackState.tooClose) {
+          setFacePosition("move back");
+        } else if (newFeedbackState.tooFar) {
+          setFacePosition("move closer");
+        } else {
+          setFacePosition("center");
+        }
       } else {
         // Determine cardinal direction
         const angleRad = Math.atan2(distanceY, distanceX);
@@ -247,37 +290,75 @@ export default function FaceScanner({ onProgress, onComplete, isComplete }: Face
     return () => clearInterval(interval);
   }, [webcamRef.current]);
   
-  // Generates instructional text based on progress and face position
+  // Generates enhanced instructional text based on all feedback factors
   const getInstructionText = () => {
     if (verificationProgress >= 90) {
       return "Verification complete!";
     }
+
+    // Handle specific feedback cases first
+    if (feedbackState.notStable) {
+      return "Please hold still";
+    }
     
-    if (verificationProgress < 30) {
-      if (facePosition === "center") {
-        return "Great! Stay centered";
+    if (feedbackState.poorLighting) {
+      return "Better lighting needed";
+    }
+    
+    if (feedbackState.tooClose) {
+      return "Please move back slightly";
+    }
+    
+    if (feedbackState.tooFar) {
+      return "Please move closer to camera";
+    }
+    
+    // Handle position-based feedback
+    if (facePosition === "center") {
+      if (verificationProgress < 30) {
+        return "Perfect! Stay centered";
+      } else if (verificationProgress < 60) {
+        return "Good! Hold still while we scan";
       } else {
-        return `Please ${facePosition}`;
+        return "Almost there, keep steady";
       }
-    } else if (verificationProgress < 60) {
-      return facePosition === "center" 
-        ? "Hold still while we scan" 
-        : `Keep centered, ${facePosition}`;
     } else {
-      return facePosition === "center"
-        ? "Almost there, keep steady"
-        : "Stay centered to complete";
+      // Directional instructions
+      if (verificationProgress < 30) {
+        return `Please ${facePosition}`;
+      } else if (verificationProgress < 60) {
+        return `Keep centered, ${facePosition}`;
+      } else {
+        return `Final adjustment: ${facePosition}`;
+      }
     }
   };
 
   return (
     <div className="relative flex flex-col items-center">
-      {/* Instruction text */}
+      {/* Enhanced instruction text with detailed guidance */}
       <div className="mb-4 text-center">
         <p className="text-lg font-medium text-[#273414]">{getInstructionText()}</p>
         <p className="text-sm text-gray-500">
-          {verificationProgress < 100 ? "Move your cursor to align with the crosshair" : ""}
+          {verificationProgress < 100 ? 
+            feedbackState.notStable ? "Keep your head still for best results" :
+            feedbackState.poorLighting ? "Try adjusting your room lighting" :
+            (feedbackState.tooFarLeft || feedbackState.tooFarRight || feedbackState.tooHigh || feedbackState.tooLow) ? 
+              "Position your face in the center of the frame" :
+            (feedbackState.tooClose || feedbackState.tooFar) ? 
+              "Adjust your distance from the camera" :
+            verificationProgress > 80 ? "Almost complete! Stay in position" :
+            verificationProgress > 40 ? "Continue holding position" :
+            "Position your face within the circular frame" 
+          : ""}
         </p>
+        
+        {/* Progress percentage indicator */}
+        {verificationProgress > 0 && verificationProgress < 100 && (
+          <p className="text-xs font-medium text-[#273414]/80 mt-1">
+            {Math.round(verificationProgress)}% complete
+          </p>
+        )}
       </div>
       
       {/* Scanner rays */}
@@ -367,9 +448,71 @@ export default function FaceScanner({ onProgress, onComplete, isComplete }: Face
           />
         </svg>
         
-        {/* Alignment guides */}
+        {/* Enhanced alignment guides with feedback indicators */}
         <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-[#91c35c] z-20"></div>
         <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-[#91c35c] z-20"></div>
+        
+        {/* Visual feedback indicators */}
+        {feedbackState.notStable && (
+          <div className="absolute bottom-5 left-1/2 transform -translate-x-1/2 bg-amber-500/70 text-white px-3 py-1 rounded-full text-xs font-medium z-30 flex items-center">
+            <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M12 8v4m0 4h.01M22 12a10 10 0 11-20 0 10 10 0 0120 0z" />
+            </svg>
+            Hold still
+          </div>
+        )}
+        
+        {feedbackState.poorLighting && (
+          <div className="absolute bottom-12 left-1/2 transform -translate-x-1/2 bg-amber-500/70 text-white px-3 py-1 rounded-full text-xs font-medium z-30 flex items-center">
+            <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+            Poor lighting
+          </div>
+        )}
+        
+        {(feedbackState.tooClose || feedbackState.tooFar) && (
+          <div className="absolute bottom-5 right-4 bg-amber-500/70 text-white px-3 py-1 rounded-full text-xs font-medium z-30 flex items-center">
+            <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+            </svg>
+            {feedbackState.tooClose ? 'Move back' : 'Move closer'}
+          </div>
+        )}
+        
+        {/* Direction indicator for when face is off-center */}
+        {(feedbackState.tooFarLeft || feedbackState.tooFarRight || feedbackState.tooHigh || feedbackState.tooLow) && (
+          <div className="absolute inset-0 pointer-events-none z-20">
+            {feedbackState.tooFarLeft && (
+              <div className="absolute left-2 top-1/2 transform -translate-y-1/2">
+                <svg className="w-6 h-6 text-amber-500 animate-pulse" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M15.75 19.5L8.25 12l7.5-7.5" />
+                </svg>
+              </div>
+            )}
+            {feedbackState.tooFarRight && (
+              <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                <svg className="w-6 h-6 text-amber-500 animate-pulse" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                </svg>
+              </div>
+            )}
+            {feedbackState.tooHigh && (
+              <div className="absolute top-2 left-1/2 transform -translate-x-1/2">
+                <svg className="w-6 h-6 text-amber-500 animate-pulse" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                </svg>
+              </div>
+            )}
+            {feedbackState.tooLow && (
+              <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2">
+                <svg className="w-6 h-6 text-amber-500 animate-pulse" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M4.5 15.75l7.5-7.5 7.5 7.5" />
+                </svg>
+              </div>
+            )}
+          </div>
+        )}
         
         {/* Complete overlay */}
         {isComplete && (
