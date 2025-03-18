@@ -6,11 +6,19 @@ import { useToast } from '@/hooks/use-toast';
 const isDemoMode = process.env.NODE_ENV === 'development' || 
                     window.location.search.includes('demo=true');
 
-// Face detection results
+// Face detection results with enhanced feedback
 interface DetectionFrame {
   success: boolean;
   confidence: number;
   alignment: number; // 0-100 where 100 is perfect alignment
+  feedback?: {
+    tooFarLeft?: boolean;
+    tooFarRight?: boolean;
+    tooHigh?: boolean;
+    tooLow?: boolean;
+    notStable?: boolean;
+    poorLighting?: boolean;
+  };
 }
 
 // DeepFace verification response
@@ -165,7 +173,7 @@ export function useFaceVerification() {
     }
   }, [isProcessing, toast, processDetection]);
   
-  // Detect basic face presence using simple canvas operations
+  // Enhanced face detection with improved alignment feedback
   const detectFacePresence = useCallback((video: HTMLVideoElement): DetectionFrame => {
     // For a real implementation, we would use a lightweight detector here
     // But for demo purposes, we'll use a more controlled simulation
@@ -193,13 +201,48 @@ export function useFaceVerification() {
     // Is face sufficiently centered?
     const isFaceCentered = alignment > 60;
     
-    // Confidence based on alignment with a base minimum (50-100%)
-    const confidence = 50 + (alignment / 2); // 50-100 range
+    // Check if the user's face is moving too much (simulated)
+    // In a real implementation, this would use frame-to-frame movement
+    const isStable = window.mouseX !== undefined
+      ? Math.random() > 0.2 // 80% chance of being stable when mouse is present
+      : Math.random() > 0.5; // 50% chance of being stable when no mouse
+    
+    // Check lighting conditions (simulated)
+    // Would analyze actual video brightness in real implementation
+    const lighting = Math.min(100, 60 + Math.random() * 40); // 60-100 range
+    
+    // Generate detailed feedback flags
+    const feedbackFlags = {
+      tooFarLeft: distanceX > 30 && mouseX < centerX,
+      tooFarRight: distanceX > 30 && mouseX > centerX,
+      tooHigh: distanceY > 30 && mouseY < centerY,
+      tooLow: distanceY > 30 && mouseY > centerY,
+      notStable: !isStable,
+      poorLighting: lighting < 70
+    };
+    
+    // Compute overall confidence score based on multiple factors
+    // Each factor contributes differently to the final score
+    const alignmentWeight = 0.5;
+    const stabilityWeight = 0.3;
+    const lightingWeight = 0.2;
+    
+    const alignmentScore = alignment;
+    const stabilityScore = isStable ? 100 : 40;
+    const lightingScore = lighting;
+    
+    const totalScore = (alignmentScore * alignmentWeight) + 
+                       (stabilityScore * stabilityWeight) + 
+                       (lightingScore * lightingWeight);
+                       
+    // Base confidence is 50-100 range
+    const confidence = Math.max(50, Math.min(100, totalScore));
     
     return {
-      success: isFaceCentered,
+      success: isFaceCentered && isStable && lighting >= 70,
       confidence: confidence,
-      alignment: alignment
+      alignment: alignment,
+      feedback: feedbackFlags
     };
   }, []);
   
