@@ -7,6 +7,7 @@ import Dashboard from "@/pages/dashboard";
 import Capsule from "@/pages/capsule";
 import Notifications from "@/pages/notifications";
 import Profile from "@/pages/profile";
+import Settings from "@/pages/settings";
 
 function Router() {
   return (
@@ -17,6 +18,7 @@ function Router() {
       <Route path="/capsule" component={Capsule} />
       <Route path="/notifications" component={Notifications} />
       <Route path="/profile" component={Profile} />
+      <Route path="/settings" component={Settings} />
       <Route component={NotFound} />
     </Switch>
   );
