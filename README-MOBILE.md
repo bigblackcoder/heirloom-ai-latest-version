@@ -1,108 +1,92 @@
-# Heirloom Identity - Mobile Apps
+# Heirloom Mobile Implementation Guide
 
-This document provides information about the mobile application setup for Heirloom Identity.
+This document provides instructions for implementing the Heirloom Identity Platform on mobile devices using React Native.
 
 ## Overview
 
-The Heirloom Identity mobile apps are designed to provide the same secure identity verification experience as the web application, but with native mobile capabilities and optimizations.
+The Heirloom Identity Platform provides a comprehensive identity verification system with facial recognition capabilities. This implementation guide focuses on the mobile-specific aspects of the platform.
 
-## Technology Stack
+## Prerequisites
 
-- **React Native** - Cross-platform framework for building native apps
-- **Expo** - Development platform that makes it easier to build React Native apps
-- **AsyncStorage** - For local data persistence
-- **React Navigation** - For screen navigation
-- **Native Camera Integration** - For face verification
-
-## Setup Instructions
-
-### Prerequisites
-
-- Node.js 14+
-- Yarn or npm
-- XCode (for iOS development)
-- Android Studio (for Android development)
-- Expo CLI (`npm install -g expo-cli`)
-
-### Getting Started
-
-1. Install dependencies:
-   ```
-   yarn install
-   ```
-
-2. Start the development server:
-   ```
-   yarn start
-   ```
-
-3. Run on a specific platform:
-   ```
-   yarn ios     # For iOS
-   yarn android # For Android
-   ```
+- React Native development environment
+- Node.js v18+ and npm/yarn
+- iOS development tools (for iOS builds): Xcode 14+
+- Android development tools (for Android builds): Android Studio with SDK 33+
 
 ## Project Structure
 
-- `/App.tsx` - Main application component and navigation setup
-- `/app.json` - Expo configuration
-- `/ios/` - iOS-specific configuration
-- `/android/` - Android-specific configuration
-- `/src/screens/` - Screen components
-- `/src/components/` - Reusable UI components
-- `/src/hooks/` - Custom React hooks
-- `/src/services/` - API and service integrations
+The mobile application shares core logic with the web version but includes platform-specific implementations for:
 
-## Key Features
+- Camera access and face detection
+- Native UI components
+- Platform-specific navigation
 
-1. **Biometric Authentication**
-   - Face ID (iOS) and Face Unlock (Android) integration
-   - Custom face verification using device camera
+## Getting Started
 
-2. **Identity Capsule Management**
-   - Create and manage secure identity capsules
-   - Store verified personal data securely on device
+1. Install dependencies using the package.mobile.json file
+2. Install pods for iOS
+3. Run the application for iOS or Android
 
-3. **AI Service Connections**
-   - Connect to third-party AI services with granular permission control
-   - Manage active connections and permissions
+## Face Verification Implementation
 
-4. **Secure Data Storage**
-   - Encrypted local storage for sensitive information
-   - Selective sharing of verified data
+The mobile implementation uses a combination of on-device face detection and server verification:
 
-## iOS Specific Notes
+1. Client-side face detection uses the device camera to:
+   - Detect face position and alignment
+   - Ensure proper lighting conditions
+   - Capture high-quality frames for verification
 
-- Face ID integration requires proper entitlements
-- Camera usage requires NSCameraUsageDescription in Info.plist
-- Supports iOS 13.0 and above
+2. Server-side verification:
+   - Processes captured frames
+   - Performs identity verification
+   - Manages identity storage
 
-## Android Specific Notes
+## UI/UX Considerations
 
-- Camera permissions required in AndroidManifest.xml
-- Supports Android 6.0 (API level 23) and above
-- Face detection uses Google ML Kit on Android
+The mobile implementation follows iOS-like design patterns:
 
-## Building for Production
+- Sliding modals for verification flows
+- Native bottom sheets for additional actions
+- Full-screen camera interfaces with clear user guidance
+- Haptic feedback for successful verification
 
-### iOS
-1. Configure App Store Connect
-2. Update version numbers
-3. Build using:
-   ```
-   expo build:ios
-   ```
+## Platform-Specific Features
 
-### Android
-1. Create a signing key
-2. Configure Google Play Console
-3. Build using:
-   ```
-   expo build:android
-   ```
+### iOS-Specific
 
-## Troubleshooting
+- Uses AVFoundation for camera access
+- Implements native sharing capabilities
+- Supports Face ID integration
 
-- **Camera not working**: Ensure proper permissions are granted
-- **Face verification fails**: Check lighting conditions and camera focus
-- **App crashes on startup**: Verify dependencies are correctly installed
+### Android-Specific
+
+- Uses Camera2 API for camera access
+- Implements Material Design components
+- Supports Biometric API integration
+
+## Performance Optimization
+
+Mobile implementation includes:
+
+- Efficient frame processing to minimize battery usage
+- Optimized network requests for verification
+- Client-side caching for improved performance
+
+## Security Considerations
+
+- All verification data is encrypted in transit and at rest
+- Biometric data never leaves the device unencrypted
+- Session management follows OAuth 2.0 best practices
+
+## Deployment
+
+Prepare for store deployment by:
+
+1. Configuring app signing
+2. Setting proper permissions in app manifests
+3. Creating app store listings with appropriate screenshots
+4. Completing privacy policy documentation
+
+## Support
+
+For implementation questions, contact the Heirloom support team.

@@ -1,26 +1,50 @@
-# How to Add Your Logo Files
+# AI Service Logo Guide
 
-## Step 1: Prepare Your Logo Files
-- Ensure you have these three logo files ready:
-  - `heirloom-icon.png` - The small circular icon logo (the green circle with down arrow)
-  - `heirloom-full.png` - The full logo with emblem
-  - `heirloom-complete.png` - The complete logo with text
+This document provides information about the available logo assets for various AI services that can be connected to the Heirloom Identity Platform.
 
-## Step 2: Add Files to the Project
-1. Navigate to the `public/images` folder in the Replit file explorer
-2. Upload your logo files by dragging and dropping them into this folder
-3. Make sure the filenames match exactly what's listed above
+## Available Logos
 
-## Step 3: Verify the Implementation
-The logo component is configured to automatically use these files from the following locations:
-- `/images/heirloom-icon.png`
-- `/images/heirloom-full.png`
-- `/images/heirloom-complete.png`
+| Service | File Path | Format | Style |
+|---------|-----------|--------|-------|
+| Anthropic (Claude) | `/public/images/claude-color.png` | PNG | Color |
+| Anthropic (Claude) | `/public/images/claude-logo.svg` | SVG | Monochrome |
+| Google (Gemini) | `/public/images/gemini-color.png` | PNG | Color |
+| OpenAI (ChatGPT) | `/public/images/openai-logo.svg` | SVG | Color |
+| Perplexity | `/public/images/perplexity-logo.svg` | SVG | Color |
+| Microsoft (Copilot) | `/public/images/copilot-logo.svg` | SVG | Color |
 
-No code changes are needed as long as you use these exact filenames.
+## Usage Guidelines
 
-## Additional Information
-- The logo files should be properly sized and optimized for web use
-- PNG format with transparency is recommended
-- The circular icon logo should be a perfect circle
-- For the icon logo, aim for dimensions around 100x100 pixels
+When implementing AI service connections in the application, use these logos with the following guidelines:
+
+1. Use the color versions for the main connection cards and detailed views
+2. Use SVG format when possible for better scaling and quality
+3. Maintain proper attribution and trademark recognition in accordance with each company's brand guidelines
+4. Keep logos at their original aspect ratio when resizing
+5. Provide sufficient padding around logos (recommended: at least 8px on all sides)
+
+## Implementation Example
+
+```tsx
+import { AiServiceCard } from '@/components/ai-service-card';
+
+// Example component usage
+<AiServiceCard 
+  name="Claude"
+  provider="Anthropic"
+  logoSrc="/images/claude-color.png"
+  description="Advanced reasoning and comprehension AI assistant"
+  status="connected"
+/>
+```
+
+This standardized approach ensures consistent representation of AI service brands throughout the application.
+
+## Adding New Services
+
+When adding support for new AI services:
+
+1. Add the service logo to the `/public/images/` directory
+2. Use a consistent naming convention: `[service-name]-[style].svg/png`
+3. Update this guide to include the new logo information
+4. Ensure proper attribution and usage rights
