@@ -20,7 +20,7 @@ export default function Home() {
           </svg>
           <div className="w-0.5 h-3 bg-white/40 rounded-full mx-0.5"></div>
           <div className="w-5 h-5">
-            <img src="/images/logo-heirloom.png" alt="Heirloom Logo" className="w-full h-full object-contain" />
+            <img src="/images/heirloom-logo-white-black.jpeg" alt="Heirloom Logo" className="w-full h-full object-contain" />
           </div>
         </div>
       </div>
@@ -28,7 +28,7 @@ export default function Home() {
       {/* Logo and brand */}
       <div className="pt-8 pb-6 px-6 flex items-center">
         <div className="w-10 h-10 mr-3">
-          <img src="/images/logo-heirloom.png" alt="Heirloom Logo" className="w-full h-full object-contain" />
+          <img src="/images/heirloom-logo-white-black.jpeg" alt="Heirloom Logo" className="w-full h-full object-contain" />
         </div>
         <h1 className="text-2xl font-bold">Heirloom</h1>
       </div>
@@ -124,7 +124,7 @@ export default function Home() {
           <div className="relative mx-auto w-48 h-48 border-4 border-white/20 rounded-3xl overflow-hidden backdrop-blur-sm bg-white/5 flex items-center justify-center">
             <div className="text-center">
               <div className="w-24 h-24 mx-auto mb-4 flex justify-center items-center">
-                <img src="/images/logo-heirloom.png" alt="Heirloom Logo" className="w-full h-full object-contain" />
+                <img src="/images/heirloom-logo-white-black.jpeg" alt="Heirloom Logo" className="w-full h-full object-contain" />
               </div>
               <p className="text-white/90 text-base leading-tight px-2">Your identity capsule<br />awaits activation</p>
             </div>
