@@ -9,8 +9,8 @@ import QuickActions from "@/components/quick-actions";
 import ActiveConnections from "@/components/active-connections";
 import ActivityFeed from "@/components/activity-feed";
 import NavigationBar from "@/components/navigation-bar";
-import VerificationSuccessPopup from "@/components/verification-success-popup";
-import CapsuleSetupPopup from "@/components/capsule-setup-popup";
+import VerificationSuccessModal from "@/components/verification-success-modal";
+import CapsuleSetupModal from "@/components/capsule-setup-modal";
 import HeirloomLogo from "@/components/heirloom-logo";
 
 // Define types for our API responses
@@ -240,15 +240,15 @@ export default function Dashboard() {
       {/* Bottom Navigation */}
       <NavigationBar currentPath="/dashboard" />
 
-      {/* Verification Success Popup */}
-      <VerificationSuccessPopup 
+      {/* Verification Success Modal */}
+      <VerificationSuccessModal 
         isOpen={showVerificationSuccess}
         onClose={() => setShowVerificationSuccess(false)}
         verificationData={verificationData}
       />
 
-      {/* Capsule Setup Popup */}
-      <CapsuleSetupPopup 
+      {/* Capsule Setup Modal */}
+      <CapsuleSetupModal 
         isOpen={showCapsuleSetupPopup}
         onClose={() => setShowCapsuleSetupPopup(false)}
       />
