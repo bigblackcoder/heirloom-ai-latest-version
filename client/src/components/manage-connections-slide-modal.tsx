@@ -85,37 +85,56 @@ export default function ManageConnectionsSlideModal({
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
-  // Get service logo
+  // Get service icon using the updated brand colors
   const getServiceIcon = (serviceName: string) => {
-    if (serviceName.toLowerCase().includes("claude")) {
+    const serviceNameLower = serviceName.toLowerCase();
+    
+    if (serviceNameLower.includes("claude")) {
       return (
-        <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4 mr-1.5">
-          <rect width="24" height="24" rx="5" fill="#5436DA" fillOpacity="0.2"/>
-          <path d="M7 15.5V8.5a1 1 0 0 1 1.5-.86l6 3.5a1 1 0 0 1 0 1.72l-6 3.5A1 1 0 0 1 7 15.5z" fill="#5436DA" stroke="#5436DA" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
+        <div className="w-5 h-5 rounded-full flex items-center justify-center bg-[#D9775715] mr-1.5">
+          <img src="/images/claude-logo.svg" alt="Claude" className="w-4 h-4" />
+        </div>
       );
-    } else if (serviceName.toLowerCase().includes("gemini")) {
+    } else if (serviceNameLower.includes("gemini")) {
       return (
-        <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4 mr-1.5">
-          <path d="M6 12L12 8L18 12L12 16L6 12Z" fill="#1e88e5" stroke="#1e88e5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M12 2V8M12 16V22" stroke="#1e88e5" strokeWidth="1.5" strokeLinecap="round"/>
-        </svg>
+        <div className="w-5 h-5 rounded-full flex items-center justify-center bg-[#1C69FF15] mr-1.5">
+          <img src="/images/gemini-logo.svg" alt="Gemini" className="w-4 h-4" />
+        </div>
       );
-    } else if (serviceName.toLowerCase().includes("gpt")) {
+    } else if (serviceNameLower.includes("gpt") || serviceNameLower.includes("chat")) {
       return (
-        <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4 mr-1.5">
-          <rect width="24" height="24" rx="5" fill="#10a37f" fillOpacity="0.2"/>
-          <path d="M19.5 8.25l-7.5 4.5-7.5-4.5m7.5 4.5v9" stroke="#10a37f" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M19.5 15.75l-7.5 4.5-7.5-4.5m16.5-11.25l-7.5 4.5-7.5-4.5" stroke="#10a37f" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
+        <div className="w-5 h-5 rounded-full flex items-center justify-center bg-[#00000015] mr-1.5">
+          <img src="/images/gpt-logo.svg" alt="ChatGPT" className="w-4 h-4" />
+        </div>
+      );
+    } else if (serviceNameLower.includes("perplexity")) {
+      return (
+        <div className="w-5 h-5 rounded-full flex items-center justify-center bg-[#22B8CD15] mr-1.5">
+          <img src="/images/perplexity-logo.svg" alt="Perplexity" className="w-4 h-4" />
+        </div>
+      );
+    } else if (serviceNameLower.includes("copilot")) {
+      return (
+        <div className="w-5 h-5 rounded-full flex items-center justify-center bg-[#1e1e1e] mr-1.5">
+          <img src="/images/copilot-logo.svg" alt="Microsoft Copilot" className="w-4 h-4" />
+        </div>
+      );
+    } else if (serviceNameLower.includes("mcp")) {
+      return (
+        <div className="w-5 h-5 rounded-full flex items-center justify-center bg-[#1e1e1e] mr-1.5">
+          <img src="/images/mcp-logo.svg" alt="MCP Assistant" className="w-4 h-4" />
+        </div>
       );
     }
     
+    // Default icon if no match
     return (
-      <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4 mr-1.5">
-        <circle cx="12" cy="12" r="10" fill="currentColor" fillOpacity="0.2" />
-        <path d="M12 16V8M8 12h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      </svg>
+      <div className="w-5 h-5 rounded-full flex items-center justify-center bg-gray-200 mr-1.5">
+        <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4">
+          <circle cx="12" cy="12" r="10" fill="currentColor" fillOpacity="0.2" />
+          <path d="M12 16V8M8 12h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+      </div>
     );
   };
   
