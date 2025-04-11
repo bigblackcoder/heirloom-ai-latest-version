@@ -139,7 +139,7 @@ export function useFaceVerification() {
         body: { 
           image: imageData,
           saveToDb: saveToDb 
-        },
+        }
       }) as VerificationResponse;
       
       // If verification was successful

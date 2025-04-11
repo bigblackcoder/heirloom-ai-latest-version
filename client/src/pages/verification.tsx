@@ -77,9 +77,10 @@ export default function Verification() {
     
     try {
       // Call backend verification endpoint with the captured image data if available
-      const response = await apiRequest("/api/verification/face", { 
+      const response = await apiRequest({
+        url: "/api/verification/face",
         method: "POST",
-        body: JSON.stringify({ image: imageData })
+        body: { image: imageData }
       });
       
       if (response && response.success) {
