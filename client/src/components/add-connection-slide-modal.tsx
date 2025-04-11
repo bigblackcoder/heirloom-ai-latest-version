@@ -93,14 +93,14 @@ export default function AddConnectionSlideModal({
     addConnectionMutation.mutate(data);
   };
   
-  // Sample AI service list
+  // AI service list with updated colors
   const aiServices = [
-    { id: "claude", name: "Claude", color: "#5436DA" },
-    { id: "gpt4", name: "GPT-4", color: "#10a37f" },
-    { id: "gemini", name: "Gemini", color: "#1e88e5" },
-    { id: "perplexity", name: "Perplexity", color: "#3B93F7" },
-    { id: "copilot", name: "Copilot", color: "#000000" },
-    { id: "mistral", name: "Mistral", color: "#5e35b1" },
+    { id: "claude", name: "Claude", color: "#D97757" },
+    { id: "gpt4", name: "ChatGPT", color: "#000000" },
+    { id: "gemini", name: "Google Gemini", color: "#1C69FF" },
+    { id: "perplexity", name: "Perplexity", color: "#22B8CD" },
+    { id: "copilot", name: "Microsoft Copilot", color: "#FFFFFF", darkMode: true },
+    { id: "mcp", name: "MCP Assistant", color: "#FFFFFF", darkMode: true },
   ];
   
   // Handle AI service selection
@@ -112,11 +112,17 @@ export default function AddConnectionSlideModal({
     }
   };
   
-  // Get service logo color
-  const getServiceLogo = (serviceId: string) => {
+  // Get service background color
+  const getServiceBackground = (serviceId: string) => {
     const service = aiServices.find(s => s.id === serviceId);
-    if (!service) return "#333333";
-    return service.color;
+    if (!service) return "#f1f1f1";
+    
+    if (service.darkMode) {
+      return "#1e1e1e"; // Dark background for light logos
+    }
+    
+    // For colored logos, return a light tint of their color
+    return `${service.color}15`;
   };
   
   return (
@@ -160,13 +166,14 @@ export default function AddConnectionSlideModal({
                         >
                           <div className="flex items-center">
                             <div 
-                              className="w-8 h-8 rounded-full mr-2 flex items-center justify-center"
-                              style={{ backgroundColor: `${getServiceLogo(service.id)}10` }}
+                              className="w-8 h-8 rounded-full mr-2 flex items-center justify-center overflow-hidden"
+                              style={{ backgroundColor: getServiceBackground(service.id) }}
                             >
                               <img 
                                 src={`/images/${service.id}-logo.svg`} 
                                 alt={service.name}
                                 className="w-5 h-5"
+                                style={{ filter: service.darkMode ? 'brightness(10)' : 'none' }}
                                 onError={(e) => {
                                   // Fallback if image doesn't load
                                   const target = e.target as HTMLImageElement;
