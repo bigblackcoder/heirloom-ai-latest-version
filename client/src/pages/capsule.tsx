@@ -4,6 +4,11 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import CapsuleSetupInfo from "@/components/capsule-setup-info";
 import NavigationBar from "@/components/navigation-bar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 
 export default function Capsule() {
   const [_, navigate] = useLocation();
@@ -11,6 +16,7 @@ export default function Capsule() {
   
   // State for tab selection
   const [activeTab, setActiveTab] = useState<"activity" | "updates" | "tips">("activity");
+  const [showSettings, setShowSettings] = useState(false);
   
   const handleTabChange = (tab: "activity" | "updates" | "tips") => {
     setActiveTab(tab);
@@ -21,11 +27,72 @@ export default function Capsule() {
   };
   
   const handleSettingsClick = () => {
-    toast({
-      title: "Settings",
-      description: "Capsule settings would open here.",
-    });
+    setShowSettings(true);
   };
+
+  // Settings states
+  const [autoVerify, setAutoVerify] = useState(true);
+  const [biometricAuth, setBiometricAuth] = useState(true);
+  const [aiAccessNotifications, setAiAccessNotifications] = useState(true);
+  const [enhancedPrivacy, setEnhancedPrivacy] = useState(false);
+  const [blockchainVerification, setBlockchainVerification] = useState(false);
+  
+  // Demo updates data
+  const updates = [
+    {
+      id: 1,
+      date: "2025-04-10",
+      title: "Enhanced Security Measures",
+      description: "We've upgraded our encryption protocols to provide better protection for your identity data."
+    },
+    {
+      id: 2,
+      date: "2025-04-05",
+      title: "New AI Integration",
+      description: "Google Gemini is now available as an AI assistant option with your identity capsule."
+    },
+    {
+      id: 3,
+      date: "2025-04-01",
+      title: "Privacy Controls Update",
+      description: "You can now set granular permissions for each piece of identity information in your capsule."
+    },
+    {
+      id: 4,
+      date: "2025-03-28",
+      title: "Face Verification Improvements",
+      description: "Our face verification algorithm has been updated for better accuracy and faster processing."
+    },
+  ];
+
+  // Demo tips data
+  const tips = [
+    {
+      id: 1,
+      title: "Regular Verification",
+      description: "Perform a face verification check at least once a month to ensure your identity capsule remains secure."
+    },
+    {
+      id: 2,
+      title: "Review AI Permissions",
+      description: "Regularly audit which AI services have access to your identity information and revoke any unused connections."
+    },
+    {
+      id: 3,
+      title: "Data Privacy",
+      description: "Enable Enhanced Privacy mode in settings to restrict data sharing to only essential attributes."
+    },
+    {
+      id: 4,
+      title: "Backup Verification Method",
+      description: "Set up an alternative verification method in case biometric authentication isn't available."
+    },
+    {
+      id: 5,
+      title: "Identity Protection",
+      description: "Never share your identity verification links directly. Always use the secure connection system."
+    },
+  ];
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -90,8 +157,142 @@ export default function Capsule() {
         </button>
       </div>
       
-      {/* Capsule Setup Info */}
-      <CapsuleSetupInfo />
+      {/* Tab Content */}
+      <div className="p-4 sm:p-6">
+        {activeTab === "activity" && (
+          <div>
+            <CapsuleSetupInfo />
+          </div>
+        )}
+        
+        {activeTab === "updates" && (
+          <div className="space-y-4">
+            <h2 className="text-lg font-medium text-[#1e3c0d]">Recent Updates</h2>
+            
+            <div className="space-y-4">
+              {updates.map((update) => (
+                <div key={update.id} className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-medium">{update.title}</h3>
+                    <span className="text-xs text-gray-500">{new Date(update.date).toLocaleDateString()}</span>
+                  </div>
+                  <p className="text-sm text-gray-600">{update.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {activeTab === "tips" && (
+          <div className="space-y-4">
+            <h2 className="text-lg font-medium text-[#1e3c0d]">Identity Security Tips</h2>
+            
+            <div className="space-y-4">
+              {tips.map((tip) => (
+                <div key={tip.id} className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
+                  <div className="flex items-start mb-2">
+                    <div className="bg-[#1e3c0d]/10 p-2 rounded-full mr-3">
+                      <svg className="w-4 h-4 text-[#1e3c0d]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="font-medium text-sm">{tip.title}</h3>
+                      <p className="text-sm text-gray-600 mt-1">{tip.description}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+      
+      {/* Settings Modal */}
+      <Dialog open={showSettings} onOpenChange={setShowSettings}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Identity Capsule Settings</DialogTitle>
+          </DialogHeader>
+          
+          <div className="py-4 space-y-4">
+            <h3 className="text-sm font-medium mb-2">Security</h3>
+            
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label className="text-base">Auto Verification</Label>
+                <p className="text-sm text-muted-foreground">Automatically verify your identity when connecting to services</p>
+              </div>
+              <Switch 
+                checked={autoVerify}
+                onCheckedChange={setAutoVerify}
+              />
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label className="text-base">Biometric Authentication</Label>
+                <p className="text-sm text-muted-foreground">Use facial recognition for authentication</p>
+              </div>
+              <Switch 
+                checked={biometricAuth}
+                onCheckedChange={setBiometricAuth}
+              />
+            </div>
+            
+            <Separator className="my-4" />
+            
+            <h3 className="text-sm font-medium mb-2">Privacy</h3>
+            
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label className="text-base">AI Access Notifications</Label>
+                <p className="text-sm text-muted-foreground">Get notified when AI services access your identity</p>
+              </div>
+              <Switch 
+                checked={aiAccessNotifications}
+                onCheckedChange={setAiAccessNotifications}
+              />
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label className="text-base">Enhanced Privacy Mode</Label>
+                <p className="text-sm text-muted-foreground">Restrict data sharing to essential attributes only</p>
+              </div>
+              <Switch 
+                checked={enhancedPrivacy}
+                onCheckedChange={setEnhancedPrivacy}
+              />
+            </div>
+            
+            <Separator className="my-4" />
+            
+            <h3 className="text-sm font-medium mb-2">Advanced</h3>
+            
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label className="text-base">Blockchain Verification</Label>
+                <p className="text-sm text-muted-foreground">Verify identity using blockchain technology</p>
+              </div>
+              <Switch 
+                checked={blockchainVerification}
+                onCheckedChange={setBlockchainVerification}
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowSettings(false)}
+              className="w-full sm:w-auto"
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       
       {/* Bottom Navigation */}
       <NavigationBar currentPath="/capsule" />
