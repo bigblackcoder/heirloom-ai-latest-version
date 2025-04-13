@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -9,6 +9,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogT
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Progress } from "@/components/ui/progress";
+import { Slider } from "@/components/ui/slider";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 export default function Capsule() {
   const [_, navigate] = useLocation();
@@ -17,6 +20,8 @@ export default function Capsule() {
   // State for tab selection
   const [activeTab, setActiveTab] = useState<"activity" | "updates" | "tips">("activity");
   const [showSettings, setShowSettings] = useState(false);
+  const [showExportDialog, setShowExportDialog] = useState(false);
+  const [privacyScore, setPrivacyScore] = useState(65);
   
   const handleTabChange = (tab: "activity" | "updates" | "tips") => {
     setActiveTab(tab);
@@ -36,6 +41,64 @@ export default function Capsule() {
   const [aiAccessNotifications, setAiAccessNotifications] = useState(true);
   const [enhancedPrivacy, setEnhancedPrivacy] = useState(false);
   const [blockchainVerification, setBlockchainVerification] = useState(false);
+  
+  // Privacy Controls
+  const [dataSharing, setDataSharing] = useState(60);
+  const [locationTracking, setLocationTracking] = useState(20);
+  const [thirdPartyAccess, setThirdPartyAccess] = useState(40);
+  
+  // Calculate privacy score
+  useEffect(() => {
+    const newScore = calculatePrivacyScore();
+    setPrivacyScore(newScore);
+  }, [enhancedPrivacy, dataSharing, locationTracking, thirdPartyAccess, aiAccessNotifications]);
+  
+  const calculatePrivacyScore = () => {
+    // Lower values for sliders are more private, so we invert them
+    const dataSharingScore = 100 - dataSharing;
+    const locationTrackingScore = 100 - locationTracking;
+    const thirdPartyScore = 100 - thirdPartyAccess;
+    
+    // Enhanced privacy gives a bonus
+    const enhancedPrivacyBonus = enhancedPrivacy ? 15 : 0;
+    
+    // AI notifications give a small bonus
+    const aiNotificationsBonus = aiAccessNotifications ? 5 : 0;
+    
+    // Calculate weighted score
+    const baseScore = (
+      (dataSharingScore * 0.4) +
+      (locationTrackingScore * 0.3) +
+      (thirdPartyScore * 0.3)
+    );
+    
+    // Apply bonuses up to 100 max
+    return Math.min(100, Math.round(baseScore + enhancedPrivacyBonus + aiNotificationsBonus));
+  };
+  
+  // Get privacy score color
+  const getPrivacyScoreColor = () => {
+    if (privacyScore >= 80) return "text-green-600";
+    if (privacyScore >= 60) return "text-yellow-600";
+    return "text-red-600";
+  };
+  
+  // Get privacy score background
+  const getPrivacyScoreBackground = () => {
+    if (privacyScore >= 80) return "bg-green-600";
+    if (privacyScore >= 60) return "bg-yellow-600";
+    return "bg-red-600";
+  };
+  
+  // Demo verification history data
+  const verificationHistory = [
+    { month: 'Jan', verifications: 2, successful: 2 },
+    { month: 'Feb', verifications: 5, successful: 4 },
+    { month: 'Mar', verifications: 3, successful: 3 },
+    { month: 'Apr', verifications: 8, successful: 7 },
+    { month: 'May', verifications: 4, successful: 4 },
+    { month: 'Jun', verifications: 6, successful: 5 },
+  ];
   
   // Demo updates data
   const updates = [
@@ -93,6 +156,20 @@ export default function Capsule() {
       description: "Never share your identity verification links directly. Always use the secure connection system."
     },
   ];
+  
+  // Handle export click
+  const handleExportClick = () => {
+    setShowExportDialog(true);
+  };
+  
+  // Handle actual export
+  const handleExport = () => {
+    toast({
+      title: "Export Complete",
+      description: "Your verification history has been exported successfully.",
+    });
+    setShowExportDialog(false);
+  };
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -116,7 +193,27 @@ export default function Capsule() {
           </svg>
         </button>
         <h1 className="text-lg sm:text-xl font-semibold">Identity Capsule</h1>
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center">
+          <button 
+            onClick={handleExportClick}
+            className="mr-4"
+            aria-label="Export data"
+          >
+            <svg
+              className="w-5 h-5 sm:w-6 sm:h-6"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+          </button>
           <button onClick={handleSettingsClick}>
             <svg
               className="w-5 h-5 sm:w-6 sm:h-6"
@@ -134,6 +231,25 @@ export default function Capsule() {
           </button>
         </div>
       </header>
+      
+      {/* Privacy Score Card */}
+      <div className="mx-4 sm:mx-6 mb-4">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="font-medium">Privacy Score</h2>
+            <span className={`text-lg font-bold ${getPrivacyScoreColor()}`}>{privacyScore}/100</span>
+          </div>
+          <Progress value={privacyScore} className="h-2" indicatorClassName={getPrivacyScoreBackground()} />
+          <p className="text-xs text-gray-500 mt-2">
+            {privacyScore >= 80 
+              ? "Excellent privacy protection. Your identity data is well secured."
+              : privacyScore >= 60 
+                ? "Good privacy settings. Consider enhancing specific areas."
+                : "Your privacy protection could be improved. Check settings."
+            }
+          </p>
+        </div>
+      </div>
       
       {/* Tabs */}
       <div className="flex border-b px-2 sm:px-4">
@@ -210,12 +326,81 @@ export default function Capsule() {
       
       {/* Settings Modal */}
       <Dialog open={showSettings} onOpenChange={setShowSettings}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Identity Capsule Settings</DialogTitle>
           </DialogHeader>
           
           <div className="py-4 space-y-4">
+            {/* Privacy Score in Settings */}
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-medium">Your Privacy Score</h3>
+                <span className={`text-lg font-bold ${getPrivacyScoreColor()}`}>{privacyScore}/100</span>
+              </div>
+              <Progress value={privacyScore} className="h-2" indicatorClassName={getPrivacyScoreBackground()} />
+            </div>
+            
+            <h3 className="text-sm font-medium mb-2">Privacy Controls</h3>
+            
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <Label className="text-base">Data Sharing</Label>
+                  <span className="text-sm text-gray-500">
+                    {dataSharing <= 30 ? "Minimal" : dataSharing <= 70 ? "Balanced" : "Extended"}
+                  </span>
+                </div>
+                <Slider 
+                  value={[dataSharing]} 
+                  onValueChange={(value) => setDataSharing(value[0])} 
+                  max={100} 
+                  step={1}
+                />
+                <p className="text-xs text-gray-500">
+                  Controls how much personal data is shared with services.
+                </p>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <Label className="text-base">Location Data</Label>
+                  <span className="text-sm text-gray-500">
+                    {locationTracking <= 30 ? "Disabled" : locationTracking <= 70 ? "Limited" : "Full"}
+                  </span>
+                </div>
+                <Slider 
+                  value={[locationTracking]} 
+                  onValueChange={(value) => setLocationTracking(value[0])} 
+                  max={100} 
+                  step={1}
+                />
+                <p className="text-xs text-gray-500">
+                  Controls when and how location data is used for verification.
+                </p>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <Label className="text-base">Third-party Access</Label>
+                  <span className="text-sm text-gray-500">
+                    {thirdPartyAccess <= 30 ? "Restricted" : thirdPartyAccess <= 70 ? "Selected" : "Open"}
+                  </span>
+                </div>
+                <Slider 
+                  value={[thirdPartyAccess]} 
+                  onValueChange={(value) => setThirdPartyAccess(value[0])} 
+                  max={100} 
+                  step={1}
+                />
+                <p className="text-xs text-gray-500">
+                  Controls which third-party services can access your identity.
+                </p>
+              </div>
+            </div>
+            
+            <Separator className="my-4" />
+            
             <h3 className="text-sm font-medium mb-2">Security</h3>
             
             <div className="flex items-center justify-between">
@@ -289,6 +474,78 @@ export default function Capsule() {
               className="w-full sm:w-auto"
             >
               Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Export Dialog */}
+      <Dialog open={showExportDialog} onOpenChange={setShowExportDialog}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Export Verification History</DialogTitle>
+          </DialogHeader>
+          
+          <div className="py-4 space-y-4">
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h3 className="font-medium mb-3">6-Month Verification Activity</h3>
+              
+              <div className="h-64 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={verificationHistory}
+                    margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="verifications" name="Total Verifications" fill="#1e3c0d" />
+                    <Bar dataKey="successful" name="Successful" fill="#4caf50" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <h3 className="font-medium">Export Options</h3>
+              
+              <div className="flex flex-col space-y-2">
+                <div className="flex items-center">
+                  <input type="radio" id="csv" name="exportFormat" className="mr-2" defaultChecked />
+                  <label htmlFor="csv">CSV Format</label>
+                </div>
+                <div className="flex items-center">
+                  <input type="radio" id="pdf" name="exportFormat" className="mr-2" />
+                  <label htmlFor="pdf">PDF Report</label>
+                </div>
+                <div className="flex items-center">
+                  <input type="radio" id="json" name="exportFormat" className="mr-2" />
+                  <label htmlFor="json">JSON Data</label>
+                </div>
+              </div>
+              
+              <p className="text-xs text-gray-500 mt-2">
+                Export includes verification timestamps, success rates, and connected services.
+                No biometric data is included in the export.
+              </p>
+            </div>
+          </div>
+          
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowExportDialog(false)}
+              className="w-full sm:w-auto"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleExport}
+              className="w-full sm:w-auto bg-[#1e3c0d] hover:bg-[#143404]"
+            >
+              Export Now
             </Button>
           </DialogFooter>
         </DialogContent>
