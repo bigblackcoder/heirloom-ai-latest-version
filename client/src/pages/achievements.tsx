@@ -1,54 +1,83 @@
 import React, { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { useToast } from "@/hooks/use-toast";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient, apiRequest } from "@/lib/queryClient";
-
-import AchievementCard, { Achievement } from "@/components/achievement-card";
+import { format } from "date-fns";
+import { apiRequest } from "@/lib/queryClient";
+import { Achievement } from "@/components/achievement-card";
+import AchievementCard from "@/components/achievement-card";
+import NavigationBar from "@/components/navigation-bar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import NavigationBar from "@/components/navigation-bar";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Achievements() {
-  const [_, navigate] = useLocation();
+  const [, navigate] = useLocation();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  // UI State
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [achievementType, setAchievementType] = useState("custom");
   const [achievementTitle, setAchievementTitle] = useState("");
   const [achievementDesc, setAchievementDesc] = useState("");
-  const [achievementType, setAchievementType] = useState("custom");
   
-  // Fetch user achievements
-  const { data: achievements, isLoading, error } = useQuery<Achievement[]>({
+  // Fetch achievements
+  const { data: achievements, isLoading, error } = useQuery({
     queryKey: ["/api/achievements"],
-    refetchOnWindowFocus: false,
+    queryFn: async () => {
+      const response = await apiRequest("/api/achievements", {
+        method: "GET"
+      });
+      
+      if (!response.ok) {
+        throw new Error("Failed to fetch achievements");
+      }
+      
+      return response.json();
+    }
   });
   
   // Create achievement mutation
   const createAchievement = useMutation({
-    mutationFn: (achievementData: any) =>
-      apiRequest("/api/achievements/generate", "POST", achievementData),
-    onSuccess: () => {
-      toast({
-        title: "Achievement Created",
-        description: "Your achievement has been created and is ready to share.",
+    mutationFn: async (data: {
+      achievementType: string;
+      title: string;
+      description: string;
+      shareMode: string;
+    }) => {
+      const response = await apiRequest("/api/achievements/generate", {
+        method: "POST",
+        body: JSON.stringify(data)
       });
+      
+      if (!response.ok) {
+        throw new Error("Failed to create achievement");
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
       setShowCreateDialog(false);
       setAchievementTitle("");
       setAchievementDesc("");
-      // Invalidate achievements query to refresh the list
+      setAchievementType("custom");
       queryClient.invalidateQueries({ queryKey: ["/api/achievements"] });
+      toast({
+        title: "Achievement Created",
+        description: "Your achievement was created successfully."
+      });
     },
     onError: () => {
       toast({
-        title: "Error",
-        description: "Failed to create achievement. Please try again.",
-        variant: "destructive",
+        title: "Failed to Create Achievement",
+        description: "There was an error creating your achievement.",
+        variant: "destructive"
       });
-    },
+    }
   });
   
   // Filter achievements by type

@@ -1,243 +1,125 @@
-import { useLocation, Link } from "wouter";
-import { useIsMobile } from "@/hooks/use-mobile";
+import React from "react";
+import { useLocation } from "wouter";
 
 interface NavigationBarProps {
   currentPath: string;
 }
 
 export default function NavigationBar({ currentPath }: NavigationBarProps) {
-  const [_, navigate] = useLocation();
-  const isMobile = useIsMobile();
-
-  // Determine which style to use - the grid-based or the simple
-  const useGridStyle = true;
+  const [, navigate] = useLocation();
   
-  if (useGridStyle) {
-    // Rich navigation with 5 items in a grid
-    const navItems = [
-      {
-        name: "Home",
-        path: "/dashboard",
-        icon: (
+  const isActive = (path: string) => {
+    return currentPath === path ? "text-primary border-primary" : "text-gray-500 border-transparent";
+  };
+  
+  return (
+    <div className="fixed bottom-0 left-0 right-0 border-t border-gray-200 bg-background max-w-md mx-auto">
+      <div className="flex justify-around py-3">
+        <button
+          onClick={() => navigate("/dashboard")}
+          className={`flex flex-col items-center space-y-1 px-3 ${isActive("/dashboard")}`}
+        >
           <svg
             className="w-6 h-6"
-            viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-            <polyline points="9 22 9 12 15 12 15 22" />
-          </svg>
-        )
-      },
-      {
-        name: "Activity",
-        path: "/notifications",
-        icon: (
-          <svg
-            className="w-6 h-6"
             viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+            xmlns="http://www.w3.org/2000/svg"
           >
-            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+            />
           </svg>
-        )
-      },
-      {
-        name: "Identity",
-        path: "/capsule",
-        icon: (
-          <svg
-            className="w-6 h-6"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-          </svg>
-        )
-      },
-      {
-        name: "Verify",
-        path: "/verification",
-        icon: (
-          <svg
-            className="w-6 h-6"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-            <circle cx="9" cy="7" r="4"></circle>
-            <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path>
-          </svg>
-        )
-      },
-      {
-        name: "Achievements",
-        path: "/achievements",
-        icon: (
-          <svg
-            className="w-6 h-6"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <circle cx="12" cy="8" r="7" />
-            <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88" />
-          </svg>
-        )
-      }
-    ];
-
-    return (
-      <div className="fixed bottom-0 left-0 right-0 bg-background border-0 z-40 max-w-md mx-auto overflow-hidden">
-        {/* Light Background */}
-        <div className="absolute bottom-0 left-0 right-0 h-16 bg-background rounded-t-3xl z-0"></div>
+          <span className="text-xs">Home</span>
+        </button>
         
-        {/* Home indicator line for iPhone */}
-        <div className="w-full flex justify-center pb-1 pt-2 relative z-10">
-          <div className="w-10 h-1 bg-gray-300 rounded-full"></div>
-        </div>
+        <button
+          onClick={() => navigate("/capsule")}
+          className={`flex flex-col items-center space-y-1 px-3 ${isActive("/capsule")}`}
+        >
+          <svg
+            className="w-6 h-6"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+            />
+          </svg>
+          <span className="text-xs">Capsule</span>
+        </button>
         
-        <div className="grid grid-cols-5 px-2 py-1 relative z-10">
-          {navItems.map((item) => {
-            const isActive = currentPath === item.path;
-            return (
-              <button 
-                key={item.path}
-                className={`flex flex-col items-center justify-center py-2 relative ${
-                  isActive ? "text-[#1e3c0d]" : "text-gray-500"
-                }`}
-                onClick={() => navigate(item.path)}
-              >
-                {isActive && (
-                  <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-10 h-1 bg-[#1e3c0d] rounded-full"></div>
-                )}
-                
-                <div className={`w-12 h-12 flex items-center justify-center rounded-full ${
-                  isActive ? "bg-[#1e3c0d]/5" : ""
-                }`}>
-                  {item.icon}
-                </div>
-                
-                <span className={`text-xs mt-1 font-medium ${
-                  isActive ? "text-[#1e3c0d]" : "text-gray-500"
-                }`}>
-                  {item.name}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+        <button
+          onClick={() => navigate("/verification")}
+          className={`flex flex-col items-center space-y-1 px-3 ${isActive("/verification")}`}
+        >
+          <svg
+            className="w-6 h-6"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+            />
+          </svg>
+          <span className="text-xs">Verify</span>
+        </button>
+        
+        <button
+          onClick={() => navigate("/achievements")}
+          className={`flex flex-col items-center space-y-1 px-3 ${isActive("/achievements")}`}
+        >
+          <svg
+            className="w-6 h-6"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"
+            />
+          </svg>
+          <span className="text-xs">Achievements</span>
+        </button>
+        
+        <button
+          onClick={() => navigate("/profile")}
+          className={`flex flex-col items-center space-y-1 px-3 ${isActive("/profile")}`}
+        >
+          <svg
+            className="w-6 h-6"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+            />
+          </svg>
+          <span className="text-xs">Profile</span>
+        </button>
       </div>
-    );
-  } else {
-    // Simpler 5-item navigation
-    return (
-      <nav className="fixed bottom-0 left-0 right-0 border-0 bg-background py-2 px-4 z-40">
-        <div className="absolute bottom-0 left-0 right-0 h-full bg-background z-0"></div>
-        <div className="max-w-md mx-auto flex justify-between items-center relative z-10">
-          <Link href="/dashboard">
-            <a className={`flex flex-col items-center ${currentPath === "/dashboard" ? "text-[#1e3c0d]" : "text-gray-500"}`}>
-              <svg 
-                className={`w-6 h-6 ${isMobile ? 'mb-1' : 'mb-1.5'}`} 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="currentColor" 
-                strokeWidth="2"
-              >
-                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                <polyline points="9 22 9 12 15 12 15 22"></polyline>
-              </svg>
-              <span className={`${isMobile ? 'text-xs' : 'text-sm'}`}>Home</span>
-            </a>
-          </Link>
-          
-          <Link href="/capsule">
-            <a className={`flex flex-col items-center ${currentPath === "/capsule" ? "text-[#1e3c0d]" : "text-gray-500"}`}>
-              <svg 
-                className={`w-6 h-6 ${isMobile ? 'mb-1' : 'mb-1.5'}`} 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="currentColor" 
-                strokeWidth="2"
-              >
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                <line x1="3" y1="9" x2="21" y2="9"></line>
-                <line x1="9" y1="21" x2="9" y2="9"></line>
-              </svg>
-              <span className={`${isMobile ? 'text-xs' : 'text-sm'}`}>Capsule</span>
-            </a>
-          </Link>
-          
-          <Link href="/verification">
-            <a className={`flex flex-col items-center ${currentPath === "/verification" ? "text-[#1e3c0d]" : "text-gray-500"}`}>
-              <svg 
-                className={`w-6 h-6 ${isMobile ? 'mb-1' : 'mb-1.5'}`} 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="currentColor" 
-                strokeWidth="2"
-              >
-                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-                <circle cx="9" cy="7" r="4"></circle>
-                <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path>
-              </svg>
-              <span className={`${isMobile ? 'text-xs' : 'text-sm'}`}>Verify</span>
-            </a>
-          </Link>
-          
-          <Link href="/notifications">
-            <a className={`flex flex-col items-center ${currentPath === "/notifications" ? "text-[#1e3c0d]" : "text-gray-500"}`}>
-              <svg 
-                className={`w-6 h-6 ${isMobile ? 'mb-1' : 'mb-1.5'}`} 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="currentColor" 
-                strokeWidth="2"
-              >
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-              </svg>
-              <span className={`${isMobile ? 'text-xs' : 'text-sm'}`}>Alerts</span>
-            </a>
-          </Link>
-          
-          <Link href="/achievements">
-            <a className={`flex flex-col items-center ${currentPath === "/achievements" ? "text-[#1e3c0d]" : "text-gray-500"}`}>
-              <svg 
-                className={`w-6 h-6 ${isMobile ? 'mb-1' : 'mb-1.5'}`} 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="currentColor" 
-                strokeWidth="2"
-              >
-                <circle cx="12" cy="8" r="7" />
-                <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88" />
-              </svg>
-              <span className={`${isMobile ? 'text-xs' : 'text-sm'}`}>Achievements</span>
-            </a>
-          </Link>
-        </div>
-      </nav>
-    );
-  }
+    </div>
+  );
 }
