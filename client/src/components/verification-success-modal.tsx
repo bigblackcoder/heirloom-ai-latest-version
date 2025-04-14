@@ -32,8 +32,8 @@ export default function VerificationSuccessModal({
   const [_, navigate] = useLocation();
   const confidence = verificationData?.confidence || 0;
   
-  // Format confidence as percentage
-  const confidencePercent = Math.round(confidence * 100);
+  // Format confidence as percentage with two decimal places
+  const confidencePercent = (confidence * 100).toFixed(2);
   
   return (
     <SlidingModal

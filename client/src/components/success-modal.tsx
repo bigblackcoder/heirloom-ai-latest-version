@@ -113,7 +113,7 @@ export default function SuccessModal({
               </div>
               
               <div className="text-white text-sm">
-                {verificationData ? `${Math.round(verificationData.confidence)}% match` : '1% match'}
+                {verificationData ? `${(verificationData.confidence * 100).toFixed(2)}% match` : '1.00% match'}
               </div>
             </div>
             
