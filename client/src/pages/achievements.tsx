@@ -30,7 +30,10 @@ export default function Achievements() {
     queryKey: ["/api/achievements"],
     queryFn: async () => {
       const response = await apiRequest("/api/achievements", {
-        method: "GET"
+        method: "GET",
+        headers: {
+          "Accept": "application/json"
+        }
       });
       
       if (!response.ok) {
@@ -51,6 +54,9 @@ export default function Achievements() {
     }) => {
       const response = await apiRequest("/api/achievements/generate", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
         body: JSON.stringify(data)
       });
       
