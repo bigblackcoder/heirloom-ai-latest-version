@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogT
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Progress } from "@/components/ui/progress";
+
 import { Slider } from "@/components/ui/slider";
 
 export default function Capsule() {
@@ -238,7 +238,12 @@ export default function Capsule() {
             <h2 className="font-medium">Privacy Score</h2>
             <span className={`text-lg font-bold ${getPrivacyScoreColor()}`}>{privacyScore}/100</span>
           </div>
-          <Progress value={privacyScore} className="h-2" indicatorClassName={getPrivacyScoreBackground()} />
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <div 
+              className={`${getPrivacyScoreBackground()} h-2 rounded-full transition-all duration-300`} 
+              style={{ width: `${privacyScore}%` }}
+            />
+          </div>
           <p className="text-xs text-gray-500 mt-2">
             {privacyScore >= 80 
               ? "Excellent privacy protection. Your identity data is well secured."
@@ -337,7 +342,12 @@ export default function Capsule() {
                 <h3 className="font-medium">Your Privacy Score</h3>
                 <span className={`text-lg font-bold ${getPrivacyScoreColor()}`}>{privacyScore}/100</span>
               </div>
-              <Progress value={privacyScore} className="h-2" indicatorClassName={getPrivacyScoreBackground()} />
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className={`${getPrivacyScoreBackground()} h-2 rounded-full transition-all duration-300`} 
+                  style={{ width: `${privacyScore}%` }}
+                />
+              </div>
             </div>
             
             <h3 className="text-sm font-medium mb-2">Privacy Controls</h3>
@@ -489,21 +499,33 @@ export default function Capsule() {
             <div className="bg-gray-50 p-4 rounded-lg">
               <h3 className="font-medium mb-3">6-Month Verification Activity</h3>
               
-              <div className="h-64 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={verificationHistory}
-                    margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="verifications" name="Total Verifications" fill="#1e3c0d" />
-                    <Bar dataKey="successful" name="Successful" fill="#4caf50" />
-                  </BarChart>
-                </ResponsiveContainer>
+              <div className="space-y-3 mt-4">
+                {verificationHistory.map((item, index) => (
+                  <div key={index} className="space-y-1">
+                    <div className="flex justify-between text-sm">
+                      <span className="font-medium">{item.month}</span>
+                      <span className="text-gray-500">
+                        {item.successful} of {item.verifications} successful
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-[#1e3c0d] h-2 rounded-full" 
+                        style={{ width: `${(item.successful / item.verifications) * 100}%` }}
+                      />
+                    </div>
+                    <div className="flex justify-between">
+                      <div className="flex items-center">
+                        <div className="w-3 h-3 rounded-sm bg-[#1e3c0d] mr-1" />
+                        <span className="text-xs">Total: {item.verifications}</span>
+                      </div>
+                      <div className="flex items-center">
+                        <div className="w-3 h-3 rounded-sm bg-[#4caf50] mr-1" />
+                        <span className="text-xs">Success: {item.successful}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
             
