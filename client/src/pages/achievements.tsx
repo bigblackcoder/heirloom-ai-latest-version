@@ -28,20 +28,7 @@ export default function Achievements() {
   // Fetch achievements
   const { data: achievements, isLoading, error } = useQuery({
     queryKey: ["/api/achievements"],
-    queryFn: async () => {
-      const response = await apiRequest("/api/achievements", {
-        method: "GET",
-        headers: {
-          "Accept": "application/json"
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error("Failed to fetch achievements");
-      }
-      
-      return response.json();
-    }
+    // Using the default queryFn from queryClient which will make a GET request
   });
   
   // Create achievement mutation
@@ -52,19 +39,11 @@ export default function Achievements() {
       description: string;
       shareMode: string;
     }) => {
-      const response = await apiRequest("/api/achievements/generate", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(data)
+      return apiRequest({
+        url: "/api/achievements/generate", 
+        method: "POST", 
+        body: data
       });
-      
-      if (!response.ok) {
-        throw new Error("Failed to create achievement");
-      }
-      
-      return response.json();
     },
     onSuccess: () => {
       setShowCreateDialog(false);
