@@ -201,7 +201,7 @@ export default function Verification() {
         />
         
         <div className="text-[#d4a166] text-2xl sm:text-3xl font-bold mt-4 sm:mt-6">
-          {verificationProgress.toFixed(2)}%
+          {verificationProgress.toFixed(0)}%
         </div>
         <p className="text-white/80 text-center text-sm sm:text-base mt-1 mb-3 max-w-[280px] sm:max-w-xs">
           Follow the guidance and move your head slowly to complete the verification.

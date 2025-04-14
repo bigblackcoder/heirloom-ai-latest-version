@@ -353,7 +353,7 @@ export function useFaceVerification() {
         // Set verification results
         setVerificationResults({
           success: true,
-          confidence: 95, // 95% confidence (using percentage scale)
+          confidence: 0.95, // 95% confidence (using decimal scale 0.0-1.0)
           verified: true,
           matched: Math.random() > 0.5, // Randomly simulate a matched face
           face_id: Math.random() > 0.5 ? "e5a7b45c-8f92-4c3a-b8e2-9d8a7bb1df47" : undefined,
