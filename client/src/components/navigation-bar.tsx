@@ -14,10 +14,10 @@ export default function NavigationBar({ currentPath }: NavigationBarProps) {
   
   return (
     <div className="fixed bottom-0 left-0 right-0 border-t border-gray-200 bg-background max-w-md mx-auto">
-      <div className="flex justify-around py-3">
+      <div className="grid grid-cols-5 py-3">
         <button
           onClick={() => navigate("/dashboard")}
-          className={`flex flex-col items-center space-y-1 px-3 ${isActive("/dashboard")}`}
+          className={`flex flex-col items-center justify-center space-y-1 ${isActive("/dashboard")}`}
         >
           <svg
             className="w-6 h-6"
@@ -38,7 +38,7 @@ export default function NavigationBar({ currentPath }: NavigationBarProps) {
         
         <button
           onClick={() => navigate("/capsule")}
-          className={`flex flex-col items-center space-y-1 px-3 ${isActive("/capsule")}`}
+          className={`flex flex-col items-center justify-center space-y-1 ${isActive("/capsule")}`}
         >
           <svg
             className="w-6 h-6"
@@ -59,7 +59,7 @@ export default function NavigationBar({ currentPath }: NavigationBarProps) {
         
         <button
           onClick={() => navigate("/verification")}
-          className={`flex flex-col items-center space-y-1 px-3 ${isActive("/verification")}`}
+          className={`flex flex-col items-center justify-center space-y-1 ${isActive("/verification")}`}
         >
           <svg
             className="w-6 h-6"
@@ -80,7 +80,7 @@ export default function NavigationBar({ currentPath }: NavigationBarProps) {
         
         <button
           onClick={() => navigate("/achievements")}
-          className={`flex flex-col items-center space-y-1 px-3 ${isActive("/achievements")}`}
+          className={`flex flex-col items-center justify-center space-y-1 ${isActive("/achievements")}`}
         >
           <svg
             className="w-6 h-6"
@@ -101,7 +101,7 @@ export default function NavigationBar({ currentPath }: NavigationBarProps) {
         
         <button
           onClick={() => navigate("/profile")}
-          className={`flex flex-col items-center space-y-1 px-3 ${isActive("/profile")}`}
+          className={`flex flex-col items-center justify-center space-y-1 ${isActive("/profile")}`}
         >
           <svg
             className="w-6 h-6"
