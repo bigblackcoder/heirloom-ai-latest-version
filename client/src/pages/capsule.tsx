@@ -505,13 +505,14 @@ export default function Capsule() {
                     <div className="flex justify-between text-sm">
                       <span className="font-medium">{item.month}</span>
                       <span className="text-gray-500">
-                        {item.successful} of {item.verifications} successful
+                        {item.successful} of {item.verifications} successful 
+                        ({((item.successful / item.verifications) * 100).toFixed(2)}%)
                       </span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div 
                         className="bg-[#1e3c0d] h-2 rounded-full" 
-                        style={{ width: `${(item.successful / item.verifications) * 100}%` }}
+                        style={{ width: `${((item.successful / item.verifications) * 100).toFixed(2)}%` }}
                       />
                     </div>
                     <div className="flex justify-between">
