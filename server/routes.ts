@@ -475,6 +475,367 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Blockchain API routes
+  // These endpoints support integration with Heirloom blockchain functionality
+  
+  // Issue a Heirloom Identity Token (HIT)
+  app.post("/api/blockchain/issue-hit", async (req: Request, res: Response) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      // Check if user is verified 
+      const user = await storage.getUser(req.session.userId);
+      if (!user?.isVerified) {
+        return res.status(403).json({ 
+          success: false,
+          message: "Face verification required before token issuance"
+        });
+      }
+      
+      // Get wallet address from request
+      const { walletAddress } = req.body;
+      if (!walletAddress) {
+        return res.status(400).json({
+          success: false,
+          message: "Wallet address is required"
+        });
+      }
+      
+      // In production, this would make a call to the blockchain
+      // For now, simulate a successful response
+      
+      // Log activity
+      await storage.createActivity({
+        userId: req.session.userId,
+        type: "blockchain-hit-issued",
+        description: "Heirloom Identity Token (HIT) issued",
+        metadata: { 
+          walletAddress,
+          tokenType: "HIT",
+          network: "Polygon Amoy Testnet",
+          contractAddress: "0x6AFF771a6245945c19D13032Ec954aFA18DcA1b2" // SimpleHIT contract address from docs
+        }
+      });
+      
+      res.status(200).json({
+        success: true,
+        message: "Heirloom Identity Token (HIT) issued successfully",
+        tokenId: "HIT-" + Date.now(),
+        contractAddress: "0x6AFF771a6245945c19D13032Ec954aFA18DcA1b2",
+        network: "Polygon Amoy Testnet",
+        chainId: 80002
+      });
+    } catch (error) {
+      console.error("Error issuing HIT token:", error);
+      res.status(500).json({ 
+        success: false,
+        message: "Error issuing token"
+      });
+    }
+  });
+  
+  // Issue a Provenance Token (PRVN)
+  app.post("/api/blockchain/issue-prvn", async (req: Request, res: Response) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      // Check required fields
+      const { walletAddress, dataHash, dataType } = req.body;
+      if (!walletAddress || !dataHash) {
+        return res.status(400).json({
+          success: false,
+          message: "Wallet address and data hash are required"
+        });
+      }
+      
+      // Get the user's capsules
+      const capsules = await storage.getCapsulesByUserId(req.session.userId);
+      if (capsules.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: "No identity capsule found"
+        });
+      }
+      
+      // In production, this would make a call to the blockchain
+      // For now, simulate a successful response
+      
+      // Log activity
+      await storage.createActivity({
+        userId: req.session.userId,
+        type: "blockchain-prvn-issued",
+        description: `Provenance Token (PRVN) issued for ${dataType || 'data'}`,
+        metadata: { 
+          walletAddress,
+          dataHash,
+          dataType,
+          tokenType: "PRVN",
+          network: "Polygon Amoy Testnet",
+          contractAddress: "0x1fC9F0fF7A6D3e9C0C64d187B01a43BbFF7939d8" // PRVNToken contract address from docs
+        }
+      });
+      
+      res.status(200).json({
+        success: true,
+        message: "Provenance Token (PRVN) issued successfully",
+        tokenId: "PRVN-" + Date.now(),
+        contractAddress: "0x1fC9F0fF7A6D3e9C0C64d187B01a43BbFF7939d8",
+        network: "Polygon Amoy Testnet",
+        chainId: 80002,
+        dataHash: dataHash
+      });
+    } catch (error) {
+      console.error("Error issuing PRVN token:", error);
+      res.status(500).json({ 
+        success: false,
+        message: "Error issuing provenance token"
+      });
+    }
+  });
+  
+  // Link HIT token to user identity
+  app.post("/api/blockchain/link-hit", async (req: Request, res: Response) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const { walletAddress, tokenId } = req.body;
+      if (!walletAddress || !tokenId) {
+        return res.status(400).json({
+          success: false,
+          message: "Wallet address and token ID are required"
+        });
+      }
+      
+      // Log activity
+      await storage.createActivity({
+        userId: req.session.userId,
+        type: "blockchain-hit-linked",
+        description: "HIT token linked to identity",
+        metadata: { 
+          walletAddress,
+          tokenId,
+          hitLinkingModule: "0x0380587A1C83Db122F02c5FB10e2e069f8e85Ef2" // HITLinking contract address from docs
+        }
+      });
+      
+      res.status(200).json({
+        success: true,
+        message: "HIT token successfully linked to identity",
+        walletAddress,
+        tokenId,
+        timestamp: new Date()
+      });
+    } catch (error) {
+      console.error("Error linking HIT token:", error);
+      res.status(500).json({ 
+        success: false,
+        message: "Error linking token to identity"
+      });
+    }
+  });
+  
+  // Create license for data
+  app.post("/api/blockchain/create-license", async (req: Request, res: Response) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const { dataId, licenseName, licenseTerms, royaltyPercentage, licenseDuration } = req.body;
+      
+      if (!dataId || !licenseName) {
+        return res.status(400).json({
+          success: false,
+          message: "Data ID and license name are required"
+        });
+      }
+      
+      // Log activity
+      await storage.createActivity({
+        userId: req.session.userId,
+        type: "blockchain-license-created",
+        description: `License created: ${licenseName}`,
+        metadata: { 
+          dataId,
+          licenseName,
+          licenseTerms,
+          royaltyPercentage,
+          licenseDuration,
+          licenseManagerAddress: "0x433674053Fc3696b1707313e2dF95CcA81B9DE7b" // LicenseManager contract address from docs
+        }
+      });
+      
+      res.status(200).json({
+        success: true,
+        message: "License created successfully",
+        licenseId: "LICENSE-" + Date.now(),
+        licenseName,
+        contractAddress: "0x433674053Fc3696b1707313e2dF95CcA81B9DE7b",
+        network: "Polygon Amoy Testnet",
+        chainId: 80002
+      });
+    } catch (error) {
+      console.error("Error creating license:", error);
+      res.status(500).json({ 
+        success: false,
+        message: "Error creating license"
+      });
+    }
+  });
+  
+  // Verify identity on-chain
+  app.post("/api/blockchain/verify-onchain", async (req: Request, res: Response) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const { walletAddress, challengeResponse } = req.body;
+      
+      if (!walletAddress) {
+        return res.status(400).json({
+          success: false,
+          message: "Wallet address is required"
+        });
+      }
+      
+      // Log activity
+      await storage.createActivity({
+        userId: req.session.userId,
+        type: "blockchain-verification",
+        description: "On-chain identity verification",
+        metadata: { 
+          walletAddress,
+          verificationTime: new Date(),
+          verificationMethod: "challenge-response"
+        }
+      });
+      
+      res.status(200).json({
+        success: true,
+        message: "Identity verified on-chain",
+        walletAddress,
+        verificationProof: "0x" + Buffer.from(Date.now().toString()).toString('hex'),
+        timestamp: new Date()
+      });
+    } catch (error) {
+      console.error("Error in on-chain verification:", error);
+      res.status(500).json({ 
+        success: false,
+        message: "Error during on-chain verification"
+      });
+    }
+  });
+  
+  // Generate verification proof
+  app.post("/api/verification/proof", async (req: Request, res: Response) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const { purpose, requestor } = req.body;
+      
+      if (!purpose) {
+        return res.status(400).json({
+          success: false,
+          message: "Verification purpose is required"
+        });
+      }
+      
+      // Get user data
+      const user = await storage.getUser(req.session.userId);
+      
+      // This would generate a secure, cryptographic proof in production
+      // For now, simulate a verification proof
+      
+      // Log activity
+      await storage.createActivity({
+        userId: req.session.userId,
+        type: "verification-proof-generated",
+        description: `Verification proof generated for ${purpose}`,
+        metadata: { 
+          purpose,
+          requestor: requestor || "self",
+          timestamp: new Date()
+        }
+      });
+      
+      res.status(200).json({
+        success: true,
+        message: "Verification proof generated",
+        proofId: "PROOF-" + Date.now(),
+        expiresAt: new Date(Date.now() + 3600000), // 1 hour from now
+        purpose,
+        username: user?.username,
+        isVerified: user?.isVerified || false
+      });
+    } catch (error) {
+      console.error("Error generating verification proof:", error);
+      res.status(500).json({ 
+        success: false,
+        message: "Error generating verification proof"
+      });
+    }
+  });
+  
+  // Register smart contract
+  app.post("/api/blockchain/register-contract", async (req: Request, res: Response) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const { contractAddress, contractType, chainId, metadata } = req.body;
+      
+      if (!contractAddress || !contractType) {
+        return res.status(400).json({
+          success: false,
+          message: "Contract address and type are required"
+        });
+      }
+      
+      // This would register the contract with Heirloom's governance module in production
+      // For now, simulate successful registration
+      
+      // Log activity
+      await storage.createActivity({
+        userId: req.session.userId,
+        type: "blockchain-contract-registered",
+        description: `Smart contract registered: ${contractType}`,
+        metadata: { 
+          contractAddress,
+          contractType,
+          chainId: chainId || 80002,
+          registrationTime: new Date(),
+          ...metadata
+        }
+      });
+      
+      res.status(200).json({
+        success: true,
+        message: "Smart contract registered successfully",
+        contractAddress,
+        contractType,
+        registrationId: "REG-" + Date.now(),
+        governanceAddress: "0x20086dA7De70Bd6476230c0C573a1497789Aae2E", // GovernanceModule from docs
+        timestamp: new Date()
+      });
+    } catch (error) {
+      console.error("Error registering smart contract:", error);
+      res.status(500).json({ 
+        success: false,
+        message: "Error registering smart contract"
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
