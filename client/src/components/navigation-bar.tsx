@@ -88,8 +88,8 @@ export default function NavigationBar({ currentPath }: NavigationBarProps) {
         )
       },
       {
-        name: "Profile",
-        path: "/profile",
+        name: "Achievements",
+        path: "/achievements",
         icon: (
           <svg
             className="w-6 h-6"
@@ -100,8 +100,8 @@ export default function NavigationBar({ currentPath }: NavigationBarProps) {
             strokeLinecap="round"
             strokeLinejoin="round"
           >
-            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-            <circle cx="12" cy="7" r="4" />
+            <circle cx="12" cy="8" r="7" />
+            <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88" />
           </svg>
         )
       }
@@ -221,8 +221,8 @@ export default function NavigationBar({ currentPath }: NavigationBarProps) {
             </a>
           </Link>
           
-          <Link href="/profile">
-            <a className={`flex flex-col items-center ${currentPath === "/profile" ? "text-[#1e3c0d]" : "text-gray-500"}`}>
+          <Link href="/achievements">
+            <a className={`flex flex-col items-center ${currentPath === "/achievements" ? "text-[#1e3c0d]" : "text-gray-500"}`}>
               <svg 
                 className={`w-6 h-6 ${isMobile ? 'mb-1' : 'mb-1.5'}`} 
                 viewBox="0 0 24 24" 
@@ -230,10 +230,10 @@ export default function NavigationBar({ currentPath }: NavigationBarProps) {
                 stroke="currentColor" 
                 strokeWidth="2"
               >
-                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-                <circle cx="12" cy="7" r="4" />
+                <circle cx="12" cy="8" r="7" />
+                <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88" />
               </svg>
-              <span className={`${isMobile ? 'text-xs' : 'text-sm'}`}>Profile</span>
+              <span className={`${isMobile ? 'text-xs' : 'text-sm'}`}>Achievements</span>
             </a>
           </Link>
         </div>

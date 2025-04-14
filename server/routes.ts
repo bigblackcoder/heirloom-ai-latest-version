@@ -835,6 +835,242 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+  
+  // Shareable achievement cards
+  app.post("/api/achievements/generate", async (req: Request, res: Response) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const { achievementType, title, description, shareMode } = req.body;
+      
+      if (!achievementType || !title) {
+        return res.status(400).json({
+          success: false,
+          message: "Achievement type and title are required"
+        });
+      }
+      
+      // Get user data
+      const user = await storage.getUser(req.session.userId);
+      if (!user) {
+        return res.status(404).json({ 
+          success: false,
+          message: "User not found" 
+        });
+      }
+      
+      // In production, this would generate a secure, shareable image
+      // For now, generate a unique share ID
+      const shareId = Buffer.from(`${user.username}-${achievementType}-${Date.now()}`).toString('base64');
+      
+      // Log activity
+      await storage.createActivity({
+        userId: req.session.userId,
+        type: "achievement-generated",
+        description: `Generated achievement card: ${title}`,
+        metadata: { 
+          achievementType,
+          title,
+          description,
+          shareMode: shareMode || 'private',
+          shareId
+        }
+      });
+      
+      res.status(200).json({
+        success: true,
+        message: "Achievement card generated successfully",
+        shareId,
+        achievementType,
+        title,
+        description,
+        shareUrl: `https://heirloom.io/share/${shareId}`,
+        socialShareLinks: {
+          twitter: `https://twitter.com/intent/tweet?text=${encodeURIComponent(`I've earned a verification achievement on Heirloom: ${title}`)}&url=${encodeURIComponent(`https://heirloom.io/share/${shareId}`)}`,
+          linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(`https://heirloom.io/share/${shareId}`)}`,
+          facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`https://heirloom.io/share/${shareId}`)}`
+        }
+      });
+    } catch (error) {
+      console.error("Error generating achievement card:", error);
+      res.status(500).json({ 
+        success: false,
+        message: "Error generating achievement card"
+      });
+    }
+  });
+  
+  // Get shareable achievement cards for current user
+  app.get("/api/achievements", async (req: Request, res: Response) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      // In a full implementation, this would retrieve from a database
+      // For now, return sample achievement data based on activities
+      const activities = await storage.getActivitiesByUserId(req.session.userId);
+      
+      // Filter for achievement-related activities
+      const achievementActivities = activities.filter(
+        activity => activity.type === "achievement-generated" || 
+                   activity.type === "identity-verified" ||
+                   activity.type === "blockchain-hit-issued"
+      );
+      
+      // Transform activities into achievements
+      const achievements = achievementActivities.map(activity => {
+        const metadata = activity.metadata as any || {};
+        
+        // Generate an achievement based on activity type
+        if (activity.type === "identity-verified") {
+          return {
+            id: `ach-${activity.id}`,
+            achievementType: "verification",
+            title: "Identity Verified",
+            description: "Successfully completed identity verification",
+            dateEarned: activity.createdAt,
+            confidence: metadata.confidence || 95,
+            shareId: Buffer.from(`verification-${activity.id}-${activity.userId}`).toString('base64'),
+            shareUrl: `https://heirloom.io/share/${Buffer.from(`verification-${activity.id}-${activity.userId}`).toString('base64')}`,
+          };
+        } else if (activity.type === "blockchain-hit-issued") {
+          return {
+            id: `ach-${activity.id}`,
+            achievementType: "blockchain",
+            title: "HIT Token Issued",
+            description: "Received Heirloom Identity Token (HIT)",
+            dateEarned: activity.createdAt,
+            network: metadata.network || "Polygon Amoy Testnet",
+            contractAddress: metadata.contractAddress,
+            shareId: Buffer.from(`blockchain-${activity.id}-${activity.userId}`).toString('base64'),
+            shareUrl: `https://heirloom.io/share/${Buffer.from(`blockchain-${activity.id}-${activity.userId}`).toString('base64')}`,
+          };
+        } else if (activity.type === "achievement-generated") {
+          return {
+            id: `ach-${activity.id}`,
+            achievementType: metadata.achievementType || "custom",
+            title: metadata.title || "Custom Achievement",
+            description: metadata.description || "User generated achievement",
+            dateEarned: activity.createdAt,
+            shareId: metadata.shareId || Buffer.from(`custom-${activity.id}-${activity.userId}`).toString('base64'),
+            shareUrl: `https://heirloom.io/share/${metadata.shareId || Buffer.from(`custom-${activity.id}-${activity.userId}`).toString('base64')}`,
+          };
+        }
+        
+        // Default achievement format
+        return {
+          id: `ach-${activity.id}`,
+          achievementType: "general",
+          title: "Heirloom Achievement",
+          description: activity.description,
+          dateEarned: activity.createdAt,
+          shareId: Buffer.from(`general-${activity.id}-${activity.userId}`).toString('base64'),
+          shareUrl: `https://heirloom.io/share/${Buffer.from(`general-${activity.id}-${activity.userId}`).toString('base64')}`,
+        };
+      });
+      
+      res.status(200).json(achievements);
+    } catch (error) {
+      console.error("Error fetching achievements:", error);
+      res.status(500).json({ message: "Error fetching achievements" });
+    }
+  });
+  
+  // View a shared achievement card
+  app.get("/api/share/:shareId", async (req: Request, res: Response) => {
+    try {
+      const { shareId } = req.params;
+      
+      if (!shareId) {
+        return res.status(400).json({ 
+          success: false,
+          message: "Share ID is required" 
+        });
+      }
+      
+      // In a full implementation, this would retrieve from a database
+      // For now, decode the share ID to get some information
+      let shareData;
+      try {
+        const decodedData = Buffer.from(shareId, 'base64').toString();
+        const [type, id, userId] = decodedData.split('-');
+        
+        // Get user data if available
+        let username = "Heirloom User";
+        if (userId) {
+          const user = await storage.getUser(parseInt(userId));
+          if (user) {
+            username = user.username;
+          }
+        }
+        
+        // Create share data based on type
+        if (type === "verification") {
+          shareData = {
+            type: "verification",
+            title: "Identity Verified",
+            description: "This user has successfully completed identity verification",
+            issuanceDate: new Date(),
+            username,
+            verificationLevel: "Biometric Authentication"
+          };
+        } else if (type === "blockchain") {
+          shareData = {
+            type: "blockchain",
+            title: "HIT Token Issued",
+            description: "This user has received a Heirloom Identity Token (HIT)",
+            issuanceDate: new Date(),
+            username,
+            network: "Polygon Amoy Testnet"
+          };
+        } else if (type === "custom") {
+          shareData = {
+            type: "custom",
+            title: "Custom Achievement",
+            description: "User generated achievement",
+            issuanceDate: new Date(),
+            username
+          };
+        } else {
+          shareData = {
+            type: "general",
+            title: "Heirloom Achievement",
+            description: "A user achievement from Heirloom",
+            issuanceDate: new Date(),
+            username
+          };
+        }
+      } catch (decodeError) {
+        // If decoding fails, provide a generic response
+        shareData = {
+          type: "unknown",
+          title: "Heirloom Achievement",
+          description: "A user achievement from Heirloom",
+          issuanceDate: new Date()
+        };
+      }
+      
+      res.status(200).json({
+        success: true,
+        shareId,
+        ...shareData,
+        platformInfo: {
+          name: "Heirloom Identity Platform",
+          description: "Secure identity verification and management",
+          website: "https://heirloom.io"
+        }
+      });
+    } catch (error) {
+      console.error("Error retrieving shared achievement:", error);
+      res.status(500).json({ 
+        success: false,
+        message: "Error retrieving shared achievement"
+      });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;
