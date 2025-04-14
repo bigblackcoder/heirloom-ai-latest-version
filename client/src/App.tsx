@@ -8,6 +8,7 @@ import Capsule from "@/pages/capsule";
 import Notifications from "@/pages/notifications";
 import Profile from "@/pages/profile";
 import Settings from "@/pages/settings";
+import Achievements from "@/pages/achievements";
 
 function Router() {
   return (
@@ -19,6 +20,7 @@ function Router() {
       <Route path="/notifications" component={Notifications} />
       <Route path="/profile" component={Profile} />
       <Route path="/settings" component={Settings} />
+      <Route path="/achievements" component={Achievements} />
       <Route component={NotFound} />
     </Switch>
   );

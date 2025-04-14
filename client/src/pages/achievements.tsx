@@ -53,7 +53,7 @@ export default function Achievements() {
   
   // Filter achievements by type
   const filterAchievementsByType = (type: string) => {
-    if (!achievements) return [];
+    if (!achievements || !achievements.length) return [];
     return achievements.filter((achievement: Achievement) => 
       achievement.achievementType === type
     );
@@ -144,7 +144,7 @@ export default function Achievements() {
                   Try Again
                 </Button>
               </div>
-            ) : achievements?.length > 0 ? (
+            ) : achievements && achievements.length > 0 ? (
               <div>
                 {achievements.map((achievement: Achievement) => (
                   <AchievementCard key={achievement.id} achievement={achievement} />
@@ -180,7 +180,7 @@ export default function Achievements() {
           </TabsContent>
           
           <TabsContent value="verification">
-            {!isLoading && achievements?.length > 0 ? (
+            {!isLoading && achievements && achievements.length > 0 ? (
               <div>
                 {filterAchievementsByType("verification").length > 0 ? (
                   filterAchievementsByType("verification").map((achievement: Achievement) => (
@@ -205,7 +205,7 @@ export default function Achievements() {
           </TabsContent>
           
           <TabsContent value="blockchain">
-            {!isLoading && achievements?.length > 0 ? (
+            {!isLoading && achievements && achievements.length > 0 ? (
               <div>
                 {filterAchievementsByType("blockchain").length > 0 ? (
                   filterAchievementsByType("blockchain").map((achievement: Achievement) => (
@@ -223,7 +223,7 @@ export default function Achievements() {
           </TabsContent>
           
           <TabsContent value="custom">
-            {!isLoading && achievements?.length > 0 ? (
+            {!isLoading && achievements && achievements.length > 0 ? (
               <div>
                 {filterAchievementsByType("custom").length > 0 ? (
                   filterAchievementsByType("custom").map((achievement: Achievement) => (
