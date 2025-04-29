@@ -28,7 +28,7 @@ export default function DemoPage() {
           <div className="flex justify-between items-center">
             <div className="flex items-center">
               <img 
-                src="/heirloom_white.png" 
+                src="/attached_assets/heirloom_white.png" 
                 alt="Heirloom Logo" 
                 className="h-10 mr-3"
               />
@@ -687,7 +687,7 @@ export default function DemoPage() {
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center mb-6 md:mb-0">
               <img 
-                src="/heirloom_white.png" 
+                src="/attached_assets/heirloom_white.png" 
                 alt="Heirloom Logo" 
                 className="h-8 mr-3"
               />

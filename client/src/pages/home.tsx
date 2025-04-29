@@ -140,13 +140,35 @@ export default function Home() {
             Verify My Identity
           </Button>
           
-          <div className="mt-4 text-center">
+          <div className="mt-4 text-center flex flex-col items-center">
             <Button 
               variant="link" 
               className="text-sm text-white/70 hover:text-white"
               onClick={() => navigate("/dashboard")}
             >
               Already verified? Sign in
+            </Button>
+            
+            <Button 
+              variant="link" 
+              className="text-sm text-[#d4a166] hover:text-[#e5b277] mt-2"
+              onClick={() => navigate("/demo")}
+            >
+              <span className="flex items-center">
+                <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 18.5a6.5 6.5 0 1 0 0-13 6.5 6.5 0 0 0 0 13Z"></path>
+                  <path d="M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"></path>
+                  <path d="M12 2v2"></path>
+                  <path d="M12 20v2"></path>
+                  <path d="m4.93 4.93 1.41 1.41"></path>
+                  <path d="m17.66 17.66 1.41 1.41"></path>
+                  <path d="M2 12h2"></path>
+                  <path d="M20 12h2"></path>
+                  <path d="m6.34 17.66-1.41 1.41"></path>
+                  <path d="m19.07 4.93-1.41 1.41"></path>
+                </svg>
+                Try Voice Demo
+              </span>
             </Button>
           </div>
         </div>

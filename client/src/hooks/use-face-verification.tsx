@@ -1,32 +1,11 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { apiRequest } from '@/lib/queryClient';
+import { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { useLocation } from 'wouter';
 
-// For detecting dev/demo environment
-const isDemoMode = process.env.NODE_ENV === 'development' || 
-                    window.location.search.includes('demo=true');
-
-// Face detection results with enhanced feedback
-interface DetectionFrame {
-  success: boolean;
-  confidence: number;
-  alignment: number; // 0-100 where 100 is perfect alignment
-  feedback?: {
-    tooFarLeft?: boolean;
-    tooFarRight?: boolean;
-    tooHigh?: boolean;
-    tooLow?: boolean;
-    notStable?: boolean;
-    poorLighting?: boolean;
-  };
-}
-
-// DeepFace verification response
-interface VerificationResponse {
+interface FaceVerificationResult {
   success: boolean;
   confidence: number;
   message?: string;
-  verified?: boolean;
   matched?: boolean;
   face_id?: string;
   results?: {
@@ -38,373 +17,153 @@ interface VerificationResponse {
 }
 
 export function useFaceVerification() {
-  const [isDetecting, setIsDetecting] = useState(false);
-  const [verificationProgress, setVerificationProgress] = useState(0);
-  const [detectedFrames, setDetectedFrames] = useState<DetectionFrame[]>([]);
-  const [verificationResults, setVerificationResults] = useState<VerificationResponse | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
-  
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [verificationResult, setVerificationResult] = useState<FaceVerificationResult | null>(null);
   const { toast } = useToast();
-  
-  // Use refs to avoid dependency cycles
-  const framesRef = useRef<DetectionFrame[]>([]);
-  const isDetectingRef = useRef(false);
-  const progressRef = useRef(0);
-  const captureTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const scanningIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  
-  // Update refs when state changes
-  useEffect(() => {
-    framesRef.current = detectedFrames;
-  }, [detectedFrames]);
-  
-  useEffect(() => {
-    isDetectingRef.current = isDetecting;
-  }, [isDetecting]);
-  
-  useEffect(() => {
-    progressRef.current = verificationProgress;
-  }, [verificationProgress]);
-  
-  // Process detection results and update progress
-  const processDetection = useCallback((frame: DetectionFrame) => {
-    if (frame.success) {
-      // Add the frame to our collection
-      setDetectedFrames(prev => {
-        const newFrames = [...prev, frame];
-        // Keep only the last 5 frames for more responsive feedback
-        if (newFrames.length > 5) {
-          newFrames.shift();
-        }
-        framesRef.current = newFrames;
-        return newFrames;
-      });
-      
-      // Calculate progress based on frame quality and alignment
-      // Take an average of the last few frames to smooth out progress
-      const recentFrames = framesRef.current.slice(-3);
-      const avgConfidence = recentFrames.reduce((sum, f) => sum + f.confidence, 0) / recentFrames.length;
-      const avgAlignment = recentFrames.reduce((sum, f) => sum + f.alignment, 0) / recentFrames.length;
-      
-      // Slow down progress to make it more challenging and interactive
-      // Better alignment and confidence = faster progress
-      const progressIncrement = (avgConfidence * avgAlignment / 100) * 0.5;
-      
-      const newProgress = Math.min(
-        progressRef.current + progressIncrement, // Slower progress that depends on alignment
-        99 // Go all the way to 99% so that we don't prematurely complete
-      );
-      
-      setVerificationProgress(newProgress);
-    } else {
-      // If frame detection failed, slightly decrease progress to encourage better alignment
-      if (progressRef.current > 0) {
-        const newProgress = Math.max(progressRef.current - 0.2, 0);
-        setVerificationProgress(newProgress);
-      }
-    }
-  }, []);
+  const [_, navigate] = useLocation();
 
-  // Capture frame and send to server for DeepFace verification
-  const captureAndVerify = useCallback(async (videoElement: HTMLVideoElement, saveToDb: boolean = false) => {
-    if (!videoElement || isProcessing) return;
+  // Simulate verification process for demo purposes
+  const simulateVerification = useCallback(() => {
+    setIsVerifying(true);
+    setProgress(0);
+    setVerificationResult(null);
+    
+    // Show toast to indicate verification has started
+    toast({
+      title: "Verification Started",
+      description: "Scanning face for verification...",
+    });
+    
+    // Simulate progress updates
+    const interval = setInterval(() => {
+      setProgress(prev => {
+        const newProgress = prev + Math.random() * 10;
+        if (newProgress >= 100) {
+          clearInterval(interval);
+          
+          // Simulate successful verification after 100% progress
+          setTimeout(() => {
+            const mockResult: FaceVerificationResult = {
+              success: true,
+              confidence: 97.5,
+              matched: true,
+              face_id: 'face_' + Math.random().toString(36).substring(2, 10),
+              results: {
+                age: 32,
+                gender: 'Male',
+                dominant_race: 'white',
+                dominant_emotion: 'neutral'
+              },
+              message: 'Identity verified with high confidence'
+            };
+            
+            setVerificationResult(mockResult);
+            setIsVerifying(false);
+            
+            // Show success toast
+            toast({
+              title: "Verification Complete",
+              description: "Your identity has been successfully verified.",
+              variant: "default",
+            });
+            
+            // Navigate to dashboard after success
+            setTimeout(() => {
+              navigate('/dashboard');
+            }, 1000);
+          }, 500);
+          
+          return 100;
+        }
+        return newProgress;
+      });
+    }, 200);
+    
+    // Clean up interval
+    return () => clearInterval(interval);
+  }, [toast, navigate]);
+  
+  // Verify face with API
+  const verifyFace = useCallback(async (base64Image: string, userId?: string) => {
+    setIsVerifying(true);
+    setProgress(0);
     
     try {
-      setIsProcessing(true);
+      // Start with initial progress
+      setProgress(10);
       
-      // Create a canvas element to capture the frame
-      const canvas = document.createElement('canvas');
-      canvas.width = videoElement.videoWidth;
-      canvas.height = videoElement.videoHeight;
-      
-      // Draw the current video frame to the canvas
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        throw new Error('Could not get canvas context');
-      }
-      
-      // Mirror horizontally if necessary
-      ctx.translate(canvas.width, 0);
-      ctx.scale(-1, 1);
-      ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-      
-      // Get the image data as base64
-      const imageData = canvas.toDataURL('image/jpeg');
-      
-      // Send the image data to the server for verification
-      // Include saveToDb option to store the face for future matching if verified
-      const response = await apiRequest({
-        url: '/api/verification/face',
+      // Make API request to verify face
+      const response = await fetch('/api/verification/face', {
         method: 'POST',
-        body: { 
-          image: imageData,
-          saveToDb: saveToDb 
-        }
-      }) as VerificationResponse;
-      
-      // If verification was successful
-      if (response && response.success === true) {
-        setVerificationResults(response);
-        // Complete the progress to 100%
-        setVerificationProgress(100);
-      } else {
-        // Handle unsuccessful verification but continue trying
-        console.warn('Face verification unsuccessful:', response?.message || 'Unknown error');
-        
-        // Add artificial progress based on how many attempts we've made
-        setVerificationProgress(prev => Math.min(prev + 2, 90));
-        
-        // Add a basic frame to keep trying
-        processDetection({
-          success: true,
-          confidence: 50, // 50% confidence
-          alignment: 50
-        });
-      }
-    } catch (error) {
-      console.error('Error in face verification:', error);
-      toast({
-        title: 'Verification Error',
-        description: 'There was an error processing your facial verification. Please try again.',
-        variant: 'destructive'
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          image: base64Image,
+          user_id: userId,
+          save_to_db: true,
+        }),
       });
-    } finally {
-      setIsProcessing(false);
-    }
-  }, [isProcessing, toast, processDetection]);
-  
-  // Enhanced face detection with improved alignment feedback
-  const detectFacePresence = useCallback((video: HTMLVideoElement): DetectionFrame => {
-    // For a real implementation, we would use a lightweight detector here
-    // But for demo purposes, we'll use a more controlled simulation
-    // that doesn't randomly progress but requires user interaction
-    
-    // Get the bounding client rect of the video element to determine center
-    const rect = video.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-    
-    // Get the current mouse position (as a proxy for user's face movement)
-    const mouseX = window.mouseX || centerX;
-    const mouseY = window.mouseY || centerY;
-    
-    // Calculate distance from center (normalized to 0-100)
-    const distanceX = Math.abs(mouseX - centerX) / (rect.width / 2) * 100;
-    const distanceY = Math.abs(mouseY - centerY) / (rect.height / 2) * 100;
-    
-    // Calculate overall distance from center (0-100 where 0 is perfect)
-    const distance = Math.min(100, Math.sqrt(distanceX * distanceX + distanceY * distanceY));
-    
-    // Convert to alignment score (0-100 where 100 is perfect)
-    const alignment = Math.max(0, 100 - distance);
-    
-    // Is face sufficiently centered?
-    const isFaceCentered = alignment > 60;
-    
-    // Check if the user's face is moving too much (simulated)
-    // In a real implementation, this would use frame-to-frame movement
-    const isStable = window.mouseX !== undefined
-      ? Math.random() > 0.2 // 80% chance of being stable when mouse is present
-      : Math.random() > 0.5; // 50% chance of being stable when no mouse
-    
-    // Check lighting conditions (simulated)
-    // Would analyze actual video brightness in real implementation
-    const lighting = Math.min(100, 60 + Math.random() * 40); // 60-100 range
-    
-    // Generate detailed feedback flags
-    const feedbackFlags = {
-      tooFarLeft: distanceX > 30 && mouseX < centerX,
-      tooFarRight: distanceX > 30 && mouseX > centerX,
-      tooHigh: distanceY > 30 && mouseY < centerY,
-      tooLow: distanceY > 30 && mouseY > centerY,
-      notStable: !isStable,
-      poorLighting: lighting < 70
-    };
-    
-    // Compute overall confidence score based on multiple factors
-    // Each factor contributes differently to the final score
-    const alignmentWeight = 0.5;
-    const stabilityWeight = 0.3;
-    const lightingWeight = 0.2;
-    
-    const alignmentScore = alignment;
-    const stabilityScore = isStable ? 100 : 40;
-    const lightingScore = lighting;
-    
-    const totalScore = (alignmentScore * alignmentWeight) + 
-                       (stabilityScore * stabilityWeight) + 
-                       (lightingScore * lightingWeight);
-                       
-    // Base confidence is 50-100 range
-    const confidence = Math.max(50, Math.min(100, totalScore));
-    
-    return {
-      success: isFaceCentered && isStable && lighting >= 70,
-      confidence: confidence,
-      alignment: alignment,
-      feedback: feedbackFlags
-    };
-  }, []);
-  
-  // Start the detection process
-  const startDetection = useCallback((videoElement: HTMLVideoElement) => {
-    if (!videoElement) return;
-    
-    setIsDetecting(true);
-    setVerificationProgress(0);
-    setDetectedFrames([]);
-    setVerificationResults(null);
-    isDetectingRef.current = true;
-    progressRef.current = 0;
-    framesRef.current = [];
-    
-    // Run continuous face detection at a higher rate for responsiveness
-    scanningIntervalRef.current = setInterval(() => {
-      if (!isDetectingRef.current) {
-        if (scanningIntervalRef.current) clearInterval(scanningIntervalRef.current);
-        return;
+      
+      setProgress(70);
+      
+      if (!response.ok) {
+        throw new Error(`Verification failed with status: ${response.status}`);
       }
       
-      const result = detectFacePresence(videoElement);
-      processDetection(result);
-    }, 100);
-    
-    // Periodically capture frames for server verification, but at a lower rate
-    captureTimeoutRef.current = setTimeout(function capture() {
-      if (!isDetectingRef.current) return;
+      const result: FaceVerificationResult = await response.json();
+      setProgress(100);
+      setVerificationResult(result);
       
-      // Save to database after the first few frames
-      const saveToDb = framesRef.current.length > 5 && progressRef.current > 40;
-      
-      captureAndVerify(videoElement, saveToDb).then(() => {
-        // Schedule next capture if still detecting and not at 100%
-        if (isDetectingRef.current && progressRef.current < 100) {
-          captureTimeoutRef.current = setTimeout(capture, 1500); // Every 1.5 seconds
-        }
-      });
-    }, 1000); // First capture after 1 second
-    
-    // Cleanup function
-    return () => {
-      if (scanningIntervalRef.current) clearInterval(scanningIntervalRef.current);
-      if (captureTimeoutRef.current) clearTimeout(captureTimeoutRef.current);
-      setIsDetecting(false);
-    };
-  }, [detectFacePresence, processDetection, captureAndVerify]);
-  
-  // Stop the detection process
-  const stopDetection = useCallback(() => {
-    setIsDetecting(false);
-    isDetectingRef.current = false;
-    
-    // Clear any pending timeouts/intervals
-    if (scanningIntervalRef.current) clearInterval(scanningIntervalRef.current);
-    if (captureTimeoutRef.current) clearTimeout(captureTimeoutRef.current);
-  }, []);
-  
-  // Artificial progress increase for better UX
-  useEffect(() => {
-    if (!isDetecting || progressRef.current >= 100) return;
-    
-    // Slow continuous progress to provide feedback even if verification is taking time
-    const progressInterval = setInterval(() => {
-      // Allow progress to reach 100% for a more satisfying user experience
-      if (progressRef.current < 100) {
-        setVerificationProgress(prev => {
-          // Very slow artificial progress, but will eventually reach 100%
-          const newProgress = Math.min(prev + 0.2, 100); 
-          progressRef.current = newProgress;
-          return newProgress;
-        });
-      } else {
-        clearInterval(progressInterval);
-      }
-    }, 300);
-    
-    return () => clearInterval(progressInterval);
-  }, [isDetecting]);
-  
-  // Function to simulate a demo verification for testing purposes
-  const simulateVerification = useCallback(() => {
-    setIsDetecting(true);
-    isDetectingRef.current = true;
-    setVerificationProgress(0);
-    progressRef.current = 0;
-    
-    // Simulate progress over time with variable speed for realism
-    let progress = 0;
-    let lastIncrease = 1.5;
-    
-    const simulationInterval = setInterval(() => {
-      // Vary the progress increment for a more realistic simulation
-      const variationFactor = 0.8 + (Math.random() * 0.4); // Random factor between 0.8 and 1.2
-      lastIncrease = Math.min(lastIncrease * variationFactor, 2.5);
-      
-      progress += lastIncrease;
-      
-      if (progress >= 100) {
-        // Complete the verification
-        clearInterval(simulationInterval);
-        
-        // Make sure we set progress to 100
-        setVerificationProgress(100);
-        progressRef.current = 100;
-        
-        // Set verification results
-        setVerificationResults({
-          success: true,
-          confidence: 0.95, // 95% confidence (using decimal scale 0.0-1.0)
-          verified: true,
-          matched: Math.random() > 0.5, // Randomly simulate a matched face
-          face_id: Math.random() > 0.5 ? "e5a7b45c-8f92-4c3a-b8e2-9d8a7bb1df47" : undefined,
-          results: {
-            age: 28,
-            gender: "Man",
-            dominant_race: "caucasian",
-            dominant_emotion: "neutral"
-          }
+      // Show appropriate toast based on result
+      if (result.success) {
+        toast({
+          title: "Verification Successful",
+          description: result.message || "Your identity has been verified.",
+          variant: "default",
         });
         
-        // Turn off detection mode 
+        // Navigate to dashboard after success
         setTimeout(() => {
-          setIsDetecting(false);
-          isDetectingRef.current = false;
-        }, 500); // Small delay to ensure state updates properly
+          navigate('/dashboard');
+        }, 1000);
       } else {
-        // Simulated checkpoints in verification process
-        if (progress > 30 && progress < 32) {
-          // Slow down during "analysis" phase
-          lastIncrease = 0.8;
-        } else if (progress > 60 && progress < 62) {
-          // Slow down during "verification" phase
-          lastIncrease = 0.5;
-        } else if (progress > 85) {
-          // Final slowdown during verification confirmation
-          lastIncrease = 0.3;
-        }
-        
-        // Update both state and ref
-        setVerificationProgress(progress);
-        progressRef.current = progress;
+        toast({
+          title: "Verification Failed",
+          description: result.message || "Please try again.",
+          variant: "destructive",
+        });
       }
-    }, 100);
-    
-    return () => {
-      clearInterval(simulationInterval);
-      setIsDetecting(false);
-      isDetectingRef.current = false;
-    };
-  }, []);
+      
+      return result;
+    } catch (error) {
+      console.error('Face verification error:', error);
+      
+      // Handle error and show toast
+      toast({
+        title: "Verification Error",
+        description: error instanceof Error ? error.message : "An unexpected error occurred.",
+        variant: "destructive",
+      });
+      
+      setVerificationResult({
+        success: false,
+        confidence: 0,
+        message: error instanceof Error ? error.message : "An unexpected error occurred",
+      });
+      
+      return null;
+    } finally {
+      setIsVerifying(false);
+    }
+  }, [toast, navigate]);
   
   return {
-    isDetecting,
-    verificationProgress,
-    verificationResults,
-    isProcessing,
-    startDetection,
-    stopDetection,
-    detectedFrames,
+    isVerifying,
+    progress,
+    verificationResult,
+    verifyFace,
     simulateVerification,
-    isDemoMode
   };
 }
