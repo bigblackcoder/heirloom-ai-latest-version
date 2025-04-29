@@ -149,27 +149,46 @@ export default function Home() {
               Already verified? Sign in
             </Button>
             
-            <Button 
-              variant="link" 
-              className="text-sm text-[#d4a166] hover:text-[#e5b277] mt-2"
-              onClick={() => navigate("/demo")}
-            >
-              <span className="flex items-center">
-                <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M12 18.5a6.5 6.5 0 1 0 0-13 6.5 6.5 0 0 0 0 13Z"></path>
-                  <path d="M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"></path>
-                  <path d="M12 2v2"></path>
-                  <path d="M12 20v2"></path>
-                  <path d="m4.93 4.93 1.41 1.41"></path>
-                  <path d="m17.66 17.66 1.41 1.41"></path>
-                  <path d="M2 12h2"></path>
-                  <path d="M20 12h2"></path>
-                  <path d="m6.34 17.66-1.41 1.41"></path>
-                  <path d="m19.07 4.93-1.41 1.41"></path>
-                </svg>
-                Try Voice Demo
-              </span>
-            </Button>
+            <div className="flex flex-row gap-2 items-center justify-center">
+              <Button 
+                variant="link" 
+                className="text-sm text-[#d4a166] hover:text-[#e5b277] mt-2"
+                onClick={() => navigate("/demo")}
+              >
+                <span className="flex items-center">
+                  <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 18.5a6.5 6.5 0 1 0 0-13 6.5 6.5 0 0 0 0 13Z"></path>
+                    <path d="M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"></path>
+                    <path d="M12 2v2"></path>
+                    <path d="M12 20v2"></path>
+                    <path d="m4.93 4.93 1.41 1.41"></path>
+                    <path d="m17.66 17.66 1.41 1.41"></path>
+                    <path d="M2 12h2"></path>
+                    <path d="M20 12h2"></path>
+                    <path d="m6.34 17.66-1.41 1.41"></path>
+                    <path d="m19.07 4.93-1.41 1.41"></path>
+                  </svg>
+                  Tour Demo
+                </span>
+              </Button>
+              
+              <Button 
+                variant="link" 
+                className="text-sm text-[#d4a166] hover:text-[#e5b277] mt-2"
+                onClick={() => navigate("/demo?voice=true")}
+              >
+                <span className="flex items-center">
+                  <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 19c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7Z"></path>
+                    <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"></path>
+                    <path d="M12 11h.01"></path>
+                    <path d="M19 6.337A7.964 7.964 0 0 0 12 3a7.964 7.964 0 0 0-7 3.337"></path>
+                    <path d="M12 19c2.5 0 6.5-1.5 6.5-7 0-1-1.5-1.5-1.5-1.5h-10S5.5 11 5.5 12c0 5.5 4 7 6.5 7Z"></path>
+                  </svg>
+                  Voice-Guided Demo
+                </span>
+              </Button>
+            </div>
           </div>
         </div>
       </div>

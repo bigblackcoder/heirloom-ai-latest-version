@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useLocation } from 'wouter';
 
@@ -22,6 +22,15 @@ export function useFaceVerification() {
   const [verificationResult, setVerificationResult] = useState<FaceVerificationResult | null>(null);
   const { toast } = useToast();
   const [_, navigate] = useLocation();
+  
+  // Animation frame reference
+  const animationRef = useRef<number | null>(null);
+  // Detection interval reference
+  const detectionIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  // Video element reference
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  // Progress simulation timer
+  const progressTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Simulate verification process for demo purposes
   const simulateVerification = useCallback(() => {
@@ -159,11 +168,94 @@ export function useFaceVerification() {
     }
   }, [toast, navigate]);
   
+  // Start face detection using the webcam video element
+  const startDetection = useCallback((videoElement: HTMLVideoElement) => {
+    if (!videoElement) return;
+    
+    // Store video element reference
+    videoRef.current = videoElement;
+    setIsVerifying(true);
+    
+    // Reset progress
+    setProgress(0);
+    
+    // Start simulating progress
+    if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+    progressTimerRef.current = setInterval(() => {
+      setProgress(prev => {
+        // Increase progress gradually up to 95% (the last 5% will be when face is verified)
+        const newProgress = prev + (Math.random() * 2);
+        return newProgress > 95 ? 95 : newProgress;
+      });
+    }, 200);
+
+    // Set up detection interval - captures frames periodically for server verification
+    if (detectionIntervalRef.current) clearInterval(detectionIntervalRef.current);
+    detectionIntervalRef.current = setInterval(() => {
+      // Create a canvas to capture the current video frame
+      const canvas = document.createElement('canvas');
+      canvas.width = videoElement.videoWidth;
+      canvas.height = videoElement.videoHeight;
+      
+      // Draw the current video frame to the canvas
+      const ctx = canvas.getContext('2d');
+      if (ctx && videoElement.videoWidth > 0) {
+        ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+        
+        // Convert to base64 for transmission to server
+        try {
+          const imgData = canvas.toDataURL('image/jpeg', 0.8);
+          
+          // Here you could send the image data to your server for verification
+          // For demo purposes, we're just simulating progress
+          console.log('Frame captured for detection');
+        } catch (err) {
+          console.error('Error capturing frame:', err);
+        }
+      }
+    }, 1500); // Capture frame every 1.5 seconds
+
+    console.log('Face detection started');
+  }, []);
+  
+  // Stop face detection
+  const stopDetection = useCallback(() => {
+    // Cancel animation frame if active
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current);
+      animationRef.current = null;
+    }
+    
+    // Clear detection interval
+    if (detectionIntervalRef.current) {
+      clearInterval(detectionIntervalRef.current);
+      detectionIntervalRef.current = null;
+    }
+    
+    // Clear progress timer
+    if (progressTimerRef.current) {
+      clearInterval(progressTimerRef.current);
+      progressTimerRef.current = null;
+    }
+    
+    // Set final progress
+    setProgress(100);
+    setIsVerifying(false);
+    
+    console.log('Face detection stopped');
+  }, []);
+
+  // Calculate verification progress
+  const verificationProgress = progress;
+  
   return {
     isVerifying,
     progress,
+    verificationProgress,
     verificationResult,
     verifyFace,
     simulateVerification,
+    startDetection,
+    stopDetection
   };
 }
