@@ -272,45 +272,54 @@ export function VoiceAgent({ onComplete, autoStart = false }: VoiceAgentProps) {
   
   return (
     <div className="fixed bottom-20 right-5 z-50">
-      <div className="bg-white rounded-xl shadow-lg p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold">Heirloom Voice Demo</h3>
+      <div className="bg-white rounded-xl shadow-lg p-3">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center">
+            <div className="bg-[#1E3C0D] rounded-full w-7 h-7 flex items-center justify-center mr-2">
+              {isPlaying ? 
+                <Pause className="h-3 w-3 text-white" /> : 
+                <Play className="h-3 w-3 text-white" />
+              }
+            </div>
+            <h3 className="text-sm font-semibold">Voice Tour</h3>
+          </div>
           <div className="flex space-x-1">
             <Button 
               variant="outline" 
               size="sm" 
-              className="w-8 h-8 p-0" 
+              className="w-7 h-7 p-0" 
               onClick={togglePlayback}
             >
-              {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+              {isPlaying ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
             </Button>
             <Button 
               variant={isPlaying ? "destructive" : "outline"} 
               size="sm" 
-              className="w-8 h-8 p-0"
+              className="w-7 h-7 p-0"
               onClick={stopSpeaking}
             >
-              <MicOff className="h-4 w-4" />
+              <MicOff className="h-3 w-3" />
             </Button>
           </div>
         </div>
         
-        <div className="grid grid-cols-2 gap-2 mb-2">
+        <div className="flex flex-wrap gap-1 mb-2">
           {Object.keys(DEMO_SCRIPT).map((key, index) => (
             <Button 
               key={key} 
               variant={currentScript === key ? "default" : "outline"} 
               size="sm"
-              className="text-xs"
+              className="text-xs px-2 py-0 h-7 flex-1"
               onClick={() => jumpToSegment(key as keyof typeof DEMO_SCRIPT)}
             >
-              {index + 1}. {key.charAt(0).toUpperCase() + key.slice(1)}
+              {key.charAt(0).toUpperCase() + key.slice(1)}
             </Button>
           ))}
         </div>
         
-        <div className="text-xs text-gray-500 italic">
-          {isPlaying ? 'Speaking...' : 'Click a topic or play button to start'}
+        <div className="flex items-center text-xs text-gray-500">
+          <div className={`w-2 h-2 rounded-full mr-2 ${isPlaying ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`}></div>
+          {isPlaying ? 'Now speaking: ' + currentScript : 'Select a topic to start'}
         </div>
       </div>
     </div>
