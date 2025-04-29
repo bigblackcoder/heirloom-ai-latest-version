@@ -28,7 +28,7 @@ export default function DemoPage() {
           <div className="flex justify-between items-center">
             <div className="flex items-center">
               <img 
-                src="/attached_assets/heirloom_white.png" 
+                src="/attached_assets/logo-heirloom.png" 
                 alt="Heirloom Logo" 
                 className="h-10 mr-3"
               />
@@ -41,7 +41,7 @@ export default function DemoPage() {
             </nav>
             {!startedDemo && (
               <Button 
-                className="bg-[#D4A166] hover:bg-[#A67D4F] text-black"
+                className="bg-[#D4A166] hover:bg-[#A67D4F] text-black font-medium"
                 onClick={() => navigate('/verification')}
               >
                 Try Verification
@@ -225,7 +225,7 @@ export default function DemoPage() {
                         </ul>
                         
                         <Button
-                          className="mt-6 bg-[#D4A166] hover:bg-[#A67D4F] text-black"
+                          className="mt-6 bg-[#D4A166] hover:bg-[#A67D4F] text-black font-medium"
                           onClick={() => navigate('/verification')}
                         >
                           Try Verification
@@ -296,7 +296,7 @@ export default function DemoPage() {
                         </ul>
                         
                         <Button
-                          className="mt-6 bg-[#D4A166] hover:bg-[#A67D4F] text-black"
+                          className="mt-6 bg-[#D4A166] hover:bg-[#A67D4F] text-black font-medium"
                           onClick={() => navigate('/dashboard')}
                         >
                           View Capsules
@@ -398,7 +398,7 @@ export default function DemoPage() {
                         </ul>
                         
                         <Button
-                          className="mt-6 bg-[#D4A166] hover:bg-[#A67D4F] text-black"
+                          className="mt-6 bg-[#D4A166] hover:bg-[#A67D4F] text-black font-medium"
                           onClick={() => navigate('/dashboard')}
                         >
                           View Blockchain Tokens
@@ -502,7 +502,7 @@ export default function DemoPage() {
                         </ul>
                         
                         <Button
-                          className="mt-6 bg-[#D4A166] hover:bg-[#A67D4F] text-black"
+                          className="mt-6 bg-[#D4A166] hover:bg-[#A67D4F] text-black font-medium"
                           onClick={() => navigate('/achievements')}
                         >
                           View Achievements
@@ -667,7 +667,11 @@ export default function DemoPage() {
               />
               
               <div className="flex items-center space-x-4 mb-4">
-                <div className="bg-[#D4A166] h-1 w-10 rounded-full"></div>
+                <img 
+                  src="/attached_assets/logo-heirloom.png" 
+                  alt="Heirloom Logo" 
+                  className="h-8 w-8 object-contain"
+                />
                 <h3 className="text-xl font-medium">Our Mission</h3>
               </div>
               
@@ -687,7 +691,7 @@ export default function DemoPage() {
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center mb-6 md:mb-0">
               <img 
-                src="/attached_assets/heirloom_white.png" 
+                src="/attached_assets/logo-heirloom.png" 
                 alt="Heirloom Logo" 
                 className="h-8 mr-3"
               />
