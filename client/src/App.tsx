@@ -9,6 +9,7 @@ import Notifications from "@/pages/notifications";
 import Profile from "@/pages/profile";
 import Settings from "@/pages/settings";
 import Achievements from "@/pages/achievements";
+import Demo from "@/pages/demo";
 
 function Router() {
   return (
@@ -21,14 +22,19 @@ function Router() {
       <Route path="/profile" component={Profile} />
       <Route path="/settings" component={Settings} />
       <Route path="/achievements" component={Achievements} />
+      <Route path="/demo" component={Demo} />
       <Route component={NotFound} />
     </Switch>
   );
 }
 
 function App() {
+  // Get current path for responsive layout
+  const path = window.location.pathname;
+  const isFullWidthPage = path === '/demo';
+  
   return (
-    <div className="min-h-screen bg-background max-w-md mx-auto overflow-hidden relative">
+    <div className={`min-h-screen bg-background ${isFullWidthPage ? 'w-full' : 'max-w-md mx-auto'} overflow-hidden relative`}>
       <Router />
       <Toaster />
     </div>
