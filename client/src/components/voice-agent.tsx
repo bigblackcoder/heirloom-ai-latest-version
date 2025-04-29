@@ -5,35 +5,42 @@ import { useToast } from '@/hooks/use-toast';
 import { useFaceVerification } from '@/hooks/use-face-verification';
 import { useLocation } from 'wouter';
 
-// Demo script segments
+// Demo script segments with more conversational language and natural pauses
 const DEMO_SCRIPT = {
-  welcome: `Welcome to Heirloom, the next generation identity verification platform. 
-            I'll be your guide through this demonstration of our secure identity verification system.`,
+  welcome: `Hi there! I'm your Heirloom guide. I'd love to walk you through our identity platform today.
+            Let me show you how we're changing the way people manage their digital identity.`,
   
-  introduction: `Heirloom provides a secure way to verify and manage your digital identity 
-                 using advanced facial recognition technology. Our platform ensures your identity 
-                 remains private while giving you control over how it's used and shared.`,
+  introduction: `So, what exactly is Heirloom? Think of it as your digital identity guardian.
+                 We use smart facial recognition that keeps your identity secure, but also completely
+                 under your control. It's kind of like having a digital passport that only you can use.`,
   
-  verification: `Let's start with our core feature - facial verification. 
-                 This process securely captures your facial biometrics and verifies your identity 
-                 in real-time. It's designed to be both highly secure and user-friendly.`,
+  verification: `Let's check out the coolest part first - our face verification.
+                 Instead of remembering passwords, your face becomes your key.
+                 Watch this... It scans your face, confirms it's really you (not a photo or mask),
+                 and unlocks your identity in seconds. Pretty neat, right?`,
   
-  capsules: `Identity capsules are secure containers where your verified identity information is stored. 
-             You can create multiple capsules for different purposes, like one for financial services 
-             and another for healthcare. Each capsule can be selectively shared with trusted parties.`,
+  capsules: `Now, these identity capsules are my favorite feature. 
+             Imagine having different digital lockboxes for different parts of your life.
+             One for your banking info, another for healthcare... and you decide exactly who gets access to what.
+             No more oversharing your personal details with every service you use!`,
   
-  blockchain: `Heirloom leverages blockchain technology to provide tamper-proof verification records. 
-               Our Heirloom Identity Tokens, or HITs, serve as cryptographic proof of your verified identity 
-               without exposing your personal information.`,
+  blockchain: `Here's where it gets really interesting. We use blockchain - you know, the technology behind
+               Bitcoin? But instead of currency, we're securing your identity with what we call HITs.
+               These are like digital certificates that prove you're you, without revealing your personal details.
+               It's technological magic, really!`,
   
-  achievements: `As you use Heirloom, you'll earn achievements that mark milestones in your identity journey. 
-                 These can be shared with others to demonstrate your commitment to digital identity management.`,
+  achievements: `We've also made identity management fun! As you use Heirloom, you'll collect these achievement badges.
+                 Just completed your first verification? That's an achievement! Shared your first capsule? Achievement unlocked!
+                 You can even share these on social media if you're proud of your digital security game.`,
   
-  privacy: `Privacy is at the core of Heirloom. Your data remains encrypted and under your control at all times. 
-            You decide what information to share, with whom, and for how long.`,
+  privacy: `I can't stress enough how seriously we take your privacy at Heirloom.
+            Your data is encrypted - meaning scrambled so only you can make sense of it.
+            And unlike other services, we don't own your data, you do. It's your identity after all!
+            You're in the driver's seat at all times.`,
   
-  conclusion: `Thank you for exploring Heirloom with me today. The future of digital identity is secure, 
-               private, and user-controlled. Would you like to try the verification process yourself?`
+  conclusion: `And that wraps up our tour of Heirloom! What do you think? Pretty exciting, right?
+               The future of identity is here - secure, private, and completely in your hands.
+               Would you like to give the verification process a try yourself? I promise it's super easy!`
 };
 
 // Voice options
@@ -66,24 +73,36 @@ export function VoiceAgent({ onComplete, autoStart = false }: VoiceAgentProps) {
   const { simulateVerification } = useFaceVerification();
   const speechSynthesisRef = useRef<SpeechSynthesisUtterance | null>(null);
   
-  // Initialize speech synthesis
+  // Initialize speech synthesis with more natural-sounding parameters
   useEffect(() => {
     if ('speechSynthesis' in window) {
       speechSynthesisRef.current = new SpeechSynthesisUtterance();
       speechSynthesisRef.current.lang = 'en-US';
-      speechSynthesisRef.current.rate = 1.0;
-      speechSynthesisRef.current.pitch = 1.0;
+      speechSynthesisRef.current.rate = 0.95; // Slightly slower rate sounds more natural
+      speechSynthesisRef.current.pitch = 1.05; // Slight pitch variation for more human-like sound
+      speechSynthesisRef.current.volume = 1.0; // Full volume
       
       // Set voice if available
       setTimeout(() => {
         if (speechSynthesisRef.current) {
           const voices = window.speechSynthesis.getVoices();
-          const preferredVoice = voices.find(voice => voice.name === VOICES.female) || 
-                                 voices.find(voice => voice.lang === 'en-US') || 
-                                 voices[0];
+          
+          // Look for higher quality voices first
+          const preferredVoice = 
+            // Look for Google US English voice which tends to sound more natural
+            voices.find(voice => voice.name.includes('Google') && voice.name.includes('US English')) ||
+            // Apple's Samantha voice sounds natural on Safari
+            voices.find(voice => voice.name === 'Samantha') ||
+            // Try Microsoft voices which are often high quality
+            voices.find(voice => voice.name === VOICES.female) || 
+            // Fallback to any English US voice
+            voices.find(voice => voice.lang === 'en-US') || 
+            // Last resort - any available voice
+            voices[0];
           
           if (preferredVoice) {
             speechSynthesisRef.current.voice = preferredVoice;
+            console.log('Using voice:', preferredVoice.name);
           }
         }
       }, 100);
@@ -132,7 +151,39 @@ export function VoiceAgent({ onComplete, autoStart = false }: VoiceAgentProps) {
     };
   }, [currentScript, onComplete, simulateVerification]);
   
-  // Play the current script segment
+  // Add pauses to text for more natural speech rhythms
+  const processTextForSpeech = (text: string): string => {
+    // Add strategic pauses with commas and periods
+    let processedText = text
+      // Make sure there's a pause after question marks and exclamation points
+      .replace(/\?([^\s])/g, '? $1')
+      .replace(/\!([^\s])/g, '! $1')
+      // Add pause after "..."
+      .replace(/\.\.\.([^\s])/g, '... $1')
+      // Replace dashes with slight pauses
+      .replace(/\s-\s/g, ', ')
+      // Ensure proper pauses after sentences
+      .replace(/\.([^\s\.])/g, '. $1');
+      
+    // Remove extra whitespace
+    return processedText.replace(/\s+/g, ' ').trim();
+  };
+  
+  // Break down text into "sentences" to create natural pauses
+  const speakWithPauses = (text: string) => {
+    if (!speechSynthesisRef.current) return;
+    
+    // Get the processed text
+    const processedText = processTextForSpeech(text);
+    
+    // Set the text to speak
+    speechSynthesisRef.current.text = processedText;
+    
+    // Start speaking
+    window.speechSynthesis.speak(speechSynthesisRef.current);
+  };
+  
+  // Play the current script segment with improved naturalness
   const playCurrentSegment = () => {
     if (!speechSynthesisRef.current) return;
     
@@ -141,11 +192,8 @@ export function VoiceAgent({ onComplete, autoStart = false }: VoiceAgentProps) {
     // Get the script text
     const text = DEMO_SCRIPT[currentScript];
     
-    // Set the text to speak
-    speechSynthesisRef.current.text = text;
-    
-    // Start speaking
-    window.speechSynthesis.speak(speechSynthesisRef.current);
+    // Speak the text with natural pauses
+    speakWithPauses(text);
     
     // Visual feedback
     toast({
