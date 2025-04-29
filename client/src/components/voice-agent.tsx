@@ -6,26 +6,27 @@ import { useFaceVerification } from '@/hooks/use-face-verification';
 import { useLocation } from 'wouter';
 
 // Demo script segments with more conversational language and natural pauses
+// Carefully formatted to ensure proper spacing around question marks and exclamation points
 const DEMO_SCRIPT = {
   welcome: `Hi there! I'm your Heirloom guide. I'd love to walk you through our identity platform today.
             Let me show you how we're changing the way people manage their digital identity.`,
   
-  introduction: `So, what exactly is Heirloom? Think of it as your digital identity guardian.
+  introduction: `So what exactly is Heirloom? Think of it as your digital identity guardian.
                  We use smart facial recognition that keeps your identity secure, but also completely
                  under your control. It's kind of like having a digital passport that only you can use.`,
   
-  verification: `Let's check out the coolest part first - our face verification.
+  verification: `Let's check out the coolest part first, our face verification.
                  Instead of remembering passwords, your face becomes your key.
-                 Watch this... It scans your face, confirms it's really you (not a photo or mask),
+                 Watch this. It scans your face, confirms it's really you, not a photo or mask,
                  and unlocks your identity in seconds. Pretty neat, right?`,
   
-  capsules: `Now, these identity capsules are my favorite feature. 
+  capsules: `Now these identity capsules are my favorite feature. 
              Imagine having different digital lockboxes for different parts of your life.
-             One for your banking info, another for healthcare... and you decide exactly who gets access to what.
+             One for your banking info, another for healthcare, and you decide exactly who gets access to what.
              No more oversharing your personal details with every service you use!`,
   
-  blockchain: `Here's where it gets really interesting. We use blockchain - you know, the technology behind
-               Bitcoin? But instead of currency, we're securing your identity with what we call HITs.
+  blockchain: `Here's where it gets really interesting. We use blockchain, you know, the technology behind
+               Bitcoin. But instead of currency, we're securing your identity with what we call HITs.
                These are like digital certificates that prove you're you, without revealing your personal details.
                It's technological magic, really!`,
   
@@ -34,12 +35,12 @@ const DEMO_SCRIPT = {
                  You can even share these on social media if you're proud of your digital security game.`,
   
   privacy: `I can't stress enough how seriously we take your privacy at Heirloom.
-            Your data is encrypted - meaning scrambled so only you can make sense of it.
+            Your data is encrypted, meaning scrambled so only you can make sense of it.
             And unlike other services, we don't own your data, you do. It's your identity after all!
             You're in the driver's seat at all times.`,
   
   conclusion: `And that wraps up our tour of Heirloom! What do you think? Pretty exciting, right?
-               The future of identity is here - secure, private, and completely in your hands.
+               The future of identity is here, secure, private, and completely in your hands.
                Would you like to give the verification process a try yourself? I promise it's super easy!`
 };
 
@@ -153,8 +154,19 @@ export function VoiceAgent({ onComplete, autoStart = false }: VoiceAgentProps) {
   
   // Add pauses to text for more natural speech rhythms
   const processTextForSpeech = (text: string): string => {
+    // Fix any problematic question marks or symbols first
+    let cleanedText = text
+      // Replace any encoded question marks with actual question marks
+      .replace(/&quest;/g, '?')
+      .replace(/&#63;/g, '?')
+      .replace(/&#x3F;/g, '?')
+      // Replace any encoded exclamation with actual exclamation
+      .replace(/&excl;/g, '!')
+      .replace(/&#33;/g, '!')
+      .replace(/&#x21;/g, '!');
+    
     // Add strategic pauses with commas and periods
-    let processedText = text
+    let processedText = cleanedText
       // Make sure there's a pause after question marks and exclamation points
       .replace(/\?([^\s])/g, '? $1')
       .replace(/\!([^\s])/g, '! $1')
@@ -164,6 +176,11 @@ export function VoiceAgent({ onComplete, autoStart = false }: VoiceAgentProps) {
       .replace(/\s-\s/g, ', ')
       // Ensure proper pauses after sentences
       .replace(/\.([^\s\.])/g, '. $1');
+      
+    // Make sure question marks and exclamation points are properly spaced
+    processedText = processedText
+      .replace(/([^\s])\?/g, '$1 ?')
+      .replace(/([^\s])\!/g, '$1 !');
       
     // Remove extra whitespace
     return processedText.replace(/\s+/g, ' ').trim();
