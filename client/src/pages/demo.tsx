@@ -7,9 +7,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Play, ChevronRight, Shield, Fingerprint, Award, LockKeyhole } from 'lucide-react';
 
 export default function DemoPage() {
-  const [_, navigate] = useLocation();
+  const [location, navigate] = useLocation();
   const [showVoiceAgent, setShowVoiceAgent] = useState(false);
   const [startedDemo, setStartedDemo] = useState(false);
+  
+  // Check URL parameters for voice demo flag
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('voice') === 'true') {
+      setShowVoiceAgent(true);
+      setStartedDemo(true);
+    }
+  }, []);
   
   const startDemo = () => {
     setShowVoiceAgent(true);
@@ -114,7 +123,7 @@ export default function DemoPage() {
             <div className="relative">
               <div className="bg-[#1A3006] rounded-2xl p-5 md:p-8 shadow-xl">
                 <img 
-                  src="/attached_assets/Screenshot 2025-03-14 at 10.36.09 PM.png" 
+                  src="/images/dashboard.png" 
                   alt="Heirloom Dashboard" 
                   className="rounded-lg shadow-lg"
                 />
@@ -235,7 +244,7 @@ export default function DemoPage() {
                       
                       <div className="rounded-xl overflow-hidden">
                         <img 
-                          src="/attached_assets/Screenshot 2025-03-14 at 10.38.25 PM.png" 
+                          src="/images/face-verification.png" 
                           alt="Face Verification" 
                           className="w-full h-full object-cover"
                         />
@@ -661,7 +670,7 @@ export default function DemoPage() {
             
             <div className="bg-[#182E0B] rounded-2xl p-6 shadow-xl">
               <img 
-                src="/attached_assets/Screenshot 2025-03-14 at 3.14.52 PM.png" 
+                src="/images/team.png" 
                 alt="Heirloom Team" 
                 className="rounded-lg shadow-lg mb-6"
               />
