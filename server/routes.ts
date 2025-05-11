@@ -11,6 +11,7 @@ import {
 import { z } from "zod";
 import { verifyFace, detectFaceBasic } from "./deepface";
 import { log } from "./vite";
+import { blockchainService } from "./blockchain/service";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // User routes
@@ -495,7 +496,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Get wallet address from request
-      const { walletAddress } = req.body;
+      const { walletAddress, metadataURI } = req.body;
       if (!walletAddress) {
         return res.status(400).json({
           success: false,
@@ -503,8 +504,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // In production, this would make a call to the blockchain
-      // For now, simulate a successful response
+      // Check if user already has a HIT token
+      if (blockchainService.hasHIT(walletAddress)) {
+        return res.status(400).json({
+          success: false,
+          message: "Wallet already has an identity token"
+        });
+      }
+      
+      // Create default metadata URI if not provided
+      const tokenMetadata = metadataURI || `ipfs://QmZEt8sXLZzv9SvBK4jEwKZKb8zTuKrfUhQ1Ko3JviLEL3/${user.username}`;
+      
+      // Issue a HIT token on the blockchain
+      const hitToken = blockchainService.issueHIT(walletAddress, tokenMetadata);
       
       // Log activity
       await storage.createActivity({
@@ -514,8 +526,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         metadata: { 
           walletAddress,
           tokenType: "HIT",
+          tokenId: hitToken.tokenId,
+          metadataURI: tokenMetadata,
           network: "Polygon Amoy Testnet",
-          contractAddress: "0x6AFF771a6245945c19D13032Ec954aFA18DcA1b2" // SimpleHIT contract address from docs
+          contractAddress: blockchainService.HIT_CONTRACT_ADDRESS,
+          issuedAt: hitToken.issuedAt
         }
       });
       
