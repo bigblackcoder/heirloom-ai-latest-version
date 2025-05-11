@@ -559,7 +559,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Check required fields
-      const { walletAddress, dataHash, dataType } = req.body;
+      const { walletAddress, dataHash, dataType, metadataURI } = req.body;
       if (!walletAddress || !dataHash) {
         return res.status(400).json({
           success: false,
@@ -576,8 +576,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // In production, this would make a call to the blockchain
-      // For now, simulate a successful response
+      // Create default metadata URI if not provided
+      const tokenMetadata = metadataURI || `ipfs://QmZEt8sXLZzv9SvBK4jEwKZKb8zTuKrfUhQ1Ko3JviLEL3/prvn-${dataHash.substring(0, 8)}`;
+      
+      // Issue a PRVN token on the blockchain
+      const prvnToken = blockchainService.issuePRVN(walletAddress, dataHash, tokenMetadata);
       
       // Log activity
       await storage.createActivity({
@@ -587,21 +590,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         metadata: { 
           walletAddress,
           dataHash,
-          dataType,
+          dataType: dataType || 'generic',
+          capsuleId: capsules[0].id,
           tokenType: "PRVN",
+          tokenId: prvnToken.tokenId,
+          metadataURI: tokenMetadata,
           network: "Polygon Amoy Testnet",
-          contractAddress: "0x1fC9F0fF7A6D3e9C0C64d187B01a43BbFF7939d8" // PRVNToken contract address from docs
+          contractAddress: blockchainService.PRVN_CONTRACT_ADDRESS,
+          issuedAt: prvnToken.issuedAt
         }
       });
       
       res.status(200).json({
         success: true,
         message: "Provenance Token (PRVN) issued successfully",
-        tokenId: "PRVN-" + Date.now(),
-        contractAddress: "0x1fC9F0fF7A6D3e9C0C64d187B01a43BbFF7939d8",
+        tokenId: prvnToken.tokenId,
+        contractAddress: blockchainService.PRVN_CONTRACT_ADDRESS,
         network: "Polygon Amoy Testnet",
-        chainId: 80002,
-        dataHash: dataHash
+        chainId: blockchainService.CHAIN_ID,
+        dataHash: dataHash,
+        metadataURI: tokenMetadata
       });
     } catch (error) {
       console.error("Error issuing PRVN token:", error);
@@ -619,23 +627,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Not authenticated" });
       }
       
-      const { walletAddress, tokenId } = req.body;
-      if (!walletAddress || !tokenId) {
+      const { walletAddress, hitTokenId, prvnTokenId } = req.body;
+      if (!walletAddress || !hitTokenId || !prvnTokenId) {
         return res.status(400).json({
           success: false,
-          message: "Wallet address and token ID are required"
+          message: "Wallet address, HIT token ID, and PRVN token ID are required"
         });
       }
+      
+      // Check if both tokens exist
+      const hitToken = blockchainService.getHIT(hitTokenId);
+      const prvnToken = blockchainService.getPRVN(prvnTokenId);
+      
+      if (!hitToken) {
+        return res.status(400).json({
+          success: false,
+          message: "HIT token not found"
+        });
+      }
+      
+      if (!prvnToken) {
+        return res.status(400).json({
+          success: false,
+          message: "PRVN token not found"
+        });
+      }
+      
+      // Link the tokens
+      blockchainService.linkHITToPRVN(hitTokenId, prvnTokenId);
       
       // Log activity
       await storage.createActivity({
         userId: req.session.userId,
         type: "blockchain-hit-linked",
-        description: "HIT token linked to identity",
+        description: "HIT token linked to PRVN token",
         metadata: { 
           walletAddress,
-          tokenId,
-          hitLinkingModule: "0x0380587A1C83Db122F02c5FB10e2e069f8e85Ef2" // HITLinking contract address from docs
+          hitTokenId,
+          prvnTokenId,
+          hitContractAddress: blockchainService.HIT_CONTRACT_ADDRESS,
+          prvnContractAddress: blockchainService.PRVN_CONTRACT_ADDRESS,
+          chainId: blockchainService.CHAIN_ID
         }
       });
       
