@@ -694,14 +694,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Not authenticated" });
       }
       
-      const { dataId, licenseName, licenseTerms, royaltyPercentage, licenseDuration } = req.body;
+      const { 
+        prvnTokenId, 
+        licenseName, 
+        licenseTerms, 
+        licensee,
+        fee, 
+        royaltyPercentage 
+      } = req.body;
       
-      if (!dataId || !licenseName) {
+      if (!prvnTokenId || !licenseName || !licensee) {
         return res.status(400).json({
           success: false,
-          message: "Data ID and license name are required"
+          message: "PRVN token ID, license name, and licensee address are required"
         });
       }
+      
+      // Check if the PRVN token exists
+      const prvnToken = blockchainService.getPRVN(prvnTokenId);
+      if (!prvnToken) {
+        return res.status(404).json({
+          success: false,
+          message: "PRVN token not found"
+        });
+      }
+      
+      // Create the license
+      const licenseFee = fee || 0;
+      const royalty = royaltyPercentage || 0;
+      
+      const license = blockchainService.createLicense(
+        prvnTokenId,
+        licensee,
+        licenseFee,
+        royalty
+      );
       
       // Log activity
       await storage.createActivity({
@@ -709,23 +736,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         type: "blockchain-license-created",
         description: `License created: ${licenseName}`,
         metadata: { 
-          dataId,
+          prvnTokenId,
           licenseName,
           licenseTerms,
-          royaltyPercentage,
-          licenseDuration,
-          licenseManagerAddress: "0x433674053Fc3696b1707313e2dF95CcA81B9DE7b" // LicenseManager contract address from docs
+          licensee,
+          fee: licenseFee,
+          royaltyPercentage: royalty,
+          licenseManagerAddress: blockchainService.LICENSE_CONTRACT_ADDRESS,
+          grantedAt: license.grantedAt
         }
       });
       
       res.status(200).json({
         success: true,
         message: "License created successfully",
-        licenseId: "LICENSE-" + Date.now(),
+        prvnTokenId,
         licenseName,
-        contractAddress: "0x433674053Fc3696b1707313e2dF95CcA81B9DE7b",
+        licensee,
+        fee: licenseFee,
+        royaltyPercentage: royalty,
+        contractAddress: blockchainService.LICENSE_CONTRACT_ADDRESS,
         network: "Polygon Amoy Testnet",
-        chainId: 80002
+        chainId: blockchainService.CHAIN_ID,
+        grantedAt: license.grantedAt
       });
     } catch (error) {
       console.error("Error creating license:", error);
@@ -743,12 +776,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Not authenticated" });
       }
       
-      const { walletAddress, challengeResponse } = req.body;
+      const { walletAddress, tokenId, tokenType } = req.body;
       
-      if (!walletAddress) {
+      if (!walletAddress || !tokenId || !tokenType) {
         return res.status(400).json({
           success: false,
-          message: "Wallet address is required"
+          message: "Wallet address, token ID, and token type are required"
+        });
+      }
+      
+      if (tokenType !== 'HIT' && tokenType !== 'PRVN') {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid token type. Must be 'HIT' or 'PRVN'"
+        });
+      }
+      
+      // Verify token on the blockchain
+      const verificationResult = blockchainService.verifyOnChain(tokenId, tokenType);
+      
+      if (!verificationResult.verified) {
+        return res.status(404).json({
+          success: false,
+          message: `${tokenType} token not found on chain`,
+          tokenId,
+          contractAddress: verificationResult.contractAddress
+        });
+      }
+      
+      // Check if the token belongs to the wallet
+      if (verificationResult.owner !== walletAddress) {
+        return res.status(403).json({
+          success: false,
+          message: `${tokenType} token is not owned by the provided wallet address`,
+          tokenId,
+          owner: verificationResult.owner,
+          requestedWallet: walletAddress
         });
       }
       
@@ -756,19 +819,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.createActivity({
         userId: req.session.userId,
         type: "blockchain-verification",
-        description: "On-chain identity verification",
+        description: `On-chain ${tokenType} token verification`,
         metadata: { 
           walletAddress,
-          verificationTime: new Date(),
-          verificationMethod: "challenge-response"
+          tokenId,
+          tokenType,
+          contractAddress: verificationResult.contractAddress,
+          chainId: verificationResult.chainId,
+          verificationTime: new Date()
         }
       });
       
       res.status(200).json({
         success: true,
-        message: "Identity verified on-chain",
+        message: `${tokenType} token verified on-chain`,
         walletAddress,
-        verificationProof: "0x" + Buffer.from(Date.now().toString()).toString('hex'),
+        tokenId,
+        tokenType,
+        contractAddress: verificationResult.contractAddress,
+        chainId: verificationResult.chainId,
         timestamp: new Date()
       });
     } catch (error) {
@@ -839,29 +908,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Not authenticated" });
       }
       
-      const { contractAddress, contractType, chainId, metadata } = req.body;
+      const { contractAddress, name, symbol, contractType, chainId } = req.body;
       
-      if (!contractAddress || !contractType) {
+      if (!contractAddress || !contractType || !name) {
         return res.status(400).json({
           success: false,
-          message: "Contract address and type are required"
+          message: "Contract address, name and type are required"
         });
       }
       
-      // This would register the contract with Heirloom's governance module in production
-      // For now, simulate successful registration
+      if (contractType !== 'HIT' && contractType !== 'PRVN' && contractType !== 'LICENSE') {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid contract type. Must be 'HIT', 'PRVN', or 'LICENSE'"
+        });
+      }
+      
+      // Register the contract with the blockchain service
+      blockchainService.registerContract({
+        address: contractAddress,
+        name,
+        symbol: symbol || name.split(' ').map(word => word[0]).join(''),
+        chainId: chainId || blockchainService.CHAIN_ID,
+        deployedAt: Date.now(),
+        contractType: contractType as 'HIT' | 'PRVN' | 'LICENSE'
+      });
       
       // Log activity
       await storage.createActivity({
         userId: req.session.userId,
         type: "blockchain-contract-registered",
-        description: `Smart contract registered: ${contractType}`,
+        description: `Smart contract registered: ${name} (${contractType})`,
         metadata: { 
           contractAddress,
+          name,
+          symbol,
           contractType,
-          chainId: chainId || 80002,
-          registrationTime: new Date(),
-          ...metadata
+          chainId: chainId || blockchainService.CHAIN_ID,
+          registrationTime: new Date()
         }
       });
       
