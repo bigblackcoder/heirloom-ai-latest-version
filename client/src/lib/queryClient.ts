@@ -1,77 +1,100 @@
-import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { QueryClient } from '@tanstack/react-query';
+import { toast } from '@/hooks/use-toast';
 
-async function throwIfResNotOk(res: Response) {
-  if (!res.ok) {
-    const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
+// Default fetch function for React Query
+async function defaultFetchFunction(
+  url: string,
+  init?: RequestInit
+): Promise<Response> {
+  const response = await fetch(url, init);
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    const errorMessage = errorData.message || response.statusText || 'Request failed';
+    throw new Error(errorMessage);
   }
+  return response;
 }
 
-export async function apiRequest(
-  options: { 
-    url: string; 
-    method: string; 
-    body?: any; 
-  } | string,
-  methodOrData?: string | unknown,
-  data?: unknown
-): Promise<any> {
-  let url: string;
-  let method: string;
-  let body: unknown | undefined;
-
-  // Handle the options object format
-  if (typeof options === 'object') {
-    url = options.url;
-    method = options.method;
-    body = options.body;
-  } else {
-    // Handle the legacy format
-    url = options;
-    method = methodOrData as string;
-    body = data;
-  }
-
-  const res = await fetch(url, {
-    method,
-    headers: body ? { "Content-Type": "application/json" } : {},
-    body: body ? JSON.stringify(body) : undefined,
-    credentials: "include",
-  });
-
-  await throwIfResNotOk(res);
-  return res.json().catch(() => ({}));
-}
-
-type UnauthorizedBehavior = "returnNull" | "throw";
-export const getQueryFn: <T>(options: {
-  on401: UnauthorizedBehavior;
-}) => QueryFunction<T> =
-  ({ on401: unauthorizedBehavior }) =>
-  async ({ queryKey }) => {
-    const res = await fetch(queryKey[0] as string, {
-      credentials: "include",
-    });
-
-    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-      return null;
-    }
-
-    await throwIfResNotOk(res);
-    return await res.json();
+// API request for mutations
+export async function apiRequest({ url, method = 'GET', body }: {
+  url: string;
+  method?: string;
+  body?: any;
+}) {
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
   };
 
+  const options: RequestInit = {
+    method,
+    headers,
+    credentials: 'include'
+  };
+
+  if (body) {
+    options.body = JSON.stringify(body);
+  }
+  
+  try {
+    const response = await defaultFetchFunction(url, options);
+    
+    // Check for redirects (especially for login/logout)
+    if (response.redirected) {
+      window.location.href = response.url;
+      return null;
+    }
+    
+    // Parse response
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      return await response.json();
+    }
+    
+    return await response.text();
+  } catch (error) {
+    console.error(`API request failed for ${url}:`, error);
+    throw error;
+  }
+}
+
+// Create a global query client with default options
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      queryFn: getQueryFn({ on401: "throw" }),
-      refetchInterval: false,
+      retry: 1,
       refetchOnWindowFocus: false,
-      staleTime: Infinity,
-      retry: false,
+      queryFn: async ({ queryKey }) => {
+        if (typeof queryKey[0] === 'string') {
+          const response = await defaultFetchFunction(queryKey[0] as string, {
+            credentials: 'include'
+          });
+          
+          // Check for redirects
+          if (response.redirected) {
+            window.location.href = response.url;
+            return null;
+          }
+          
+          // Return JSON or text based on content type
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            return await response.json();
+          }
+          
+          return await response.text();
+        }
+        throw new Error(`Invalid query key: ${queryKey}`);
+      },
     },
     mutations: {
-      retry: false,
-    },
-  },
+      onError: (error) => {
+        console.error('Mutation error:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: error instanceof Error ? error.message : 'An error occurred'
+        });
+      }
+    }
+  }
 });

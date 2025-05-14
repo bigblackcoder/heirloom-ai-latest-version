@@ -51,7 +51,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
     retry: false,
     staleTime: 1000 * 60 * 5, // 5 minutes
     refetchOnWindowFocus: true,
-    refetchInterval: 1000 * 60 * 30, // 30 minutes
+    refetchInterval: 1000 * 60 * 30, // 30 minutes,
+    select: (data): User | null => {
+      // Handle when the data is null or not a user
+      if (!data || typeof data !== 'object') return null;
+      
+      // Try to map the response to our User type
+      return {
+        id: data.id,
+        username: data.username,
+        email: data.email,
+        firstName: data.firstName || undefined,
+        lastName: data.lastName || undefined,
+        isVerified: !!data.isVerified,
+        createdAt: data.createdAt || new Date().toISOString(),
+        updatedAt: data.updatedAt || new Date().toISOString(),
+        memberSince: data.memberSince || data.createdAt,
+        avatar: data.avatar || undefined
+      };
+    }
   });
   
   // Login mutation

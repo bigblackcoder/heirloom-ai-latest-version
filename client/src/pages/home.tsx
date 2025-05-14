@@ -1,10 +1,13 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
+import { AuthStatus } from "@/components/auth-status";
+import { useAuth } from "@/hooks/use-auth";
 import HeirloomLogo from "@/components/heirloom-logo";
 
 export default function Home() {
   const [_, navigate] = useLocation();
+  const { user, isAuthenticated } = useAuth();
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-[#1e2610] via-[#232d12] to-[#273414] text-white">
@@ -26,11 +29,14 @@ export default function Home() {
       </div>
 
       {/* Logo and brand */}
-      <div className="pt-8 pb-6 px-6 flex items-center">
-        <div className="w-10 h-10 mr-3">
-          <img src="/images/heirloom-logo-white-black.jpeg" alt="Heirloom Logo" className="w-full h-full object-contain" />
+      <div className="pt-8 pb-6 px-6 flex items-center justify-between">
+        <div className="flex items-center">
+          <div className="w-10 h-10 mr-3">
+            <img src="/images/heirloom-logo-white-black.jpeg" alt="Heirloom Logo" className="w-full h-full object-contain" />
+          </div>
+          <h1 className="text-2xl font-bold">Heirloom</h1>
         </div>
-        <h1 className="text-2xl font-bold">Heirloom</h1>
+        <AuthStatus />
       </div>
 
       {/* Main Content */}
@@ -133,72 +139,95 @@ export default function Home() {
 
         {/* CTAs */}
         <div className="mt-auto">
-          <Button 
-            className="w-full py-7 bg-[#7c9861] hover:bg-[#273414] text-white font-medium text-lg rounded-full shadow-lg"
-            onClick={() => navigate("/verification")}
-          >
-            Verify My Identity
-          </Button>
+          {isAuthenticated ? (
+            <>
+              <Button 
+                className="w-full py-7 bg-[#7c9861] hover:bg-[#273414] text-white font-medium text-lg rounded-full shadow-lg"
+                onClick={() => navigate("/dashboard")}
+              >
+                Go to Dashboard
+              </Button>
+              
+              {!user?.isVerified && (
+                <Button 
+                  variant="outline" 
+                  className="w-full mt-3 py-6 border-white/30 hover:bg-white/10 text-white font-medium rounded-full"
+                  onClick={() => navigate("/verification")}
+                >
+                  Complete Verification
+                </Button>
+              )}
+            </>
+          ) : (
+            <>
+              <Button 
+                className="w-full py-7 bg-[#7c9861] hover:bg-[#273414] text-white font-medium text-lg rounded-full shadow-lg"
+                onClick={() => navigate("/verification")}
+              >
+                Verify My Identity
+              </Button>
+              
+              <div className="mt-4 text-center flex flex-col items-center">
+                <div className="flex flex-col items-center">
+                  <Button 
+                    variant="outline" 
+                    className="text-sm text-white border-white/30 hover:bg-white/10 hover:text-white w-48 rounded-full"
+                    onClick={() => navigate("/signup")}
+                  >
+                    Create Account
+                  </Button>
+                  
+                  <Button 
+                    variant="link" 
+                    className="text-sm text-white/70 hover:text-white mt-2"
+                    onClick={() => navigate("/login")}
+                  >
+                    Already verified? Sign in
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
           
-          <div className="mt-4 text-center flex flex-col items-center">
-            <div className="flex flex-col items-center">
-              <Button 
-                variant="outline" 
-                className="text-sm text-white border-white/30 hover:bg-white/10 hover:text-white w-48 rounded-full"
-                onClick={() => navigate("/signup")}
-              >
-                Create Account
-              </Button>
-              
-              <Button 
-                variant="link" 
-                className="text-sm text-white/70 hover:text-white mt-2"
-                onClick={() => navigate("/login")}
-              >
-                Already verified? Sign in
-              </Button>
-            </div>
+          <div className="flex flex-row gap-2 items-center justify-center mt-3">
+            <Button 
+              variant="link" 
+              className="text-sm text-[#d4a166] hover:text-[#e5b277] mt-2"
+              onClick={() => navigate("/demo")}
+            >
+              <span className="flex items-center">
+                <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 18.5a6.5 6.5 0 1 0 0-13 6.5 6.5 0 0 0 0 13Z"></path>
+                  <path d="M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"></path>
+                  <path d="M12 2v2"></path>
+                  <path d="M12 20v2"></path>
+                  <path d="m4.93 4.93 1.41 1.41"></path>
+                  <path d="m17.66 17.66 1.41 1.41"></path>
+                  <path d="M2 12h2"></path>
+                  <path d="M20 12h2"></path>
+                  <path d="m6.34 17.66-1.41 1.41"></path>
+                  <path d="m19.07 4.93-1.41 1.41"></path>
+                </svg>
+                Tour Demo
+              </span>
+            </Button>
             
-            <div className="flex flex-row gap-2 items-center justify-center mt-3">
-              <Button 
-                variant="link" 
-                className="text-sm text-[#d4a166] hover:text-[#e5b277] mt-2"
-                onClick={() => navigate("/demo")}
-              >
-                <span className="flex items-center">
-                  <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M12 18.5a6.5 6.5 0 1 0 0-13 6.5 6.5 0 0 0 0 13Z"></path>
-                    <path d="M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"></path>
-                    <path d="M12 2v2"></path>
-                    <path d="M12 20v2"></path>
-                    <path d="m4.93 4.93 1.41 1.41"></path>
-                    <path d="m17.66 17.66 1.41 1.41"></path>
-                    <path d="M2 12h2"></path>
-                    <path d="M20 12h2"></path>
-                    <path d="m6.34 17.66-1.41 1.41"></path>
-                    <path d="m19.07 4.93-1.41 1.41"></path>
-                  </svg>
-                  Tour Demo
-                </span>
-              </Button>
-              
-              <Button 
-                variant="link" 
-                className="text-sm text-[#d4a166] hover:text-[#e5b277] mt-2"
-                onClick={() => navigate("/demo?voice=true")}
-              >
-                <span className="flex items-center">
-                  <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M12 19c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7Z"></path>
-                    <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"></path>
-                    <path d="M12 11h.01"></path>
-                    <path d="M19 6.337A7.964 7.964 0 0 0 12 3a7.964 7.964 0 0 0-7 3.337"></path>
-                    <path d="M12 19c2.5 0 6.5-1.5 6.5-7 0-1-1.5-1.5-1.5-1.5h-10S5.5 11 5.5 12c0 5.5 4 7 6.5 7Z"></path>
-                  </svg>
-                  Voice-Guided Demo
-                </span>
-              </Button>
-            </div>
+            <Button 
+              variant="link" 
+              className="text-sm text-[#d4a166] hover:text-[#e5b277] mt-2"
+              onClick={() => navigate("/demo?voice=true")}
+            >
+              <span className="flex items-center">
+                <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 19c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7Z"></path>
+                  <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"></path>
+                  <path d="M12 11h.01"></path>
+                  <path d="M19 6.337A7.964 7.964 0 0 0 12 3a7.964 7.964 0 0 0-7 3.337"></path>
+                  <path d="M12 19c2.5 0 6.5-1.5 6.5-7 0-1-1.5-1.5-1.5-1.5h-10S5.5 11 5.5 12c0 5.5 4 7 6.5 7Z"></path>
+                </svg>
+                Voice-Guided Demo
+              </span>
+            </Button>
           </div>
         </div>
       </div>
