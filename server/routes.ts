@@ -146,22 +146,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId = requestUserId;
       }
       
+      // Create a debugging session ID for this verification attempt
+      const debugSessionId = `face-verify-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+      
+      // Log verification attempt with debugging info
+      log(`[DEBUG:${debugSessionId}] Face verification attempt started. User ID: ${userId || 'guest'}`, "face-verify");
+      
       if (!image) {
+        log(`[DEBUG:${debugSessionId}] No image data provided`, "face-verify");
         return res.status(200).json({ 
           success: false,
-          message: "Image data is required" 
+          message: "Image data is required",
+          debugSession: debugSessionId
         });
       }
       
+      // Log image metadata without exposing actual image data
+      log(`[DEBUG:${debugSessionId}] Image received: ${image.substring(0, 30)}... (${image.length} chars)`, "face-verify");
+      
       // Check for testing mode
       if (checkDbOnly) {
-        log("Testing mode: Check database only", "routes");
+        log(`[DEBUG:${debugSessionId}] Testing mode: Check database only`, "face-verify");
         return res.status(200).json({ 
           success: true, 
           message: "Database check only mode",
           confidence: 95.5,
           matched: false,
-          face_id: "00000000-0000-0000-0000-000000000000"
+          face_id: "00000000-0000-0000-0000-000000000000",
+          debugSession: debugSessionId
         });
       }
       
@@ -169,26 +181,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Check if we should use basic detection
       if (useBasicDetection) {
-        log("Using lightweight face detection", "routes");
+        log(`[DEBUG:${debugSessionId}] Using lightweight face detection`, "face-verify");
         verificationResult = await detectFaceBasic(image, userId, saveToDb);
       } else {
         try {
           // Verify the face using DeepFace, pass userId for face matching
-          log("Processing face verification with DeepFace...", "routes");
+          log(`[DEBUG:${debugSessionId}] Processing face verification with DeepFace...`, "face-verify");
           verificationResult = await verifyFace(image, userId, saveToDb);
         } catch (deepfaceError) {
           // Fallback to basic detection if DeepFace fails
-          log(`DeepFace error, falling back to lightweight detection: ${deepfaceError}`, "routes");
+          log(`[DEBUG:${debugSessionId}] DeepFace error, falling back to lightweight detection: ${deepfaceError}`, "face-verify");
           verificationResult = await detectFaceBasic(image, userId, saveToDb);
         }
       }
       
+      // Log verification result details
+      log(`[DEBUG:${debugSessionId}] Verification result: 
+        Success: ${verificationResult.success}
+        Confidence: ${verificationResult.confidence}
+        Matched: ${verificationResult.matched}
+        Face ID: ${verificationResult.face_id}`, "face-verify");
+      
       if (!verificationResult.success) {
+        log(`[DEBUG:${debugSessionId}] Verification failed: ${verificationResult.message || "Unknown reason"}`, "face-verify");
         return res.status(200).json({
           success: false,
           message: "Face verification failed",
           confidence: verificationResult.confidence,
-          details: verificationResult.message || "Could not detect a valid face"
+          details: verificationResult.message || "Could not detect a valid face",
+          debugSession: debugSessionId
         });
       }
       
@@ -196,21 +217,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const minConfidence = 65; // Reduced confidence threshold for lightweight detection
       
       if (verificationResult.confidence < minConfidence) {
+        log(`[DEBUG:${debugSessionId}] Low confidence: ${verificationResult.confidence}% (minimum required: ${minConfidence}%)`, "face-verify");
         return res.status(200).json({
           success: false,
           message: "Face verification failed - low confidence",
           confidence: verificationResult.confidence,
-          minRequired: minConfidence
+          minRequired: minConfidence,
+          debugSession: debugSessionId
         });
       }
       
-      // Update user to verified status
-      const updatedUser = await storage.updateUser(userId, { isVerified: true });
+      log(`[DEBUG:${debugSessionId}] Verification passed confidence threshold. Confidence: ${verificationResult.confidence}%`, "face-verify");
       
-      if (!updatedUser && req.session?.userId) {
+      // Update user to verified status
+      log(`[DEBUG:${debugSessionId}] Attempting to update user verified status. User ID: ${userId}`, "face-verify");
+      
+      // Only update user status if we have a valid userId
+      if (userId) {
+        try {
+          const updatedUser = await storage.updateUser(userId, { isVerified: true });
+          if (updatedUser) {
+            log(`[DEBUG:${debugSessionId}] Successfully updated user verified status`, "face-verify");
+          } else {
+            log(`[DEBUG:${debugSessionId}] Failed to update user: User not found with ID ${userId}`, "face-verify");
+          }
+        } catch (error) {
+          log(`[DEBUG:${debugSessionId}] Error updating user verification status: ${error.message}`, "face-verify");
+        }
+      } else {
+        log(`[DEBUG:${debugSessionId}] Skipping user status update: No user ID provided`, "face-verify");
+      }
+      
+      if (userId && req.session?.userId && req.session.userId !== userId) {
+        log(`[DEBUG:${debugSessionId}] WARNING: Session user ID (${req.session.userId}) doesn't match requested user ID (${userId})`, "face-verify");
+      }
+      
+      // Check if user exists
+      const user = userId ? await storage.getUser(userId) : null;
+      if (!user && userId) {
+        log(`[DEBUG:${debugSessionId}] User not found with ID ${userId}`, "face-verify");
         return res.status(200).json({ 
           success: false,
-          message: "User not found" 
+          message: "User not found",
+          debugSession: debugSessionId
         });
       }
       
@@ -290,7 +339,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      res.status(200).json({ 
+      // Final success response with debug information
+      log(`[DEBUG:${debugSessionId}] Successfully completed verification process`, "face-verify");
+      
+      const successResult = {
         success: true,
         message: verificationResult.matched 
           ? "Face verified and matched with existing record" 
@@ -299,14 +351,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         confidence: verificationResult.confidence,
         matched: verificationResult.matched || false,
         face_id: verificationResult.face_id,
-        results: verificationResult.results
-      });
+        results: verificationResult.results,
+        debugSession: debugSessionId
+      };
+      
+      // Log the response being sent (without sensitive data)
+      log(`[DEBUG:${debugSessionId}] Response: ${JSON.stringify({
+        ...successResult, 
+        results: verificationResult.results ? '(face data)' : null
+      })}`, "face-verify");
+      
+      res.status(200).json(successResult);
     } catch (error) {
       console.error("Error during face verification:", error);
+      
+      // Log the error with the debug session ID
+      log(`[DEBUG:${debugSessionId}] Critical error during face verification: ${error.message || error}`, "face-verify");
+      log(`[DEBUG:${debugSessionId}] Error stack: ${error.stack || 'No stack trace available'}`, "face-verify");
+      
+      // Return error with debug session ID for tracing
       res.status(200).json({ 
         success: false, 
         message: "Error during face verification", 
-        confidence: 0 
+        confidence: 0,
+        debugSession: debugSessionId,
+        error: process.env.NODE_ENV === 'development' ? error.message || String(error) : undefined
       });
     }
   });

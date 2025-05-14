@@ -64,6 +64,12 @@ export function useFaceVerification() {
         setProgress(prev => Math.max(prev, 95));
       }
       
+      // If there's debug session information, log it
+      if (result.debugSession) {
+        console.log(`[Face Verification] Debug session ID: ${result.debugSession}`);
+        console.log('[Face Verification] Server verification details:', result);
+      }
+      
       return result;
     } catch (error) {
       console.error('Error during verification:', error);
