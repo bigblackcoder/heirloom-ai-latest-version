@@ -153,7 +153,7 @@ export default function Home() {
               <Button 
                 variant="link" 
                 className="text-sm text-white/70 hover:text-white mt-2"
-                onClick={() => navigate("/dashboard")}
+                onClick={() => navigate("/login")}
               >
                 Already verified? Sign in
               </Button>
