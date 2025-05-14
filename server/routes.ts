@@ -136,17 +136,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Face verification routes
   app.post("/api/verification/face", async (req: Request, res: Response) => {
     // Create a debugging session ID first - accessible throughout the entire route handler
-    const debugSessionId = `face-verify-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    // Use client provided debug session ID if available, otherwise generate a new one
+    const providedDebugSession = req.body.debug_session || req.body.debugSession;
+    const debugSessionId = providedDebugSession || `face-verify-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
     
     try {
       // Check if there's an authenticated user from the session or request body
       let userId = req.session?.userId;
       
-      const { image, userId: requestUserId, saveToDb = false, useBasicDetection = false, checkDbOnly = false } = req.body;
+      const { 
+        image, 
+        userId: requestUserId, 
+        user_id: altUserId, // Support for both camelCase and snake_case parameter names
+        saveToDb = false, 
+        useBasicDetection = false, 
+        checkDbOnly = false,
+        request_id = null
+      } = req.body;
       
-      // If userId was provided in the request body, use that instead
-      if (requestUserId) {
-        userId = requestUserId;
+      // Log request details
+      console.log(`[DEBUG:${debugSessionId}] Face verification request received. Request ID: ${request_id || 'none'}`);
+      
+      // If userId was provided in any format in the request body, use that instead
+      if (requestUserId || altUserId) {
+        userId = requestUserId || altUserId;
       }
       
       // Log verification attempt with debugging info
