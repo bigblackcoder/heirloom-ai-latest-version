@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -8,8 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { toast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/use-auth";
 import HeirloomLogo from "@/components/heirloom-logo";
 
 // Form validation schema
@@ -26,7 +24,7 @@ const signupSchema = z.object({
 type SignupFormValues = z.infer<typeof signupSchema>;
 
 export default function Signup() {
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { signup, isLoading } = useAuth();
   const [_, navigate] = useLocation();
 
   // Form setup
@@ -43,35 +41,17 @@ export default function Signup() {
   // Handle form submission
   const onSubmit = async (data: SignupFormValues) => {
     try {
-      setIsSubmitting(true);
-
       // Extract password confirmation before sending
       const { confirmPassword, ...submitData } = data;
       
-      // Submit data to the API
-      const response = await apiRequest({
-        url: "/api/auth/register",
-        method: "POST",
-        body: submitData
-      });
-
-      // Show success message
-      toast({
-        title: "Account created!",
-        description: "Your account has been created successfully."
-      });
-
-      // Navigate to verification page
+      // Sign up through auth service
+      await signup(submitData.username, submitData.email, submitData.password);
+      
+      // After successful signup, navigate to verification page
       navigate("/verification");
     } catch (error) {
-      console.error("Signup error:", error);
-      toast({
-        variant: "destructive",
-        title: "Error creating account",
-        description: error instanceof Error ? error.message : "Please try again later"
-      });
-    } finally {
-      setIsSubmitting(false);
+      // Error is handled by the signup function
+      console.error("Signup submission error:", error);
     }
   };
 

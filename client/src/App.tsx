@@ -1,5 +1,7 @@
 import { Switch, Route } from "wouter";
 import { Toaster } from "@/components/ui/toaster";
+import { AuthProvider } from "@/hooks/use-auth";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import Signup from "@/pages/signup";
@@ -12,6 +14,16 @@ import Profile from "@/pages/profile";
 import Settings from "@/pages/settings";
 import Achievements from "@/pages/achievements";
 import Demo from "@/pages/demo";
+
+// Create a client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 function Router() {
   return (
@@ -38,10 +50,14 @@ function App() {
   const isFullWidthPage = path === '/demo';
   
   return (
-    <div className={`min-h-screen bg-background ${isFullWidthPage ? 'w-full' : 'max-w-md mx-auto'} overflow-hidden relative`}>
-      <Router />
-      <Toaster />
-    </div>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <div className={`min-h-screen bg-background ${isFullWidthPage ? 'w-full' : 'max-w-md mx-auto'} overflow-hidden relative`}>
+          <Router />
+          <Toaster />
+        </div>
+      </AuthProvider>
+    </QueryClientProvider>
   );
 }
 

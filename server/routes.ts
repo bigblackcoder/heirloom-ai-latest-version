@@ -12,6 +12,7 @@ import { z } from "zod";
 import { verifyFace, detectFaceBasic } from "./deepface";
 import { log } from "./vite";
 import { blockchainService } from "./blockchain/service";
+import { requireAuth, requireVerified } from "./middleware/auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // User routes
@@ -71,27 +72,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Don't return the password
       const { password: _, ...userResponse } = user;
       
-      // Create session (in a real app, generate JWT/session token here)
-      req.session = { userId: user.id };
+      // Create session
+      req.session.userId = user.id;
+      req.session.isVerified = user.isVerified;
+      
+      // Log login activity
+      await storage.createActivity({
+        userId: user.id,
+        type: "login",
+        description: "User logged in",
+        metadata: { timestamp: new Date().toISOString() }
+      });
       
       res.status(200).json({ message: "Login successful", user: userResponse });
     } catch (error) {
+      console.error("Login error:", error);
       res.status(500).json({ message: "Error during login" });
     }
   });
   
   app.post("/api/auth/logout", (req: Request, res: Response) => {
-    req.session = null;
-    res.status(200).json({ message: "Logged out successfully" });
-  });
-  
-  app.get("/api/auth/me", async (req: Request, res: Response) => {
-    try {
-      if (!req.session?.userId) {
-        return res.status(401).json({ message: "Not authenticated" });
+    // Get user ID before destroying session
+    const userId = req.session?.userId;
+    
+    // Destroy session
+    req.session.destroy((err) => {
+      if (err) {
+        console.error("Error destroying session:", err);
+        return res.status(500).json({ message: "Error logging out" });
       }
       
-      const user = await storage.getUser(req.session.userId);
+      // Log activity if we have the user ID
+      if (userId) {
+        storage.createActivity({
+          userId: userId,
+          type: "logout",
+          description: "User logged out",
+          metadata: { timestamp: new Date().toISOString() }
+        }).catch(err => console.error("Error logging logout activity:", err));
+      }
+      
+      res.status(200).json({ message: "Logged out successfully" });
+    });
+  });
+  
+  app.get("/api/auth/me", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const user = await storage.getUser(req.session.userId!);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -101,6 +128,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.status(200).json(userResponse);
     } catch (error) {
+      console.error("Error fetching user profile:", error);
       res.status(500).json({ message: "Error fetching user" });
     }
   });
@@ -108,8 +136,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Face verification routes
   app.post("/api/verification/face", async (req: Request, res: Response) => {
     try {
-      // For development, allow unauthenticated requests for testing
-      const userId = req.session?.userId || 1; // Default to user ID 1 for testing
+      // Check if there's an authenticated user
+      const userId = req.session?.userId;
       
       const { image, saveToDb = false, useBasicDetection = false, checkDbOnly = false } = req.body;
       
@@ -279,25 +307,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Identity Capsule routes
-  app.get("/api/capsules", async (req: Request, res: Response) => {
+  app.get("/api/capsules", requireAuth, async (req: Request, res: Response) => {
     try {
-      if (!req.session?.userId) {
-        return res.status(401).json({ message: "Not authenticated" });
-      }
-      
-      const capsules = await storage.getCapsulesByUserId(req.session.userId);
+      const capsules = await storage.getCapsulesByUserId(req.session.userId!);
       res.status(200).json(capsules);
     } catch (error) {
+      console.error("Error fetching capsules:", error);
       res.status(500).json({ message: "Error fetching capsules" });
     }
   });
   
-  app.post("/api/capsules", async (req: Request, res: Response) => {
+  app.post("/api/capsules", requireAuth, async (req: Request, res: Response) => {
     try {
-      if (!req.session?.userId) {
-        return res.status(401).json({ message: "Not authenticated" });
-      }
-      
       const capsuleData = insertIdentityCapsuleSchema.parse({
         ...req.body,
         userId: req.session.userId
@@ -307,7 +328,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Log activity
       await storage.createActivity({
-        userId: req.session.userId,
+        userId: req.session.userId!,
         type: "capsule-created",
         description: `Created new capsule: ${newCapsule.name}`,
         metadata: { capsuleId: newCapsule.id }
@@ -318,17 +339,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid input", errors: error.errors });
       }
+      console.error("Error creating capsule:", error);
       res.status(500).json({ message: "Error creating capsule" });
     }
   });
   
   // Verified Data routes
-  app.get("/api/capsules/:id/data", async (req: Request, res: Response) => {
+  app.get("/api/capsules/:id/data", requireAuth, async (req: Request, res: Response) => {
     try {
-      if (!req.session?.userId) {
-        return res.status(401).json({ message: "Not authenticated" });
-      }
-      
       const capsuleId = parseInt(req.params.id);
       
       // Check if capsule belongs to user
@@ -340,16 +358,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const data = await storage.getVerifiedDataByCapsuleId(capsuleId);
       res.status(200).json(data);
     } catch (error) {
+      console.error("Error fetching verified data:", error);
       res.status(500).json({ message: "Error fetching verified data" });
     }
   });
   
-  app.post("/api/capsules/:id/data", async (req: Request, res: Response) => {
+  app.post("/api/capsules/:id/data", requireAuth, async (req: Request, res: Response) => {
     try {
-      if (!req.session?.userId) {
-        return res.status(401).json({ message: "Not authenticated" });
-      }
-      
       const capsuleId = parseInt(req.params.id);
       
       // Check if capsule belongs to user
@@ -367,7 +382,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Log activity
       await storage.createActivity({
-        userId: req.session.userId,
+        userId: req.session.userId!,
         type: "data-added",
         description: `Added ${newData.dataType} verification to capsule`,
         metadata: { capsuleId, dataId: newData.id }
@@ -378,6 +393,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid input", errors: error.errors });
       }
+      console.error("Error adding verified data:", error);
       res.status(500).json({ message: "Error adding verified data" });
     }
   });

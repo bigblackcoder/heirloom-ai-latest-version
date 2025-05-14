@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -8,8 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { toast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/use-auth";
 
 // Form validation schema
 const loginSchema = z.object({
@@ -20,7 +18,7 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function Login() {
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { login, isLoading } = useAuth();
   const [_, navigate] = useLocation();
 
   // Form setup
@@ -35,32 +33,12 @@ export default function Login() {
   // Handle form submission
   const onSubmit = async (data: LoginFormValues) => {
     try {
-      setIsSubmitting(true);
-      
-      // Submit data to the API
-      const response = await apiRequest({
-        url: "/api/auth/login",
-        method: "POST",
-        body: data
-      });
-
-      // Show success message
-      toast({
-        title: "Login successful",
-        description: "Welcome back to Heirloom!"
-      });
-
-      // Navigate to dashboard
+      await login(data.username, data.password);
+      // Navigate to dashboard after successful login
       navigate("/dashboard");
     } catch (error) {
-      console.error("Login error:", error);
-      toast({
-        variant: "destructive",
-        title: "Login failed",
-        description: error instanceof Error ? error.message : "Invalid username or password"
-      });
-    } finally {
-      setIsSubmitting(false);
+      // Error is handled by the login function
+      console.error("Login submission error:", error);
     }
   };
 
@@ -145,9 +123,9 @@ export default function Login() {
               <Button 
                 type="submit" 
                 className="w-full py-6 mt-2 bg-[#7c9861] hover:bg-[#273414] text-white rounded-xl"
-                disabled={isSubmitting}
+                disabled={isLoading}
               >
-                {isSubmitting ? "Signing In..." : "Sign In"}
+                {isLoading ? "Signing In..." : "Sign In"}
               </Button>
             </form>
           </Form>
