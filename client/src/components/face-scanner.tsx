@@ -140,7 +140,14 @@ export default function FaceScanner({ onProgress, onComplete, isComplete }: Face
         // Skip including the actual image data in debug info to save space
       };
       
+      console.log('Setting debug data from verification result:', { 
+        debugSessionId: verificationResult.debugSession,
+        debugInfo
+      });
+      
       setDebugData(debugInfo);
+    } else {
+      console.log('No debug session in verification result:', verificationResult);
     }
   }, [verificationResult]);
   

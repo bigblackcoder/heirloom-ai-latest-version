@@ -18,10 +18,21 @@ export function DebugSession({ debugId, data }: { debugId?: string; data?: any }
   const [isVisible, setIsVisible] = useState(false);
   
   useEffect(() => {
-    // Only show in development mode or on localhost
-    const isDev = process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost';
+    // For demonstration purposes, always show in this replit environment
+    // This would normally check if we're in development mode
+    // const isDev = process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost';
+    const isDev = true; // Always show for demo
+    
+    // Debug to console to help troubleshoot
+    console.log('Debug Session Component:', { 
+      debugId, 
+      data, 
+      isDev,
+      wouldBeVisible: isDev && !!debugId
+    });
+    
     setIsVisible(isDev && !!debugId);
-  }, [debugId]);
+  }, [debugId, data]);
   
   const copyToClipboard = useCallback(() => {
     if (debugId) {
@@ -37,11 +48,11 @@ export function DebugSession({ debugId, data }: { debugId?: string; data?: any }
   if (!isVisible) return null;
   
   return (
-    <div className="fixed bottom-4 right-4 z-50">
+    <div className="fixed top-4 right-4 z-50">
       <HoverCard>
         <HoverCardTrigger asChild>
-          <Badge variant="outline" className="bg-amber-100 cursor-pointer">
-            Debug: {debugId?.substring(0, 12)}...
+          <Badge variant="outline" className="bg-amber-500 text-white font-bold cursor-pointer p-2 shadow-lg">
+            🐞 Debug: {debugId?.substring(0, 12)}...
           </Badge>
         </HoverCardTrigger>
         <HoverCardContent className="w-80 text-xs">
