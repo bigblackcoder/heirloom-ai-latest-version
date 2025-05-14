@@ -38,6 +38,9 @@ export function useFaceVerification() {
   // Verify face with the API
   const verifyFace = useCallback(async (base64Image: string, userId?: string) => {
     try {
+      // Generate a unique identifier for this verification attempt
+      const requestId = `verify_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+      
       // Make API request to verify face
       const response = await fetch('/api/verification/face', {
         method: 'POST',
@@ -47,6 +50,8 @@ export function useFaceVerification() {
         body: JSON.stringify({
           image: base64Image,
           userId: userId,
+          request_id: requestId,
+          debug_session: requestId, // Use requestId as debug session identifier
           saveToDb: true,
           useBasicDetection: true, // Use the lightweight detection since DeepFace might not be available
         }),
@@ -59,28 +64,33 @@ export function useFaceVerification() {
       // Parse the response
       const result: FaceVerificationResult = await response.json();
       
+      // Add the debug session ID if it's not already present
+      if (!result.debugSession) {
+        result.debugSession = requestId;
+      }
+      
       // Update verification result
       setVerificationResult(result);
+      
+      // Log debug info in development mode
+      if (process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost') {
+        console.log(`[Face Verification] Debug session ID: ${result.debugSession}`);
+        console.log('[Face Verification] Server verification details:', result);
+      }
       
       // If successful with high confidence, increase progress
       if (result.success && result.confidence > 85) {
         setProgress(prev => Math.max(prev, 95));
       }
       
-      // If there's debug session information, log it
-      if (result.debugSession) {
-        console.log(`[Face Verification] Debug session ID: ${result.debugSession}`);
-        console.log('[Face Verification] Server verification details:', result);
-        
-        // Show debug toast in development mode
-        if (process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost') {
-          toast({
-            title: "Debug Info Available",
-            description: `Session ID: ${result.debugSession}. Check console for details.`,
-            variant: "default",
-            duration: 5000,
-          });
-        }
+      // Show debug toast in development mode
+      if (result.debugSession && (process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost')) {
+        toast({
+          title: "Debug Info Available",
+          description: `Session ID: ${result.debugSession}. Check console for details.`,
+          variant: "default",
+          duration: 5000,
+        });
       }
       
       return result;
