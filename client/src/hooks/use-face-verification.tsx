@@ -215,6 +215,9 @@ export function useFaceVerification() {
               if (progress < 95) {
                 const result = await verifyFace(imgData);
                 
+                // Store the verification result for debugging purposes
+                setVerificationResult(result);
+                
                 // If successful with high confidence, complete the process
                 if (result?.success && result?.confidence > 85) {
                   setProgress(99); // Almost complete
@@ -229,6 +232,14 @@ export function useFaceVerification() {
               }
             } catch (err) {
               console.error("Error verifying frame:", err);
+              
+              // Set error in verification result for debugging
+              setVerificationResult({
+                success: false,
+                confidence: 0,
+                error: err instanceof Error ? err.message : String(err),
+                debugSession: `error-${Date.now()}`
+              });
             }
           };
           
