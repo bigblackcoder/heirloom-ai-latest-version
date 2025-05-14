@@ -2,6 +2,8 @@ import { Switch, Route } from "wouter";
 import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
+import Signup from "@/pages/signup";
+import Login from "@/pages/login";
 import Verification from "@/pages/verification";
 import Dashboard from "@/pages/dashboard";
 import Capsule from "@/pages/capsule";
@@ -15,6 +17,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/signup" component={Signup} />
       <Route path="/verification" component={Verification} />
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/capsule" component={Capsule} />

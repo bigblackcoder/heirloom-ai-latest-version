@@ -141,15 +141,25 @@ export default function Home() {
           </Button>
           
           <div className="mt-4 text-center flex flex-col items-center">
-            <Button 
-              variant="link" 
-              className="text-sm text-white/70 hover:text-white"
-              onClick={() => navigate("/dashboard")}
-            >
-              Already verified? Sign in
-            </Button>
+            <div className="flex flex-col items-center">
+              <Button 
+                variant="outline" 
+                className="text-sm text-white border-white/30 hover:bg-white/10 hover:text-white w-48 rounded-full"
+                onClick={() => navigate("/signup")}
+              >
+                Create Account
+              </Button>
+              
+              <Button 
+                variant="link" 
+                className="text-sm text-white/70 hover:text-white mt-2"
+                onClick={() => navigate("/dashboard")}
+              >
+                Already verified? Sign in
+              </Button>
+            </div>
             
-            <div className="flex flex-row gap-2 items-center justify-center">
+            <div className="flex flex-row gap-2 items-center justify-center mt-3">
               <Button 
                 variant="link" 
                 className="text-sm text-[#d4a166] hover:text-[#e5b277] mt-2"

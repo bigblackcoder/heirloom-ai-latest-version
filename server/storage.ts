@@ -3,225 +3,187 @@ import {
   identityCapsules, type IdentityCapsule, type InsertIdentityCapsule,
   verifiedData, type VerifiedData, type InsertVerifiedData,
   aiConnections, type AiConnection, type InsertAiConnection,
-  activities, type Activity, type InsertActivity 
+  activities, type Activity, type InsertActivity,
+  faceRecords, type FaceRecord, type InsertFaceRecord,
+  achievements, type Achievement, type InsertAchievement
 } from "@shared/schema";
+import { db } from "./db";
+import { eq, and, desc } from "drizzle-orm";
 
+// Interface for storage operations
 export interface IStorage {
-  // User methods
+  // User operations
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, updates: Partial<User>): Promise<User | undefined>;
-  
-  // Identity Capsule methods
+
+  // Identity Capsule operations
   getCapsule(id: number): Promise<IdentityCapsule | undefined>;
   getCapsulesByUserId(userId: number): Promise<IdentityCapsule[]>;
   createCapsule(capsule: InsertIdentityCapsule): Promise<IdentityCapsule>;
-  updateCapsule(id: number, updates: Partial<IdentityCapsule>): Promise<IdentityCapsule | undefined>;
-  
-  // Verified Data methods
+
+  // Verified Data operations
   getVerifiedData(id: number): Promise<VerifiedData | undefined>;
   getVerifiedDataByCapsuleId(capsuleId: number): Promise<VerifiedData[]>;
   createVerifiedData(data: InsertVerifiedData): Promise<VerifiedData>;
-  
-  // AI Connection methods
+
+  // AI Connection operations
   getAiConnection(id: number): Promise<AiConnection | undefined>;
   getAiConnectionsByUserId(userId: number): Promise<AiConnection[]>;
   createAiConnection(connection: InsertAiConnection): Promise<AiConnection>;
   updateAiConnection(id: number, updates: Partial<AiConnection>): Promise<AiConnection | undefined>;
-  
-  // Activity methods
+
+  // Activity operations
   getActivity(id: number): Promise<Activity | undefined>;
   getActivitiesByUserId(userId: number): Promise<Activity[]>;
   createActivity(activity: InsertActivity): Promise<Activity>;
+
+  // Face Record operations
+  getFaceRecord(id: string): Promise<FaceRecord | undefined>;
+  getFaceRecordsByUserId(userId: number): Promise<FaceRecord[]>;
+  createFaceRecord(record: InsertFaceRecord): Promise<FaceRecord>;
+
+  // Achievement operations
+  getAchievement(id: number): Promise<Achievement | undefined>;
+  getAchievementsByUserId(userId: number): Promise<Achievement[]>;
+  createAchievement(achievement: InsertAchievement): Promise<Achievement>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private identityCapsules: Map<number, IdentityCapsule>;
-  private verifiedData: Map<number, VerifiedData>;
-  private aiConnections: Map<number, AiConnection>;
-  private activities: Map<number, Activity>;
-  
-  private userIdCounter: number;
-  private capsuleIdCounter: number;
-  private dataIdCounter: number;
-  private connectionIdCounter: number;
-  private activityIdCounter: number;
-
-  constructor() {
-    this.users = new Map();
-    this.identityCapsules = new Map();
-    this.verifiedData = new Map();
-    this.aiConnections = new Map();
-    this.activities = new Map();
-    
-    this.userIdCounter = 1;
-    this.capsuleIdCounter = 1;
-    this.dataIdCounter = 1;
-    this.connectionIdCounter = 1;
-    this.activityIdCounter = 1;
-    
-    // Initialize with a demo user
-    this.createUser({
-      username: "leslie",
-      password: "password123",
-      firstName: "Leslie",
-      lastName: "Alexander"
-    });
-  }
-
-  // User methods
+// Database storage implementation
+export class DatabaseStorage implements IStorage {
+  // User operations
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username.toLowerCase() === username.toLowerCase(),
-    );
-  }
-
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.userIdCounter++;
-    const now = new Date();
-    const user: User = { 
-      ...insertUser, 
-      id, 
-      isVerified: false, 
-      memberSince: now,
-      avatar: undefined
-    };
-    this.users.set(id, user);
+    const [user] = await db.select().from(users).where(eq(users.username, username));
     return user;
   }
-  
+
+  async createUser(user: InsertUser): Promise<User> {
+    const [newUser] = await db.insert(users).values(user).returning();
+    return newUser;
+  }
+
   async updateUser(id: number, updates: Partial<User>): Promise<User | undefined> {
-    const user = await this.getUser(id);
-    if (!user) return undefined;
-    
-    const updatedUser = { ...user, ...updates };
-    this.users.set(id, updatedUser);
+    const [updatedUser] = await db
+      .update(users)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(users.id, id))
+      .returning();
     return updatedUser;
   }
 
-  // Identity Capsule methods
+  // Identity Capsule operations
   async getCapsule(id: number): Promise<IdentityCapsule | undefined> {
-    return this.identityCapsules.get(id);
-  }
-  
-  async getCapsulesByUserId(userId: number): Promise<IdentityCapsule[]> {
-    return Array.from(this.identityCapsules.values()).filter(
-      (capsule) => capsule.userId === userId
-    );
-  }
-  
-  async createCapsule(insertCapsule: InsertIdentityCapsule): Promise<IdentityCapsule> {
-    const id = this.capsuleIdCounter++;
-    const now = new Date();
-    const capsule: IdentityCapsule = {
-      ...insertCapsule,
-      id,
-      isActive: true,
-      createdAt: now
-    };
-    this.identityCapsules.set(id, capsule);
+    const [capsule] = await db.select().from(identityCapsules).where(eq(identityCapsules.id, id));
     return capsule;
   }
-  
-  async updateCapsule(id: number, updates: Partial<IdentityCapsule>): Promise<IdentityCapsule | undefined> {
-    const capsule = await this.getCapsule(id);
-    if (!capsule) return undefined;
-    
-    const updatedCapsule = { ...capsule, ...updates };
-    this.identityCapsules.set(id, updatedCapsule);
-    return updatedCapsule;
+
+  async getCapsulesByUserId(userId: number): Promise<IdentityCapsule[]> {
+    return await db.select().from(identityCapsules).where(eq(identityCapsules.userId, userId));
   }
 
-  // Verified Data methods
+  async createCapsule(capsule: InsertIdentityCapsule): Promise<IdentityCapsule> {
+    const [newCapsule] = await db.insert(identityCapsules).values(capsule).returning();
+    return newCapsule;
+  }
+
+  // Verified Data operations
   async getVerifiedData(id: number): Promise<VerifiedData | undefined> {
-    return this.verifiedData.get(id);
-  }
-  
-  async getVerifiedDataByCapsuleId(capsuleId: number): Promise<VerifiedData[]> {
-    return Array.from(this.verifiedData.values()).filter(
-      (data) => data.capsuleId === capsuleId
-    );
-  }
-  
-  async createVerifiedData(insertData: InsertVerifiedData): Promise<VerifiedData> {
-    const id = this.dataIdCounter++;
-    const now = new Date();
-    const data: VerifiedData = {
-      ...insertData,
-      id,
-      isVerified: false,
-      verifiedAt: undefined,
-      createdAt: now
-    };
-    this.verifiedData.set(id, data);
+    const [data] = await db.select().from(verifiedData).where(eq(verifiedData.id, id));
     return data;
   }
 
-  // AI Connection methods
+  async getVerifiedDataByCapsuleId(capsuleId: number): Promise<VerifiedData[]> {
+    return await db.select().from(verifiedData).where(eq(verifiedData.capsuleId, capsuleId));
+  }
+
+  async createVerifiedData(data: InsertVerifiedData): Promise<VerifiedData> {
+    const [newData] = await db.insert(verifiedData).values(data).returning();
+    return newData;
+  }
+
+  // AI Connection operations
   async getAiConnection(id: number): Promise<AiConnection | undefined> {
-    return this.aiConnections.get(id);
-  }
-  
-  async getAiConnectionsByUserId(userId: number): Promise<AiConnection[]> {
-    return Array.from(this.aiConnections.values()).filter(
-      (connection) => connection.userId === userId
-    );
-  }
-  
-  async createAiConnection(insertConnection: InsertAiConnection): Promise<AiConnection> {
-    const id = this.connectionIdCounter++;
-    const now = new Date();
-    const connection: AiConnection = {
-      ...insertConnection,
-      id,
-      isActive: true,
-      createdAt: now,
-      lastConnected: now
-    };
-    this.aiConnections.set(id, connection);
+    const [connection] = await db.select().from(aiConnections).where(eq(aiConnections.id, id));
     return connection;
   }
-  
+
+  async getAiConnectionsByUserId(userId: number): Promise<AiConnection[]> {
+    return await db.select().from(aiConnections).where(eq(aiConnections.userId, userId));
+  }
+
+  async createAiConnection(connection: InsertAiConnection): Promise<AiConnection> {
+    const [newConnection] = await db.insert(aiConnections).values(connection).returning();
+    return newConnection;
+  }
+
   async updateAiConnection(id: number, updates: Partial<AiConnection>): Promise<AiConnection | undefined> {
-    const connection = await this.getAiConnection(id);
-    if (!connection) return undefined;
-    
-    const updatedConnection = { ...connection, ...updates };
-    this.aiConnections.set(id, updatedConnection);
+    const [updatedConnection] = await db
+      .update(aiConnections)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(aiConnections.id, id))
+      .returning();
     return updatedConnection;
   }
 
-  // Activity methods
+  // Activity operations
   async getActivity(id: number): Promise<Activity | undefined> {
-    return this.activities.get(id);
-  }
-  
-  async getActivitiesByUserId(userId: number): Promise<Activity[]> {
-    return Array.from(this.activities.values())
-      .filter(activity => activity.userId === userId)
-      .sort((a, b) => {
-        // Sort activities in descending order by createdAt
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      });
-  }
-  
-  async createActivity(insertActivity: InsertActivity): Promise<Activity> {
-    const id = this.activityIdCounter++;
-    const now = new Date();
-    const activity: Activity = {
-      ...insertActivity,
-      id,
-      createdAt: now
-    };
-    this.activities.set(id, activity);
+    const [activity] = await db.select().from(activities).where(eq(activities.id, id));
     return activity;
+  }
+
+  async getActivitiesByUserId(userId: number): Promise<Activity[]> {
+    return await db
+      .select()
+      .from(activities)
+      .where(eq(activities.userId, userId))
+      .orderBy(desc(activities.createdAt));
+  }
+
+  async createActivity(activity: InsertActivity): Promise<Activity> {
+    const [newActivity] = await db.insert(activities).values(activity).returning();
+    return newActivity;
+  }
+
+  // Face Record operations
+  async getFaceRecord(id: string): Promise<FaceRecord | undefined> {
+    const [record] = await db.select().from(faceRecords).where(eq(faceRecords.id, id));
+    return record;
+  }
+
+  async getFaceRecordsByUserId(userId: number): Promise<FaceRecord[]> {
+    return await db.select().from(faceRecords).where(eq(faceRecords.userId, userId));
+  }
+
+  async createFaceRecord(record: InsertFaceRecord): Promise<FaceRecord> {
+    const [newRecord] = await db.insert(faceRecords).values(record).returning();
+    return newRecord;
+  }
+
+  // Achievement operations
+  async getAchievement(id: number): Promise<Achievement | undefined> {
+    const [achievement] = await db.select().from(achievements).where(eq(achievements.id, id));
+    return achievement;
+  }
+
+  async getAchievementsByUserId(userId: number): Promise<Achievement[]> {
+    return await db
+      .select()
+      .from(achievements)
+      .where(eq(achievements.userId, userId))
+      .orderBy(desc(achievements.awardedAt));
+  }
+
+  async createAchievement(achievement: InsertAchievement): Promise<Achievement> {
+    const [newAchievement] = await db.insert(achievements).values(achievement).returning();
+    return newAchievement;
   }
 }
 
-export const storage = new MemStorage();
+// Export singleton instance
+export const storage = new DatabaseStorage();
