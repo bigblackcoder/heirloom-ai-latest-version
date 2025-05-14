@@ -136,10 +136,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Face verification routes
   app.post("/api/verification/face", async (req: Request, res: Response) => {
     try {
-      // Check if there's an authenticated user
-      const userId = req.session?.userId;
+      // Check if there's an authenticated user from the session or request body
+      let userId = req.session?.userId;
       
-      const { image, saveToDb = false, useBasicDetection = false, checkDbOnly = false } = req.body;
+      const { image, userId: requestUserId, saveToDb = false, useBasicDetection = false, checkDbOnly = false } = req.body;
+      
+      // If userId was provided in the request body, use that instead
+      if (requestUserId) {
+        userId = requestUserId;
+      }
       
       if (!image) {
         return res.status(200).json({ 
