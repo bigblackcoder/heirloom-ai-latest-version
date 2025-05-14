@@ -368,15 +368,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Just use the existing debugSessionId since it's now defined at the route handler level
       
       // Log the error with the debug session ID
-      log(`[DEBUG:${errorSessionId}] Critical error during face verification: ${error?.message || String(error) || 'Unknown error'}`, "face-verify");
-      log(`[DEBUG:${errorSessionId}] Error stack: ${error?.stack || 'No stack trace available'}`, "face-verify");
+      log(`[DEBUG:${debugSessionId}] Critical error during face verification: ${error?.message || String(error) || 'Unknown error'}`, "face-verify");
+      log(`[DEBUG:${debugSessionId}] Error stack: ${error?.stack || 'No stack trace available'}`, "face-verify");
       
       // Return error with debug session ID for tracing
       res.status(200).json({ 
         success: false, 
         message: "Error during face verification", 
         confidence: 0,
-        debugSession: errorSessionId,
+        debugSession: debugSessionId,
         error: process.env.NODE_ENV === 'development' ? (error?.message || String(error) || 'Unknown error') : undefined
       });
     }

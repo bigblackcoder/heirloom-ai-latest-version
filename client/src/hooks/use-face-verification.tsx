@@ -71,12 +71,39 @@ export function useFaceVerification() {
       if (result.debugSession) {
         console.log(`[Face Verification] Debug session ID: ${result.debugSession}`);
         console.log('[Face Verification] Server verification details:', result);
+        
+        // Show debug toast in development mode
+        if (process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost') {
+          toast({
+            title: "Debug Info Available",
+            description: `Session ID: ${result.debugSession}. Check console for details.`,
+            variant: "default",
+            duration: 5000,
+          });
+        }
       }
       
       return result;
     } catch (error) {
       console.error('Error during verification:', error);
-      return null;
+      
+      // Show error toast with debugging information
+      if (process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost') {
+        toast({
+          title: "Face Verification Error",
+          description: `Error: ${error?.message || String(error)}`,
+          variant: "destructive",
+          duration: 5000,
+        });
+      }
+      
+      return {
+        success: false,
+        confidence: 0,
+        message: 'Error during verification process',
+        error: error?.message || String(error),
+        debugSession: `face-error-client-${Date.now()}`
+      };
     }
   }, []);
 

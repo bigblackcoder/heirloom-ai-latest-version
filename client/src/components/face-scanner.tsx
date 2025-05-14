@@ -3,6 +3,7 @@ import Webcam from "react-webcam";
 import { motion } from "framer-motion";
 import { useFaceVerification } from "@/hooks/use-face-verification";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { DebugSession } from "@/components/debug-session";
 
 // Declare mouseX and mouseY on window object for cross-component tracking
 declare global {
@@ -22,7 +23,9 @@ export default function FaceScanner({ onProgress, onComplete, isComplete }: Face
   const webcamRef = useRef<Webcam>(null);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [isSimulating, setIsSimulating] = useState(false);
-  const { startDetection, stopDetection, verificationProgress, simulateVerification } = useFaceVerification();
+  const [debugSessionId, setDebugSessionId] = useState<string | undefined>(undefined);
+  const [debugData, setDebugData] = useState<any>(null);
+  const { startDetection, stopDetection, verificationProgress, verificationResult, simulateVerification } = useFaceVerification();
   const isMobile = useIsMobile();
   const demoSimulationRef = useRef<(() => void) | null>(null);
   
