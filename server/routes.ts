@@ -135,6 +135,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Face verification routes
   app.post("/api/verification/face", async (req: Request, res: Response) => {
+    // Create a debugging session ID first - accessible throughout the entire route handler
+    const debugSessionId = `face-verify-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    
     try {
       // Check if there's an authenticated user from the session or request body
       let userId = req.session?.userId;
@@ -145,9 +148,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (requestUserId) {
         userId = requestUserId;
       }
-      
-      // Create a debugging session ID for this verification attempt
-      const debugSessionId = `face-verify-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
       
       // Log verification attempt with debugging info
       log(`[DEBUG:${debugSessionId}] Face verification attempt started. User ID: ${userId || 'guest'}`, "face-verify");
@@ -362,20 +362,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       })}`, "face-verify");
       
       res.status(200).json(successResult);
-    } catch (error) {
+    } catch (error: any) { // Type error as any for error handling
       console.error("Error during face verification:", error);
       
+      // Just use the existing debugSessionId since it's now defined at the route handler level
+      
       // Log the error with the debug session ID
-      log(`[DEBUG:${debugSessionId}] Critical error during face verification: ${error.message || error}`, "face-verify");
-      log(`[DEBUG:${debugSessionId}] Error stack: ${error.stack || 'No stack trace available'}`, "face-verify");
+      log(`[DEBUG:${errorSessionId}] Critical error during face verification: ${error?.message || String(error) || 'Unknown error'}`, "face-verify");
+      log(`[DEBUG:${errorSessionId}] Error stack: ${error?.stack || 'No stack trace available'}`, "face-verify");
       
       // Return error with debug session ID for tracing
       res.status(200).json({ 
         success: false, 
         message: "Error during face verification", 
         confidence: 0,
-        debugSession: debugSessionId,
-        error: process.env.NODE_ENV === 'development' ? error.message || String(error) : undefined
+        debugSession: errorSessionId,
+        error: process.env.NODE_ENV === 'development' ? (error?.message || String(error) || 'Unknown error') : undefined
       });
     }
   });

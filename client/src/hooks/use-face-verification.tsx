@@ -8,6 +8,9 @@ interface FaceVerificationResult {
   message?: string;
   matched?: boolean;
   face_id?: string;
+  debugSession?: string;  // Added for tracking verification sessions
+  error?: string;         // For error details
+  details?: string;       // For additional error information
   results?: {
     age?: number;
     gender?: string;
