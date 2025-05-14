@@ -2,8 +2,10 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import { getGreeting } from "@/lib/identity";
 import { apiRequest } from "@/lib/queryClient";
+import { ProtectedRoute } from "@/components/protected-route";
 import IdentityCapsuleCard from "@/components/identity-capsule-card";
 import QuickActions from "@/components/quick-actions";
 import ActiveConnections from "@/components/active-connections";
@@ -125,9 +127,16 @@ export default function Dashboard() {
 
   const stats = getStats();
 
+  // Use the auth context directly
+  const { user: authUser } = useAuth();
+  
+  // If we get user data from auth, use it instead of query data
+  const displayUser = authUser || userData;
+
   return (
-    <div className="min-h-screen bg-[#f8f9fa] pb-20">
-      {/* Status bar area */}
+    <ProtectedRoute>
+      <div className="min-h-screen bg-[#f8f9fa] pb-20">
+        {/* Status bar area */}
       <div className="w-full px-4 pt-6 pb-2 flex items-center bg-white">
         <div className="text-sm text-gray-500">9:41</div>
         <div className="flex-1"></div>
@@ -253,5 +262,6 @@ export default function Dashboard() {
         onClose={() => setShowCapsuleSetupPopup(false)}
       />
     </div>
+    </ProtectedRoute>
   );
 }

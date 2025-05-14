@@ -174,9 +174,9 @@ export default function Signup() {
               <Button 
                 type="submit" 
                 className="w-full py-6 mt-2 bg-[#7c9861] hover:bg-[#273414] text-white rounded-xl"
-                disabled={isSubmitting}
+                disabled={isLoading}
               >
-                {isSubmitting ? "Creating Account..." : "Create Account"}
+                {isLoading ? "Creating Account..." : "Create Account"}
               </Button>
             </form>
           </Form>

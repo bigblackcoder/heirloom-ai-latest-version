@@ -4,13 +4,17 @@ import { apiRequest } from '@/lib/queryClient';
 import { toast } from '@/hooks/use-toast';
 
 // Define user type
-type User = {
+export type User = {
   id: number;
   username: string;
   email: string | null;
+  firstName?: string;
+  lastName?: string;
   isVerified: boolean;
   createdAt: string;
   updatedAt: string;
+  memberSince?: string;
+  avatar?: string;
 };
 
 // Auth context type
