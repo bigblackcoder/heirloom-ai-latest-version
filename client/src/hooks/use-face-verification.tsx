@@ -32,6 +32,45 @@ export function useFaceVerification() {
   // Progress simulation timer
   const progressTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Verify face with the API
+  const verifyFace = useCallback(async (base64Image: string, userId?: string) => {
+    try {
+      // Make API request to verify face
+      const response = await fetch('/api/verification/face', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          image: base64Image,
+          userId: userId,
+          saveToDb: true,
+          useBasicDetection: true, // Use the lightweight detection since DeepFace might not be available
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Verification failed: ${response.status} ${response.statusText}`);
+      }
+      
+      // Parse the response
+      const result: FaceVerificationResult = await response.json();
+      
+      // Update verification result
+      setVerificationResult(result);
+      
+      // If successful with high confidence, increase progress
+      if (result.success && result.confidence > 85) {
+        setProgress(prev => Math.max(prev, 95));
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('Error during verification:', error);
+      return null;
+    }
+  }, []);
+
   // Simulate verification process for demo purposes
   const simulateVerification = useCallback(() => {
     setIsVerifying(true);
@@ -48,14 +87,15 @@ export function useFaceVerification() {
     const interval = setInterval(() => {
       setProgress(prev => {
         const newProgress = prev + Math.random() * 10;
+        
         if (newProgress >= 100) {
           clearInterval(interval);
           
-          // Simulate successful verification after 100% progress
+          // Create a mock successful result
           setTimeout(() => {
             const mockResult: FaceVerificationResult = {
               success: true,
-              confidence: 97.5,
+              confidence: 95,
               matched: true,
               face_id: 'face_' + Math.random().toString(36).substring(2, 10),
               results: {
@@ -93,89 +133,14 @@ export function useFaceVerification() {
     return () => clearInterval(interval);
   }, [toast, navigate]);
   
-  // Verify face with API
-  const verifyFace = useCallback(async (base64Image: string, userId?: string) => {
-    setIsVerifying(true);
-    setProgress(0);
-    
-    try {
-      // Start with initial progress
-      setProgress(10);
-      
-      // Make API request to verify face
-      const response = await fetch('/api/verification/face', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          image: base64Image,
-          userId: userId,
-          saveToDb: true,
-          useBasicDetection: true, // Use the lightweight detection since DeepFace might not be available
-        }),
-      });
-      
-      setProgress(70);
-      
-      if (!response.ok) {
-        throw new Error(`Verification failed with status: ${response.status}`);
-      }
-      
-      const result: FaceVerificationResult = await response.json();
-      setProgress(100);
-      setVerificationResult(result);
-      
-      // Show appropriate toast based on result
-      if (result.success) {
-        toast({
-          title: "Verification Successful",
-          description: result.message || "Your identity has been verified.",
-          variant: "default",
-        });
-        
-        // Navigate to dashboard after success
-        setTimeout(() => {
-          navigate('/dashboard');
-        }, 1000);
-      } else {
-        toast({
-          title: "Verification Failed",
-          description: result.message || "Please try again.",
-          variant: "destructive",
-        });
-      }
-      
-      return result;
-    } catch (error) {
-      console.error('Face verification error:', error);
-      
-      // Handle error and show toast
-      toast({
-        title: "Verification Error",
-        description: error instanceof Error ? error.message : "An unexpected error occurred.",
-        variant: "destructive",
-      });
-      
-      setVerificationResult({
-        success: false,
-        confidence: 0,
-        message: error instanceof Error ? error.message : "An unexpected error occurred",
-      });
-      
-      return null;
-    } finally {
-      setIsVerifying(false);
-    }
-  }, [toast, navigate]);
-  
-  // Start face detection using the webcam video element
+  // Start face detection
   const startDetection = useCallback((videoElement: HTMLVideoElement) => {
-    if (!videoElement) return;
-    
-    // Store video element reference
+    // Store the video element reference
     videoRef.current = videoElement;
+    
+    // Reset verification state
     setIsVerifying(true);
+    setVerificationResult(null);
     
     // Reset progress
     setProgress(0);
@@ -207,8 +172,33 @@ export function useFaceVerification() {
         try {
           const imgData = canvas.toDataURL('image/jpeg', 0.8);
           
-          // Here you could send the image data to your server for verification
-          // For demo purposes, we're just simulating progress
+          // Process the captured frame
+          const processFrame = async () => {
+            try {
+              // Only verify if progress is under 95%
+              if (progress < 95) {
+                const result = await verifyFace(imgData);
+                
+                // If successful with high confidence, complete the process
+                if (result?.success && result?.confidence > 85) {
+                  setProgress(99); // Almost complete
+                  
+                  // Show success toast
+                  toast({
+                    title: "Face Verified",
+                    description: "Your face has been successfully verified.",
+                    variant: "default",
+                  });
+                }
+              }
+            } catch (err) {
+              console.error("Error verifying frame:", err);
+            }
+          };
+          
+          // Execute the frame processing
+          processFrame();
+          
           console.log('Frame captured for detection');
         } catch (err) {
           console.error('Error capturing frame:', err);
@@ -217,7 +207,7 @@ export function useFaceVerification() {
     }, 1500); // Capture frame every 1.5 seconds
 
     console.log('Face detection started');
-  }, []);
+  }, [verifyFace, progress, toast]);
   
   // Stop face detection
   const stopDetection = useCallback(() => {
@@ -239,24 +229,19 @@ export function useFaceVerification() {
       progressTimerRef.current = null;
     }
     
-    // Set final progress
-    setProgress(100);
     setIsVerifying(false);
-    
     console.log('Face detection stopped');
   }, []);
-
-  // Calculate verification progress
-  const verificationProgress = progress;
   
+  // Return the hook's interface
   return {
     isVerifying,
-    progress,
-    verificationProgress,
+    progress: progress,
+    verificationProgress: progress,
     verificationResult,
-    verifyFace,
-    simulateVerification,
     startDetection,
-    stopDetection
+    stopDetection,
+    verifyFace,
+    simulateVerification
   };
 }
