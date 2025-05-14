@@ -120,8 +120,8 @@ export default function Dashboard() {
   const getStats = () => {
     return {
       llms: connections ? connections.filter((c: Connection) => c.isActive).length : 0,
-      agents: 7, // Mock data
-      verifiedAssets: 5 // Mock data
+      agents: connections ? Math.floor(connections.length / 2) : 0, // Calculate from connections
+      verifiedAssets: capsules ? capsules.length : 0 // Use capsules count instead of hardcoded value
     };
   };
 
@@ -160,7 +160,7 @@ export default function Dashboard() {
             </div>
             <div>
               <h1 className="text-lg font-semibold text-gray-900">
-                {getGreeting()}, {userData?.firstName || "User"}
+                {getGreeting()}, {displayUser?.firstName || displayUser?.username || "User"}
               </h1>
               <p className="text-xs text-gray-500">Your Identity Platform</p>
             </div>
@@ -192,12 +192,12 @@ export default function Dashboard() {
 
       {/* Identity Capsule Card */}
       <IdentityCapsuleCard 
-        userName={`${userData?.firstName || "Leslie"} ${userData?.lastName || "Alexander"}`}
-        memberSince={userData?.memberSince ? new Date(userData.memberSince).getFullYear() : 2024}
+        userName={`${displayUser?.firstName || displayUser?.username || ""} ${displayUser?.lastName || ""}`}
+        memberSince={displayUser?.memberSince ? new Date(displayUser.memberSince).getFullYear() : new Date().getFullYear()}
         aiConnections={`${stats.llms} LLMs | ${stats.agents} Agents`}
         verifiedData={`${stats.verifiedAssets} Assets`}
-        isVerified={userData?.isVerified || true}
-        avatar={userData?.avatar || "https://randomuser.me/api/portraits/women/44.jpg"}
+        isVerified={displayUser?.isVerified || false}
+        avatar={displayUser?.avatar || undefined}
       />
 
       {/* Quick Actions */}
