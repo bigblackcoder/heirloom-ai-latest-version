@@ -110,8 +110,9 @@ export function useFaceVerification() {
         },
         body: JSON.stringify({
           image: base64Image,
-          user_id: userId,
-          save_to_db: true,
+          userId: userId,
+          saveToDb: true,
+          useBasicDetection: true, // Use the lightweight detection since DeepFace might not be available
         }),
       });
       
