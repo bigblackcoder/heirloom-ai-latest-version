@@ -23,7 +23,7 @@ export const sessionConfig = {
     maxAge: 7 * 24 * 60 * 60 * 1000, // 1 week
     httpOnly: true,
     sameSite: 'lax' as const,
-    secure: process.env.NODE_ENV === 'production'
+    secure: false // Allow non-HTTPS for development
   }
 };
 

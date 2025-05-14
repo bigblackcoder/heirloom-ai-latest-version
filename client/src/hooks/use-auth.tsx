@@ -81,9 +81,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
         body: credentials
       });
     },
-    onSuccess: () => {
-      refetchUser();
-      queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+    onSuccess: (data) => {
+      // Set user data directly in cache to prevent flash of unauthenticated content
+      if (data && data.user) {
+        queryClient.setQueryData(['/api/auth/me'], data.user);
+      }
+      
+      // Then refetch to ensure we have the latest data
+      setTimeout(() => {
+        refetchUser();
+        queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+      }, 500);
     }
   });
   
@@ -96,8 +104,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries();
-      queryClient.clear();
+      // Clear user data in cache
+      queryClient.setQueryData(['/api/auth/me'], null);
+      
+      // Then invalidate all queries and clear cache
+      setTimeout(() => {
+        queryClient.invalidateQueries();
+        queryClient.clear();
+      }, 500);
     }
   });
   
@@ -158,11 +172,27 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Signup function
   const signup = async (username: string, email: string, password: string) => {
     try {
-      await signupMutation.mutateAsync({ username, email, password });
+      const result = await signupMutation.mutateAsync({ username, email, password });
       toast({
         title: 'Account created',
         description: 'Your account has been successfully created!'
       });
+      
+      // Auto login after signup if response contains user data
+      if (result && result.user) {
+        // Set user data directly in cache
+        queryClient.setQueryData(['/api/auth/me'], result.user);
+        
+        // Also perform a login to establish a session
+        try {
+          await login(username, password);
+        } catch (error) {
+          console.error('Auto-login error after signup:', error);
+          // If auto-login fails, we already have an account, so just continue
+        }
+      }
+      
+      return result;
     } catch (error) {
       console.error('Signup error:', error);
       toast({
