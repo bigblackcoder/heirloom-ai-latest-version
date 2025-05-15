@@ -33,12 +33,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 // Feature icon component for mobile-first design
-interface FeatureIconProps extends LucideProps {
+interface FeatureIconProps {
   active?: boolean;
   label: string;
+  icon: React.ComponentType<LucideProps>;
 }
 
-const FeatureIcon = ({ active = false, label, ...props }: FeatureIconProps) => (
+const FeatureIcon = ({ active = false, label, icon, ...props }: FeatureIconProps) => (
   <div className="flex flex-col items-center">
     <div 
       className={cn(
@@ -48,9 +49,8 @@ const FeatureIcon = ({ active = false, label, ...props }: FeatureIconProps) => (
           : "bg-[#1E3C0D]/60 text-white/80 border border-white/10"
       )}
     >
-      {React.createElement(props.icon as any, { 
-        className: "h-6 w-6",
-        ...props
+      {React.createElement(icon as any, { 
+        className: "h-6 w-6"
       })}
     </div>
     <span className="text-xs text-center">{label}</span>
@@ -499,7 +499,360 @@ export default function DemoPage() {
             </div>
             
             {/* Updated dashboard preview with mobile-first design */}
-            <div className="relative">
+            <div className="relative hidden sm:block">
+              <div className="bg-[#0F1D04]/80 rounded-2xl p-4 md:p-6 backdrop-blur-sm border border-white/10 shadow-[0_0_25px_rgba(212,161,102,0.1)]">
+                <div className="absolute -top-2 -left-2 bg-[#D4A166]/10 backdrop-blur-sm rounded-lg px-3 py-1.5 border border-[#D4A166]/30 shadow-lg">
+                  <div className="flex items-center">
+                    <Users className="h-4 w-4 text-[#D4A166] mr-2" />
+                    <span className="text-sm font-medium">Identity Platform</span>
+                  </div>
+                </div>
+                
+                <img 
+                  src="/images/dashboard.png" 
+                  alt="Heirloom Dashboard" 
+                  className="rounded-lg shadow-xl border border-white/5 w-full"
+                />
+                
+                <div className="mt-4 md:mt-6 grid grid-cols-3 gap-2 md:gap-3">
+                  <div className="bg-[#1E3C0D]/50 backdrop-blur-sm p-3 md:p-4 rounded-lg border border-white/5 transform transition-transform hover:scale-105">
+                    <div className="flex justify-center mb-2">
+                      <Shield className="h-6 w-6 md:h-7 md:w-7 text-[#D4A166]" />
+                    </div>
+                    <p className="text-center text-xs md:text-sm">Secure Identity</p>
+                  </div>
+                  <div className="bg-[#1E3C0D]/50 backdrop-blur-sm p-3 md:p-4 rounded-lg border border-white/5 transform transition-transform hover:scale-105">
+                    <div className="flex justify-center mb-2">
+                      <Fingerprint className="h-6 w-6 md:h-7 md:w-7 text-[#D4A166]" />
+                    </div>
+                    <p className="text-center text-xs md:text-sm">Face Verification</p>
+                  </div>
+                  <div className="bg-[#1E3C0D]/50 backdrop-blur-sm p-3 md:p-4 rounded-lg border border-white/5 transform transition-transform hover:scale-105">
+                    <div className="flex justify-center mb-2">
+                      <Award className="h-6 w-6 md:h-7 md:w-7 text-[#D4A166]" />
+                    </div>
+                    <p className="text-center text-xs md:text-sm">Achievement System</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      
+      {/* Mobile optimized features section with icons */}
+      <section id="features" className="py-8 md:py-16 px-4 md:px-5 bg-[#0A1908]/60">
+        <div className="md:container md:mx-auto md:max-w-6xl">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl md:text-3xl font-bold mb-3">
+              Key <span className="text-[#D4A166]">Features</span>
+            </h2>
+            <p className="text-white/70 text-sm md:text-base max-w-lg mx-auto">
+              Explore Heirloom's core capabilities to take control of your digital identity 
+              with enterprise-grade security and simplicity.
+            </p>
+          </div>
+          
+          {/* Feature Icons - Mobile First */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-5 mb-8">
+            {featureItems.map(item => (
+              <button 
+                key={item.id}
+                className="flex justify-center"
+                onClick={() => {
+                  navigate(item.href);
+                  setActiveSection(item.id);
+                }}
+              >
+                <FeatureIcon 
+                  icon={item.icon} 
+                  label={item.label} 
+                  active={activeSection === item.id}
+                />
+              </button>
+            ))}
+          </div>
+          
+          {/* Feature Cards - Mobile-First with optimized spacing */}
+          <div className="space-y-4 md:space-y-6">
+            {/* Identity Verification Card */}
+            <Card className="bg-[#0F1D04]/80 border-[#D4A166]/20 overflow-hidden">
+              <div className="md:grid md:grid-cols-5 items-stretch">
+                <div className="md:col-span-3 p-4 md:p-6">
+                  <CardHeader className="p-0 pb-3">
+                    <div className="flex items-center mb-2">
+                      <div className="w-8 h-8 rounded-full bg-[#D4A166]/20 flex items-center justify-center mr-3">
+                        <Fingerprint className="h-4 w-4 text-[#D4A166]" />
+                      </div>
+                      <CardTitle className="text-xl text-white">Identity Verification</CardTitle>
+                    </div>
+                    <CardDescription className="text-white/70">
+                      Secure, fast, and privacy-focused biometric verification
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-0 pt-1">
+                    <ul className="space-y-2 text-sm md:text-base text-white/80">
+                      <li className="flex items-start">
+                        <Check className="h-5 w-5 text-[#D4A166] mr-2 flex-shrink-0 mt-0.5" />
+                        Face verification with liveness detection
+                      </li>
+                      <li className="flex items-start">
+                        <Check className="h-5 w-5 text-[#D4A166] mr-2 flex-shrink-0 mt-0.5" />
+                        Encrypted and secure data processing
+                      </li>
+                      <li className="flex items-start">
+                        <Check className="h-5 w-5 text-[#D4A166] mr-2 flex-shrink-0 mt-0.5" />
+                        Works on all devices with a camera
+                      </li>
+                    </ul>
+                  </CardContent>
+                  <CardFooter className="p-0 pt-4">
+                    <Button 
+                      className="bg-[#D4A166] hover:bg-[#A67D4F] text-black"
+                      onClick={() => navigate('/verification')}
+                    >
+                      Try Verification
+                      <ArrowRight className="h-4 w-4 ml-2" />
+                    </Button>
+                  </CardFooter>
+                </div>
+                <div className="hidden md:block md:col-span-2 bg-[#1E3C0D] relative">
+                  <img 
+                    src="/images/verification-preview.png" 
+                    alt="Identity Verification" 
+                    className="absolute inset-0 w-full h-full object-cover mix-blend-luminosity opacity-60"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#0F1D04] to-transparent"></div>
+                </div>
+              </div>
+            </Card>
+            
+            {/* Security Card */}
+            <Card className="bg-[#0F1D04]/80 border-[#D4A166]/20 overflow-hidden">
+              <div className="md:grid md:grid-cols-5 items-stretch">
+                <div className="md:col-span-3 p-4 md:p-6">
+                  <CardHeader className="p-0 pb-3">
+                    <div className="flex items-center mb-2">
+                      <div className="w-8 h-8 rounded-full bg-[#D4A166]/20 flex items-center justify-center mr-3">
+                        <Shield className="h-4 w-4 text-[#D4A166]" />
+                      </div>
+                      <CardTitle className="text-xl text-white">Security & Control</CardTitle>
+                    </div>
+                    <CardDescription className="text-white/70">
+                      Enterprise-grade protection with user-friendly controls
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-0 pt-1">
+                    <ul className="space-y-2 text-sm md:text-base text-white/80">
+                      <li className="flex items-start">
+                        <Check className="h-5 w-5 text-[#D4A166] mr-2 flex-shrink-0 mt-0.5" />
+                        Blockchain-verified identity credentials
+                      </li>
+                      <li className="flex items-start">
+                        <Check className="h-5 w-5 text-[#D4A166] mr-2 flex-shrink-0 mt-0.5" />
+                        Granular permission control for shared data
+                      </li>
+                      <li className="flex items-start">
+                        <Check className="h-5 w-5 text-[#D4A166] mr-2 flex-shrink-0 mt-0.5" />
+                        Revoke access with a single tap
+                      </li>
+                    </ul>
+                  </CardContent>
+                  <CardFooter className="p-0 pt-4">
+                    <Button 
+                      className="bg-[#D4A166] hover:bg-[#A67D4F] text-black"
+                      onClick={() => navigate('/dashboard')}
+                    >
+                      View Dashboard
+                      <ArrowRight className="h-4 w-4 ml-2" />
+                    </Button>
+                  </CardFooter>
+                </div>
+                <div className="hidden md:block md:col-span-2 bg-[#1E3C0D] relative">
+                  <img 
+                    src="/images/security-preview.png" 
+                    alt="Security Controls" 
+                    className="absolute inset-0 w-full h-full object-cover mix-blend-luminosity opacity-60"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#0F1D04] to-transparent"></div>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </div>
+      </section>
+      
+      {/* Simplified voice agent section for mobile */}
+      <section className="py-8 px-4 bg-[#1E3C0D]/50 flex justify-center md:hidden">
+        <Card className="w-full bg-[#0F1D04]/80 border-[#D4A166]/20">
+          <CardHeader className="pb-2">
+            <div className="flex justify-between items-center">
+              <CardTitle className="text-lg flex items-center text-white">
+                <Bell className="h-5 w-5 text-[#D4A166] mr-2" />
+                Voice Guide
+              </CardTitle>
+              <Button 
+                variant="outline" 
+                size="sm"
+                className={cn(
+                  "px-2 h-8 text-xs",
+                  showVoiceAgent 
+                    ? "bg-[#D4A166]/20 text-[#D4A166] border-[#D4A166]/30" 
+                    : "text-white/70 border-white/20"
+                )}
+                onClick={() => setShowVoiceAgent(!showVoiceAgent && !muteVoice)}
+                disabled={muteVoice}
+              >
+                {showVoiceAgent ? "Guide Active" : "Enable Guide"}
+              </Button>
+            </div>
+            <CardDescription className="text-white/70 text-xs">
+              Get a guided tour with voice narration
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pb-4">
+            <div className="flex flex-wrap gap-2">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className="text-white/70 border border-white/10 h-8"
+                onClick={toggleMute}
+              >
+                {muteVoice ? <VolumeX className="h-4 w-4 mr-1.5" /> : <Volume className="h-4 w-4 mr-1.5" />}
+                {muteVoice ? "Unmute" : "Mute"}
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className="text-white/70 border border-white/10 h-8"
+                onClick={toggleVoicePreference}
+              >
+                <div className={cn(
+                  "w-3.5 h-3.5 rounded-sm border mr-1.5 flex items-center justify-center",
+                  preferVoiceDemo 
+                    ? "bg-[#D4A166] border-[#D4A166]" 
+                    : "border-white/30 bg-transparent"
+                )}>
+                  {preferVoiceDemo && <Check className="h-2.5 w-2.5 text-black" />}
+                </div>
+                Default On
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+      
+      {/* Bottom Mobile Navigation */}
+      <div className="fixed bottom-0 left-0 right-0 z-30 bg-[#0F1D04] border-t border-[#D4A166]/20 p-2 md:hidden">
+        <div className="flex justify-around">
+          <Button 
+            variant="ghost" 
+            className="flex flex-col items-center py-1 px-2 h-auto text-white/70 hover:text-white"
+            onClick={() => {
+              navigate('/');
+              setActiveSection('welcome');
+            }}
+          >
+            <Home className="h-5 w-5 mb-1" />
+            <span className="text-xs">Home</span>
+          </Button>
+          <Button 
+            variant="ghost" 
+            className="flex flex-col items-center py-1 px-2 h-auto text-white/70 hover:text-white"
+            onClick={() => {
+              navigate('/verification');
+              setActiveSection('identity');
+            }}
+          >
+            <Fingerprint className="h-5 w-5 mb-1" />
+            <span className="text-xs">Verify</span>
+          </Button>
+          <Button 
+            variant="ghost" 
+            className="flex flex-col items-center py-1 px-2 h-auto text-white/70 hover:text-white"
+            onClick={() => {
+              navigate('/dashboard');
+              setActiveSection('security');
+            }}
+          >
+            <Shield className="h-5 w-5 mb-1" />
+            <span className="text-xs">Security</span>
+          </Button>
+          <Button 
+            variant="ghost" 
+            className="flex flex-col items-center py-1 px-2 h-auto text-white/70 hover:text-white"
+            onClick={() => {
+              navigate('/achievements');
+              setActiveSection('achievements');
+            }}
+          >
+            <Award className="h-5 w-5 mb-1" />
+            <span className="text-xs">Rewards</span>
+          </Button>
+        </div>
+      </div>
+      
+      {/* Security Section with added information */}
+      <section id="security" className="py-8 md:py-16 px-4 md:px-5 bg-[#0A1908]">
+        <div className="md:container md:mx-auto md:max-w-6xl">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl md:text-3xl font-bold mb-3">
+              Enterprise-Grade <span className="text-[#D4A166]">Security</span>
+            </h2>
+            <p className="text-white/70 text-sm md:text-base max-w-lg mx-auto">
+              Your digital identity protected by blockchain technology and 
+              advanced encryption at every step.
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+            <Card className="bg-[#182E0B] border-[#2A3D1E]">
+              <CardHeader>
+                <div className="mb-4 bg-[#0F1D04] p-3 inline-flex rounded-lg">
+                  <LockKeyhole className="h-8 w-8 text-[#D4A166]" />
+                </div>
+                <CardTitle>Blockchain Verification</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-white/80">
+                  Identity tokens stored on blockchain for immutable, 
+                  tamper-proof verification that can't be falsified.
+                </p>
+              </CardContent>
+            </Card>
+            
+            <Card className="bg-[#182E0B] border-[#2A3D1E]">
+              <CardHeader>
+                <div className="mb-4 bg-[#0F1D04] p-3 inline-flex rounded-lg">
+                  <Shield className="h-8 w-8 text-[#D4A166]" />
+                </div>
+                <CardTitle>Privacy Controls</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-white/80">
+                  Share only the specific parts of your identity that are required, 
+                  maintaining privacy while still providing necessary verification.
+                </p>
+              </CardContent>
+            </Card>
+            
+            <Card className="bg-[#182E0B] border-[#2A3D1E]">
+              <CardHeader>
+                <div className="mb-4 bg-[#0F1D04] p-3 inline-flex rounded-lg">
+                  <Fingerprint className="h-8 w-8 text-[#D4A166]" />
+                </div>
+                <CardTitle>Biometric Security</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-white/80">
+                  Advanced face detection with liveness checks ensures only real, 
+                  present humans can verify, preventing spoofing attacks.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
               <div className="bg-[#0F1D04]/80 rounded-2xl p-6 backdrop-blur-sm border border-white/10 shadow-[0_0_25px_rgba(212,161,102,0.1)]">
                 <div className="absolute -top-2 -left-2 bg-[#D4A166]/10 backdrop-blur-sm rounded-lg px-3 py-1.5 border border-[#D4A166]/30 shadow-lg">
                   <div className="flex items-center">
