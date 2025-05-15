@@ -64,7 +64,6 @@ export default function DemoPage() {
   const [preferVoiceDemo, setPreferVoiceDemo] = useState(false);
   const [muteVoice, setMuteVoice] = useState(false);
   const [activeSection, setActiveSection] = useState('welcome');
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   // Check URL parameters for voice demo flag
   useEffect(() => {
@@ -378,123 +377,116 @@ export default function DemoPage() {
                 <Card className="bg-[#0F1D04]/80 border-[#D4A166]/20 backdrop-blur-sm">
                   <CardHeader className="pb-2 px-4 pt-4">
                     <div className="flex justify-between items-center">
-                      <CardTitle className="text-[#D4A166] text-base md:text-lg">
-                        <div className="flex items-center">
-                          <div className="w-2 h-2 rounded-full bg-[#D4A166] mr-2 animate-pulse"></div>
-                          Interactive Demo
-                        </div>
+                      <CardTitle className="text-lg flex items-center text-white">
+                        <Bell className="h-5 w-5 text-[#D4A166] mr-2" />
+                        Voice Guide
                       </CardTitle>
-                      {showVoiceAgent ? (
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          className="text-[#D4A166] hover:bg-[#D4A166]/10 px-2 h-8"
-                          onClick={() => setShowVoiceAgent(false)}
-                        >
-                          <VolumeX className="mr-1 h-4 w-4" />
-                          <span className="hidden sm:inline">Mute Guide</span>
-                        </Button>
-                      ) : (
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          className="text-[#D4A166] hover:bg-[#D4A166]/10 px-2 h-8"
-                          onClick={() => !muteVoice && setShowVoiceAgent(true)}
-                          disabled={muteVoice}
-                        >
-                          <Bell className="mr-1 h-4 w-4" />
-                          <span className="hidden sm:inline">Enable Guide</span>
-                        </Button>
-                      )}
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className={cn(
+                          "px-2 h-8 text-xs",
+                          showVoiceAgent 
+                            ? "bg-[#D4A166]/20 text-[#D4A166] border-[#D4A166]/30" 
+                            : "text-white/70 border-white/20"
+                        )}
+                        onClick={() => setShowVoiceAgent(!showVoiceAgent && !muteVoice)}
+                        disabled={muteVoice}
+                      >
+                        {showVoiceAgent ? "Guide Active" : "Enable Guide"}
+                      </Button>
                     </div>
-                    <CardDescription className="text-white/80 text-xs md:text-sm">
-                      {showVoiceAgent 
-                        ? "Our voice guide is explaining Heirloom's features" 
-                        : "Follow the visual guide or enable voice assistance"}
+                    <CardDescription className="text-white/70">
+                      Get a guided tour with voice narration
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="pt-2 px-4">
-                    <div className="flex items-center py-2 px-3 bg-[#D4A166]/10 rounded-md mb-3">
-                      <Info className="h-4 w-4 text-[#D4A166] flex-shrink-0 mr-2" />
-                      <p className="text-xs md:text-sm text-white/90">
-                        {showVoiceAgent 
-                          ? "The demo will guide you through key features and navigate automatically"
-                          : "You can explore at your own pace or enable the voice guide"}
-                      </p>
-                    </div>
-                    
-                    {/* Mobile-friendly buttons */}
-                    <div className="grid grid-cols-2 gap-2 mb-2">
-                      <Button
-                        variant="outline" 
+                  <CardContent className="px-4 pb-4">
+                    <div className="flex flex-wrap gap-2">
+                      <Button 
+                        variant="ghost" 
                         size="sm"
-                        className="text-white/80 border-white/20 hover:bg-white/10 h-9"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          navigate('/verification');
-                        }}
+                        className="text-white/70 border border-white/10 h-8"
+                        onClick={toggleMute}
                       >
-                        <Fingerprint className="mr-1.5 h-4 w-4 text-[#D4A166]" />
-                        <span className="text-xs">Verification</span>
+                        {muteVoice ? <VolumeX className="h-4 w-4 mr-1.5" /> : <Volume className="h-4 w-4 mr-1.5" />}
+                        {muteVoice ? "Unmute" : "Mute"}
                       </Button>
-                      <Button
-                        variant="outline" 
+                      <Button 
+                        variant="ghost" 
                         size="sm"
-                        className="text-white/80 border-white/20 hover:bg-white/10 h-9"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          navigate('/dashboard');
-                        }}
+                        className="text-white/70 border border-white/10 h-8"
+                        onClick={toggleVoicePreference}
                       >
-                        <Shield className="mr-1.5 h-4 w-4 text-[#D4A166]" />
-                        <span className="text-xs">Dashboard</span>
+                        <div className={cn(
+                          "w-3.5 h-3.5 rounded-sm border mr-1.5 flex items-center justify-center",
+                          preferVoiceDemo 
+                            ? "bg-[#D4A166] border-[#D4A166]" 
+                            : "border-white/30 bg-transparent"
+                        )}>
+                          {preferVoiceDemo && <Check className="h-2.5 w-2.5 text-black" />}
+                        </div>
+                        Default On
                       </Button>
                     </div>
                   </CardContent>
-                  <CardFooter className="pt-0 px-4 pb-4">
-                    <div className="flex items-center w-full justify-between">
-                      <div className="flex items-center space-x-1.5">
-                        <div className={cn(
-                          "w-2.5 h-2.5 rounded-full",
-                          showVoiceAgent ? "bg-[#D4A166] animate-pulse" : "bg-white/30"
-                        )}></div>
-                        <span className="text-xs text-white/60">
-                          {showVoiceAgent ? "Voice active" : "Voice inactive"}
-                        </span>
-                      </div>
-                      <Button 
-                        variant="default"
-                        size="sm"
-                        className="bg-[#D4A166]/90 hover:bg-[#D4A166] text-black h-8"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          navigate('/achievements');
-                        }}
-                      >
-                        <Sparkles className="mr-1.5 h-3.5 w-3.5" />
-                        <span className="text-xs">Achievements</span>
-                      </Button>
-                    </div>
-                  </CardFooter>
                 </Card>
               )}
               
-              {/* Voice preference toggle for desktop */}
-              <div className="mt-4 md:mt-6 hidden md:flex items-center">
-                <button
-                  onClick={toggleVoicePreference}
-                  className="flex items-center text-sm text-white/60 hover:text-white/90 focus:outline-none"
-                >
-                  <div className={cn(
-                    "w-4 h-4 rounded-sm border mr-2 flex items-center justify-center transition-colors",
-                    preferVoiceDemo 
-                      ? "bg-[#D4A166] border-[#D4A166]" 
-                      : "border-white/30 bg-transparent"
-                  )}>
-                    {preferVoiceDemo && <Check className="h-3 w-3 text-black" />}
+              {/* AI Service Selection */}
+              <div className="hidden md:block mt-8 pt-8 border-t border-white/10">
+                <div className="flex items-center mb-3">
+                  <div className="w-8 h-8 rounded-full bg-[#D4A166]/20 flex items-center justify-center mr-3">
+                    <Settings className="h-4 w-4 text-[#D4A166]" />
                   </div>
-                  Enable voice guide by default
-                </button>
+                  <p className="text-sm text-white/70">Select Your Preferred AI Service</p>
+                </div>
+                <div className="flex space-x-4">
+                  <button 
+                    className={cn(
+                      "p-3 rounded-lg transition-all duration-300 transform hover:scale-105 bg-[#1E3C0D]/60 border border-white/10",
+                      activeSection === 'anthropic' ? "ring-2 ring-[#D4A166] scale-105" : ""
+                    )}
+                    onClick={() => setActiveSection('anthropic')}
+                  >
+                    <img src="/images/ai-services/claude-color.svg" alt="Claude AI" className="h-7" />
+                  </button>
+                  <button 
+                    className={cn(
+                      "p-3 rounded-lg transition-all duration-300 transform hover:scale-105 bg-[#1E3C0D]/60 border border-white/10",
+                      activeSection === 'gemini' ? "ring-2 ring-[#D4A166] scale-105" : ""
+                    )}
+                    onClick={() => setActiveSection('gemini')}
+                  >
+                    <img src="/images/ai-services/gemini-color.svg" alt="Google Gemini" className="h-7" />
+                  </button>
+                  <button 
+                    className={cn(
+                      "p-3 rounded-lg transition-all duration-300 transform hover:scale-105 bg-[#1E3C0D]/60 border border-white/10",
+                      activeSection === 'openai' ? "ring-2 ring-[#D4A166] scale-105" : ""
+                    )}
+                    onClick={() => setActiveSection('openai')}
+                  >
+                    <img src="/images/ai-services/openai.svg" alt="ChatGPT" className="h-7" />
+                  </button>
+                  <button 
+                    className={cn(
+                      "p-3 rounded-lg transition-all duration-300 transform hover:scale-105 bg-[#1E3C0D]/60 border border-white/10",
+                      activeSection === 'perplexity' ? "ring-2 ring-[#D4A166] scale-105" : ""
+                    )}
+                    onClick={() => setActiveSection('perplexity')}
+                  >
+                    <img src="/images/ai-services/perplexity-logo.svg" alt="Perplexity AI" className="h-7" />
+                  </button>
+                  <button 
+                    className={cn(
+                      "p-3 rounded-lg transition-all duration-300 transform hover:scale-105 bg-[#1E3C0D]/60 border border-white/10",
+                      activeSection === 'copilot' ? "ring-2 ring-[#D4A166] scale-105" : ""
+                    )}
+                    onClick={() => setActiveSection('copilot')}
+                  >
+                    <img src="/images/ai-services/copilot-logo.svg" alt="Microsoft Copilot" className="h-7" />
+                  </button>
+                </div>
               </div>
             </div>
             
@@ -742,56 +734,6 @@ export default function DemoPage() {
         </Card>
       </section>
       
-      {/* Bottom Mobile Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 z-30 bg-[#0F1D04] border-t border-[#D4A166]/20 p-2 md:hidden">
-        <div className="flex justify-around">
-          <Button 
-            variant="ghost" 
-            className="flex flex-col items-center py-1 px-2 h-auto text-white/70 hover:text-white"
-            onClick={() => {
-              navigate('/');
-              setActiveSection('welcome');
-            }}
-          >
-            <Home className="h-5 w-5 mb-1" />
-            <span className="text-xs">Home</span>
-          </Button>
-          <Button 
-            variant="ghost" 
-            className="flex flex-col items-center py-1 px-2 h-auto text-white/70 hover:text-white"
-            onClick={() => {
-              navigate('/verification');
-              setActiveSection('identity');
-            }}
-          >
-            <Fingerprint className="h-5 w-5 mb-1" />
-            <span className="text-xs">Verify</span>
-          </Button>
-          <Button 
-            variant="ghost" 
-            className="flex flex-col items-center py-1 px-2 h-auto text-white/70 hover:text-white"
-            onClick={() => {
-              navigate('/dashboard');
-              setActiveSection('security');
-            }}
-          >
-            <Shield className="h-5 w-5 mb-1" />
-            <span className="text-xs">Security</span>
-          </Button>
-          <Button 
-            variant="ghost" 
-            className="flex flex-col items-center py-1 px-2 h-auto text-white/70 hover:text-white"
-            onClick={() => {
-              navigate('/achievements');
-              setActiveSection('achievements');
-            }}
-          >
-            <Award className="h-5 w-5 mb-1" />
-            <span className="text-xs">Rewards</span>
-          </Button>
-        </div>
-      </div>
-      
       {/* Security Section with added information */}
       <section id="security" className="py-8 md:py-16 px-4 md:px-5 bg-[#0A1908]">
         <div className="md:container md:mx-auto md:max-w-6xl">
@@ -827,520 +769,6 @@ export default function DemoPage() {
                   <Shield className="h-8 w-8 text-[#D4A166]" />
                 </div>
                 <CardTitle>Privacy Controls</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-white/80">
-                  Share only the specific parts of your identity that are required, 
-                  maintaining privacy while still providing necessary verification.
-                </p>
-              </CardContent>
-            </Card>
-            
-            <Card className="bg-[#182E0B] border-[#2A3D1E]">
-              <CardHeader>
-                <div className="mb-4 bg-[#0F1D04] p-3 inline-flex rounded-lg">
-                  <Fingerprint className="h-8 w-8 text-[#D4A166]" />
-                </div>
-                <CardTitle>Biometric Security</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-white/80">
-                  Advanced face detection with liveness checks ensures only real, 
-                  present humans can verify, preventing spoofing attacks.
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-              <div className="bg-[#0F1D04]/80 rounded-2xl p-6 backdrop-blur-sm border border-white/10 shadow-[0_0_25px_rgba(212,161,102,0.1)]">
-                <div className="absolute -top-2 -left-2 bg-[#D4A166]/10 backdrop-blur-sm rounded-lg px-3 py-1.5 border border-[#D4A166]/30 shadow-lg">
-                  <div className="flex items-center">
-                    <Users className="h-4 w-4 text-[#D4A166] mr-2" />
-                    <span className="text-sm font-medium">Identity Platform</span>
-                  </div>
-                </div>
-                
-                <img 
-                  src="/images/dashboard.png" 
-                  alt="Heirloom Dashboard" 
-                  className="rounded-lg shadow-xl border border-white/5"
-                />
-                
-                <div className="mt-6 grid grid-cols-3 gap-3">
-                  <div className="bg-[#1E3C0D]/50 backdrop-blur-sm p-4 rounded-lg border border-white/5 transform transition-transform hover:scale-105">
-                    <div className="flex justify-center mb-2">
-                      <Shield className="h-7 w-7 text-[#D4A166]" />
-                    </div>
-                    <p className="text-center text-sm">Secure Identity</p>
-                  </div>
-                  <div className="bg-[#1E3C0D]/50 backdrop-blur-sm p-4 rounded-lg border border-white/5 transform transition-transform hover:scale-105">
-                    <div className="flex justify-center mb-2">
-                      <Fingerprint className="h-7 w-7 text-[#D4A166]" />
-                    </div>
-                    <p className="text-center text-sm">Face Verification</p>
-                  </div>
-                  <div className="bg-[#1E3C0D]/50 backdrop-blur-sm p-4 rounded-lg border border-white/5 transform transition-transform hover:scale-105">
-                    <div className="flex justify-center mb-2">
-                      <LockKeyhole className="h-7 w-7 text-[#D4A166]" />
-                    </div>
-                    <p className="text-center text-sm">Privacy Control</p>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Modern floating elements */}
-              <div className="absolute top-1/4 -right-4 transform translate-x-1/2 bg-[#D4A166] rounded-full p-3 shadow-lg border-2 border-[#1E3C0D]">
-                <Award className="h-6 w-6 text-[#1E3C0D]" />
-              </div>
-              <div className="absolute -bottom-5 left-1/3 bg-[#1E3C0D] rounded-xl p-3 shadow-lg border border-[#D4A166]/30 backdrop-blur-sm">
-                <div className="flex items-center">
-                  <Check className="h-5 w-5 text-[#D4A166] mr-2" />
-                  <span className="text-sm font-medium">Identity Verified</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-      
-      {/* Features Section */}
-      <section id="features" className="py-16 px-5 bg-[#0F1D04]">
-        <div className="container mx-auto max-w-6xl">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Key Features</h2>
-            <p className="text-lg text-white/70 max-w-2xl mx-auto">
-              Heirloom combines cutting-edge biometric verification with blockchain 
-              technology to create a secure, private identity solution.
-            </p>
-          </div>
-          
-          <Tabs defaultValue="verification" className="w-full">
-            <TabsList className="grid grid-cols-4 bg-[#182E0B]">
-              <TabsTrigger value="verification">Verification</TabsTrigger>
-              <TabsTrigger value="capsules">Identity Capsules</TabsTrigger>
-              <TabsTrigger value="blockchain">Blockchain</TabsTrigger>
-              <TabsTrigger value="achievements">Achievements</TabsTrigger>
-            </TabsList>
-            
-            <div className="mt-8">
-              <TabsContent value="verification" className="space-y-4">
-                <Card className="bg-[#182E0B] border-[#2A3D1E]">
-                  <CardHeader>
-                    <CardTitle className="text-[#D4A166]">Face Verification</CardTitle>
-                    <CardDescription className="text-white/70">
-                      Secure biometric verification with advanced liveness detection
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid md:grid-cols-2 gap-6">
-                      <div>
-                        <p className="text-white/80 mb-4">
-                          Our advanced facial verification system uses multiple layers of security:
-                        </p>
-                        <ul className="space-y-2 text-white/80">
-                          <li className="flex items-start">
-                            <span className="bg-[#D4A166] text-[#182E0B] rounded-full p-1 mr-2 inline-flex mt-0.5">
-                              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                              </svg>
-                            </span>
-                            <span>Real-time alignment and feedback</span>
-                          </li>
-                          <li className="flex items-start">
-                            <span className="bg-[#D4A166] text-[#182E0B] rounded-full p-1 mr-2 inline-flex mt-0.5">
-                              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                              </svg>
-                            </span>
-                            <span>Liveness detection to prevent spoofing</span>
-                          </li>
-                          <li className="flex items-start">
-                            <span className="bg-[#D4A166] text-[#182E0B] rounded-full p-1 mr-2 inline-flex mt-0.5">
-                              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                              </svg>
-                            </span>
-                            <span>Anti-fraud measures built in</span>
-                          </li>
-                          <li className="flex items-start">
-                            <span className="bg-[#D4A166] text-[#182E0B] rounded-full p-1 mr-2 inline-flex mt-0.5">
-                              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                              </svg>
-                            </span>
-                            <span>Privacy-preserving processing</span>
-                          </li>
-                        </ul>
-                        
-                        <Button
-                          className="mt-6 bg-[#D4A166] hover:bg-[#A67D4F] text-black font-medium"
-                          onClick={() => navigate('/verification')}
-                        >
-                          Try Verification
-                          <ChevronRight className="ml-2 h-4 w-4" />
-                        </Button>
-                      </div>
-                      
-                      <div className="rounded-xl overflow-hidden">
-                        <img 
-                          src="/images/face-verification.png" 
-                          alt="Face Verification" 
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              
-              <TabsContent value="capsules" className="space-y-4">
-                <Card className="bg-[#182E0B] border-[#2A3D1E]">
-                  <CardHeader>
-                    <CardTitle className="text-[#D4A166]">Identity Capsules</CardTitle>
-                    <CardDescription className="text-white/70">
-                      Secure containers for your digital identity information
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid md:grid-cols-2 gap-6">
-                      <div>
-                        <p className="text-white/80 mb-4">
-                          Identity Capsules are secure, encrypted containers that store different 
-                          aspects of your digital identity:
-                        </p>
-                        <ul className="space-y-2 text-white/80">
-                          <li className="flex items-start">
-                            <span className="bg-[#D4A166] text-[#182E0B] rounded-full p-1 mr-2 inline-flex mt-0.5">
-                              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                              </svg>
-                            </span>
-                            <span>Create multiple capsules for different contexts</span>
-                          </li>
-                          <li className="flex items-start">
-                            <span className="bg-[#D4A166] text-[#182E0B] rounded-full p-1 mr-2 inline-flex mt-0.5">
-                              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                              </svg>
-                            </span>
-                            <span>End-to-end encryption protects your data</span>
-                          </li>
-                          <li className="flex items-start">
-                            <span className="bg-[#D4A166] text-[#182E0B] rounded-full p-1 mr-2 inline-flex mt-0.5">
-                              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                              </svg>
-                            </span>
-                            <span>Selective disclosure - share only what you want</span>
-                          </li>
-                          <li className="flex items-start">
-                            <span className="bg-[#D4A166] text-[#182E0B] rounded-full p-1 mr-2 inline-flex mt-0.5">
-                              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                              </svg>
-                            </span>
-                            <span>Time-limited access for third parties</span>
-                          </li>
-                        </ul>
-                        
-                        <Button
-                          className="mt-6 bg-[#D4A166] hover:bg-[#A67D4F] text-black font-medium"
-                          onClick={() => navigate('/dashboard')}
-                        >
-                          View Capsules
-                          <ChevronRight className="ml-2 h-4 w-4" />
-                        </Button>
-                      </div>
-                      
-                      <div className="bg-[#0F1D04] rounded-xl p-6">
-                        <div className="space-y-4">
-                          <div className="bg-[#182E0B] p-4 rounded-lg border border-[#D4A166]/30">
-                            <h4 className="font-medium text-[#D4A166] mb-2">Financial Identity</h4>
-                            <div className="flex items-center text-white/60 text-sm">
-                              <LockKeyhole className="h-4 w-4 mr-2" />
-                              <span>End-to-end encrypted</span>
-                            </div>
-                            <div className="mt-3 h-2 bg-[#0F1D04] rounded-full overflow-hidden">
-                              <div className="h-full bg-[#D4A166] w-3/4"></div>
-                            </div>
-                            <div className="mt-2 text-xs text-white/60">75% complete</div>
-                          </div>
-                          
-                          <div className="bg-[#182E0B] p-4 rounded-lg border border-[#D4A166]/30">
-                            <h4 className="font-medium text-[#D4A166] mb-2">Healthcare Profile</h4>
-                            <div className="flex items-center text-white/60 text-sm">
-                              <LockKeyhole className="h-4 w-4 mr-2" />
-                              <span>End-to-end encrypted</span>
-                            </div>
-                            <div className="mt-3 h-2 bg-[#0F1D04] rounded-full overflow-hidden">
-                              <div className="h-full bg-[#D4A166] w-1/2"></div>
-                            </div>
-                            <div className="mt-2 text-xs text-white/60">50% complete</div>
-                          </div>
-                          
-                          <div className="bg-[#182E0B] p-4 rounded-lg border border-white/10">
-                            <h4 className="font-medium text-white/80 mb-2">Travel Documents</h4>
-                            <div className="flex items-center text-white/60 text-sm">
-                              <LockKeyhole className="h-4 w-4 mr-2" />
-                              <span>Not yet verified</span>
-                            </div>
-                            <div className="mt-3 h-2 bg-[#0F1D04] rounded-full overflow-hidden">
-                              <div className="h-full bg-white/30 w-1/4"></div>
-                            </div>
-                            <div className="mt-2 text-xs text-white/60">25% complete</div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              
-              <TabsContent value="blockchain" className="space-y-4">
-                <Card className="bg-[#182E0B] border-[#2A3D1E]">
-                  <CardHeader>
-                    <CardTitle className="text-[#D4A166]">Blockchain Integration</CardTitle>
-                    <CardDescription className="text-white/70">
-                      Tamper-proof verification with Heirloom Identity Tokens (HITs)
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid md:grid-cols-2 gap-6">
-                      <div>
-                        <p className="text-white/80 mb-4">
-                          Our blockchain integration provides immutable proof of your verified identity:
-                        </p>
-                        <ul className="space-y-2 text-white/80">
-                          <li className="flex items-start">
-                            <span className="bg-[#D4A166] text-[#182E0B] rounded-full p-1 mr-2 inline-flex mt-0.5">
-                              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                              </svg>
-                            </span>
-                            <span>Receive HIT tokens as proof of verification</span>
-                          </li>
-                          <li className="flex items-start">
-                            <span className="bg-[#D4A166] text-[#182E0B] rounded-full p-1 mr-2 inline-flex mt-0.5">
-                              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                              </svg>
-                            </span>
-                            <span>Integration with multiple blockchain networks</span>
-                          </li>
-                          <li className="flex items-start">
-                            <span className="bg-[#D4A166] text-[#182E0B] rounded-full p-1 mr-2 inline-flex mt-0.5">
-                              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                              </svg>
-                            </span>
-                            <span>Zero-knowledge proofs for privacy</span>
-                          </li>
-                          <li className="flex items-start">
-                            <span className="bg-[#D4A166] text-[#182E0B] rounded-full p-1 mr-2 inline-flex mt-0.5">
-                              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                              </svg>
-                            </span>
-                            <span>Smart contract integration for automated verification</span>
-                          </li>
-                        </ul>
-                        
-                        <Button
-                          className="mt-6 bg-[#D4A166] hover:bg-[#A67D4F] text-black font-medium"
-                          onClick={() => navigate('/dashboard')}
-                        >
-                          View Blockchain Tokens
-                          <ChevronRight className="ml-2 h-4 w-4" />
-                        </Button>
-                      </div>
-                      
-                      <div className="bg-[#0F1D04] rounded-xl p-6">
-                        <div className="flex justify-between items-center mb-4">
-                          <h4 className="font-medium text-[#D4A166]">Heirloom Identity Token</h4>
-                          <div className="bg-[#D4A166]/20 text-[#D4A166] text-xs font-medium px-2.5 py-1 rounded">
-                            HIT-721
-                          </div>
-                        </div>
-                        
-                        <div className="border border-white/10 rounded-lg p-4 mb-4">
-                          <div className="flex justify-between mb-2">
-                            <span className="text-sm text-white/60">Token ID</span>
-                            <span className="text-sm text-white/90 font-mono">0x7f...3a9b</span>
-                          </div>
-                          <div className="flex justify-between mb-2">
-                            <span className="text-sm text-white/60">Issued</span>
-                            <span className="text-sm text-white/90">April 12, 2025</span>
-                          </div>
-                          <div className="flex justify-between mb-2">
-                            <span className="text-sm text-white/60">Verification Level</span>
-                            <span className="text-sm text-white/90">Level 3</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-sm text-white/60">Network</span>
-                            <span className="text-sm text-white/90">Polygon</span>
-                          </div>
-                        </div>
-                        
-                        <div className="bg-[#182E0B] rounded-lg p-4">
-                          <div className="flex items-center justify-between mb-3">
-                            <h5 className="font-medium text-white/90">Blockchain Verification</h5>
-                            <div className="bg-emerald-500/20 text-emerald-400 text-xs px-2 py-0.5 rounded-full">
-                              Verified
-                            </div>
-                          </div>
-                          
-                          <div className="flex items-center justify-between text-xs text-white/70">
-                            <span>Tx Hash:</span>
-                            <span className="font-mono">0x8d92...4c7e</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              
-              <TabsContent value="achievements" className="space-y-4">
-                <Card className="bg-[#182E0B] border-[#2A3D1E]">
-                  <CardHeader>
-                    <CardTitle className="text-[#D4A166]">Identity Achievements</CardTitle>
-                    <CardDescription className="text-white/70">
-                      Showcase your identity verification milestones
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid md:grid-cols-2 gap-6">
-                      <div>
-                        <p className="text-white/80 mb-4">
-                          Collect and share achievements as you build your digital identity:
-                        </p>
-                        <ul className="space-y-2 text-white/80">
-                          <li className="flex items-start">
-                            <span className="bg-[#D4A166] text-[#182E0B] rounded-full p-1 mr-2 inline-flex mt-0.5">
-                              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                              </svg>
-                            </span>
-                            <span>Earn verification achievements automatically</span>
-                          </li>
-                          <li className="flex items-start">
-                            <span className="bg-[#D4A166] text-[#182E0B] rounded-full p-1 mr-2 inline-flex mt-0.5">
-                              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                              </svg>
-                            </span>
-                            <span>Create custom achievements for personal milestones</span>
-                          </li>
-                          <li className="flex items-start">
-                            <span className="bg-[#D4A166] text-[#182E0B] rounded-full p-1 mr-2 inline-flex mt-0.5">
-                              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                              </svg>
-                            </span>
-                            <span>Share achievements on social media</span>
-                          </li>
-                          <li className="flex items-start">
-                            <span className="bg-[#D4A166] text-[#182E0B] rounded-full p-1 mr-2 inline-flex mt-0.5">
-                              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                              </svg>
-                            </span>
-                            <span>Blockchain-backed for authenticity</span>
-                          </li>
-                        </ul>
-                        
-                        <Button
-                          className="mt-6 bg-[#D4A166] hover:bg-[#A67D4F] text-black font-medium"
-                          onClick={() => navigate('/achievements')}
-                        >
-                          View Achievements
-                          <ChevronRight className="ml-2 h-4 w-4" />
-                        </Button>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-[#0F1D04] rounded-xl p-4 border border-[#D4A166]/20">
-                          <div className="flex justify-center mb-3">
-                            <div className="bg-[#D4A166]/20 p-3 rounded-full">
-                              <Fingerprint className="h-8 w-8 text-[#D4A166]" />
-                            </div>
-                          </div>
-                          <h4 className="text-center font-medium text-white">Identity Verified</h4>
-                          <p className="text-center text-xs text-white/60 mt-1">April 2025</p>
-                        </div>
-                        
-                        <div className="bg-[#0F1D04] rounded-xl p-4 border border-[#D4A166]/20">
-                          <div className="flex justify-center mb-3">
-                            <div className="bg-[#D4A166]/20 p-3 rounded-full">
-                              <Shield className="h-8 w-8 text-[#D4A166]" />
-                            </div>
-                          </div>
-                          <h4 className="text-center font-medium text-white">Security Champion</h4>
-                          <p className="text-center text-xs text-white/60 mt-1">April 2025</p>
-                        </div>
-                        
-                        <div className="bg-[#0F1D04] rounded-xl p-4 border border-white/10">
-                          <div className="flex justify-center mb-3">
-                            <div className="bg-white/10 p-3 rounded-full">
-                              <Award className="h-8 w-8 text-white/60" />
-                            </div>
-                          </div>
-                          <h4 className="text-center font-medium text-white/80">First Connection</h4>
-                          <p className="text-center text-xs text-white/60 mt-1">Coming soon</p>
-                        </div>
-                        
-                        <div className="bg-[#0F1D04] rounded-xl p-4 border border-white/10">
-                          <div className="flex justify-center mb-3">
-                            <div className="bg-white/10 p-3 rounded-full">
-                              <Award className="h-8 w-8 text-white/60" />
-                            </div>
-                          </div>
-                          <h4 className="text-center font-medium text-white/80">HIT Holder</h4>
-                          <p className="text-center text-xs text-white/60 mt-1">Coming soon</p>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </div>
-          </Tabs>
-        </div>
-      </section>
-      
-      {/* Security Section */}
-      <section id="security" className="py-16 px-5">
-        <div className="container mx-auto max-w-6xl">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Security & Privacy</h2>
-            <p className="text-lg text-white/70 max-w-2xl mx-auto">
-              Your identity is secured with multiple layers of protection and privacy-first design.
-            </p>
-          </div>
-          
-          <div className="grid md:grid-cols-3 gap-8">
-            <Card className="bg-[#182E0B] border-[#2A3D1E]">
-              <CardHeader>
-                <div className="mb-4 bg-[#0F1D04] p-3 inline-flex rounded-lg">
-                  <LockKeyhole className="h-8 w-8 text-[#D4A166]" />
-                </div>
-                <CardTitle>End-to-End Encryption</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-white/80">
-                  All sensitive data is encrypted on your device before being stored, 
-                  ensuring only you can access your full identity information.
-                </p>
-              </CardContent>
-            </Card>
-            
-            <Card className="bg-[#182E0B] border-[#2A3D1E]">
-              <CardHeader>
-                <div className="mb-4 bg-[#0F1D04] p-3 inline-flex rounded-lg">
-                  <Shield className="h-8 w-8 text-[#D4A166]" />
-                </div>
-                <CardTitle>Selective Disclosure</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-white/80">
@@ -1480,6 +908,56 @@ export default function DemoPage() {
           </div>
         </div>
       </footer>
+      
+      {/* Bottom Mobile Navigation */}
+      <div className="fixed bottom-0 left-0 right-0 z-30 bg-[#0F1D04] border-t border-[#D4A166]/20 p-2 md:hidden">
+        <div className="flex justify-around">
+          <Button 
+            variant="ghost" 
+            className="flex flex-col items-center py-1 px-2 h-auto text-white/70 hover:text-white"
+            onClick={() => {
+              navigate('/');
+              setActiveSection('welcome');
+            }}
+          >
+            <Home className="h-5 w-5 mb-1" />
+            <span className="text-xs">Home</span>
+          </Button>
+          <Button 
+            variant="ghost" 
+            className="flex flex-col items-center py-1 px-2 h-auto text-white/70 hover:text-white"
+            onClick={() => {
+              navigate('/verification');
+              setActiveSection('identity');
+            }}
+          >
+            <Fingerprint className="h-5 w-5 mb-1" />
+            <span className="text-xs">Verify</span>
+          </Button>
+          <Button 
+            variant="ghost" 
+            className="flex flex-col items-center py-1 px-2 h-auto text-white/70 hover:text-white"
+            onClick={() => {
+              navigate('/dashboard');
+              setActiveSection('security');
+            }}
+          >
+            <Shield className="h-5 w-5 mb-1" />
+            <span className="text-xs">Security</span>
+          </Button>
+          <Button 
+            variant="ghost" 
+            className="flex flex-col items-center py-1 px-2 h-auto text-white/70 hover:text-white"
+            onClick={() => {
+              navigate('/achievements');
+              setActiveSection('achievements');
+            }}
+          >
+            <Award className="h-5 w-5 mb-1" />
+            <span className="text-xs">Rewards</span>
+          </Button>
+        </div>
+      </div>
       
       {/* Voice Agent */}
       {showVoiceAgent && (
