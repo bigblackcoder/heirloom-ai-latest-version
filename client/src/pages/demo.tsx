@@ -6,7 +6,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Play, ChevronRight, Shield, Fingerprint, Award, LockKeyhole, 
-  Volume, VolumeX, Check, Info, ArrowRight, Sparkles, Users, Bell
+  Volume, VolumeX, Check, Info, ArrowRight, Sparkles, Users, Bell,
+  Home, Menu, X, Settings, Book, LucideProps
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { 
@@ -15,6 +16,46 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+  SheetClose,
+} from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+// Feature icon component for mobile-first design
+interface FeatureIconProps extends LucideProps {
+  active?: boolean;
+  label: string;
+}
+
+const FeatureIcon = ({ active = false, label, ...props }: FeatureIconProps) => (
+  <div className="flex flex-col items-center">
+    <div 
+      className={cn(
+        "w-14 h-14 rounded-full flex items-center justify-center mb-2",
+        active 
+          ? "bg-[#D4A166] text-[#0F1D04]" 
+          : "bg-[#1E3C0D]/60 text-white/80 border border-white/10"
+      )}
+    >
+      {React.createElement(props.icon as any, { 
+        className: "h-6 w-6",
+        ...props
+      })}
+    </div>
+    <span className="text-xs text-center">{label}</span>
+  </div>
+);
 
 export default function DemoPage() {
   const [location, navigate] = useLocation();
@@ -22,6 +63,8 @@ export default function DemoPage() {
   const [startedDemo, setStartedDemo] = useState(false);
   const [preferVoiceDemo, setPreferVoiceDemo] = useState(false);
   const [muteVoice, setMuteVoice] = useState(false);
+  const [activeSection, setActiveSection] = useState('welcome');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   // Check URL parameters for voice demo flag
   useEffect(() => {
@@ -58,6 +101,13 @@ export default function DemoPage() {
       setPreferVoiceDemo(true);
       localStorage.setItem('prefer-voice-demo', 'true');
     }
+    
+    // On mobile, scroll down to feature section
+    if (window.innerWidth < 768) {
+      setTimeout(() => {
+        document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
+      }, 500);
+    }
   };
   
   const toggleVoicePreference = () => {
@@ -87,21 +137,32 @@ export default function DemoPage() {
     navigate('/dashboard');
   };
   
+  // Feature items for both mobile and desktop
+  const featureItems = [
+    { id: 'identity', icon: Fingerprint, label: 'Verification', href: '/verification' },
+    { id: 'security', icon: Shield, label: 'Security', href: '/dashboard' },
+    { id: 'achievements', icon: Award, label: 'Achievements', href: '/achievements' },
+    { id: 'blockchain', icon: LockKeyhole, label: 'Blockchain', href: '/dashboard' },
+  ];
+  
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#1E3C0D] via-[#152A0A] to-[#0A1908] text-white">
-      {/* Modern Header with glassmorphism */}
+      {/* Modern Mobile-Friendly Header with glassmorphism */}
       <header className="sticky top-0 z-20 backdrop-blur-md bg-[#1E3C0D]/80 border-b border-[#D4A166]/20">
-        <div className="container mx-auto max-w-6xl py-4 px-5">
+        <div className="w-full px-4 py-3 md:py-4 md:container md:mx-auto md:max-w-6xl md:px-5">
           <div className="flex justify-between items-center">
             <div className="flex items-center">
               <img 
                 src="/images/logo-heirloom.png" 
                 alt="Heirloom Logo" 
-                className="h-12 mr-3"
+                className="h-8 md:h-12 mr-2 md:mr-3"
               />
-              <h1 className="text-2xl font-semibold bg-gradient-to-r from-white to-[#D4A166] bg-clip-text text-transparent">Heirloom</h1>
+              <h1 className="text-xl md:text-2xl font-semibold bg-gradient-to-r from-white to-[#D4A166] bg-clip-text text-transparent">
+                Heirloom
+              </h1>
             </div>
             
+            {/* Desktop Navigation */}
             <nav className="hidden md:flex space-x-1">
               {['Features', 'Security', 'Privacy', 'About'].map((item) => (
                 <TooltipProvider key={item}>
@@ -122,31 +183,137 @@ export default function DemoPage() {
               ))}
             </nav>
             
+            {/* Mobile Navigation */}
+            <div className="flex md:hidden">
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="md:hidden text-white"
+                  >
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="bg-[#0F1D04] border-l border-[#D4A166]/20 text-white p-0">
+                  <SheetHeader className="bg-[#1E3C0D] p-4 border-b border-[#D4A166]/20">
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center">
+                        <img 
+                          src="/images/logo-heirloom.png" 
+                          alt="Heirloom Logo" 
+                          className="h-8 mr-2"
+                        />
+                        <SheetTitle className="text-xl font-semibold bg-gradient-to-r from-white to-[#D4A166] bg-clip-text text-transparent">
+                          Heirloom
+                        </SheetTitle>
+                      </div>
+                      <SheetClose asChild>
+                        <Button variant="ghost" size="icon" className="text-white">
+                          <X className="h-5 w-5" />
+                        </Button>
+                      </SheetClose>
+                    </div>
+                    <SheetDescription className="text-white/70 mt-1">
+                      Next-Gen Identity Platform
+                    </SheetDescription>
+                  </SheetHeader>
+                  <div className="p-6 flex flex-col space-y-4">
+                    {['Features', 'Security', 'Privacy', 'About'].map((item) => (
+                      <SheetClose asChild key={item}>
+                        <a 
+                          href={`#${item.toLowerCase()}`}
+                          className="flex items-center py-3 px-4 rounded-md hover:bg-white/10 transition-colors"
+                        >
+                          {item === 'Features' && <Sparkles className="mr-3 h-5 w-5 text-[#D4A166]" />}
+                          {item === 'Security' && <Shield className="mr-3 h-5 w-5 text-[#D4A166]" />}
+                          {item === 'Privacy' && <LockKeyhole className="mr-3 h-5 w-5 text-[#D4A166]" />}
+                          {item === 'About' && <Book className="mr-3 h-5 w-5 text-[#D4A166]" />}
+                          {item}
+                        </a>
+                      </SheetClose>
+                    ))}
+                    
+                    <div className="pt-4 border-t border-white/10">
+                      <SheetClose asChild>
+                        <Button 
+                          className="w-full bg-[#D4A166] hover:bg-[#A67D4F] text-black font-medium"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            navigate('/verification');
+                          }}
+                        >
+                          <Fingerprint className="mr-2 h-4 w-4" />
+                          Try Verification
+                        </Button>
+                      </SheetClose>
+                    </div>
+                    
+                    <div className="pt-4 border-t border-white/10">
+                      {/* Voice preference toggle */}
+                      <div className="flex items-center justify-between py-2">
+                        <span className="text-sm">Voice Guide</span>
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={toggleMute}
+                          className={cn(
+                            "rounded-full w-9 h-9",
+                            muteVoice ? "bg-[#D4A166]/20 text-[#D4A166]" : "text-white/80"
+                          )}
+                        >
+                          {muteVoice ? <VolumeX className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                      <div className="flex items-center py-2">
+                        <button
+                          onClick={toggleVoicePreference}
+                          className="flex items-center text-sm text-white/80 hover:text-white focus:outline-none"
+                        >
+                          <div className={cn(
+                            "w-4 h-4 rounded-sm border mr-2 flex items-center justify-center transition-colors",
+                            preferVoiceDemo 
+                              ? "bg-[#D4A166] border-[#D4A166]" 
+                              : "border-white/30 bg-transparent"
+                          )}>
+                            {preferVoiceDemo && <Check className="h-3 w-3 text-black" />}
+                          </div>
+                          Enable voice guide by default
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </SheetContent>
+              </Sheet>
+            </div>
+            
             <div className="flex items-center space-x-2">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      size="icon"
-                      onClick={toggleMute}
-                      className={cn(
-                        "rounded-full w-10 h-10",
-                        muteVoice ? "bg-[#D4A166]/20 text-[#D4A166]" : "text-white/80"
-                      )}
-                    >
-                      {muteVoice ? <VolumeX className="h-5 w-5" /> : <Bell className="h-5 w-5" />}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{muteVoice ? "Enable Voice Guide" : "Mute Voice Guide"}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <div className="hidden md:block">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        onClick={toggleMute}
+                        className={cn(
+                          "rounded-full w-10 h-10",
+                          muteVoice ? "bg-[#D4A166]/20 text-[#D4A166]" : "text-white/80"
+                        )}
+                      >
+                        {muteVoice ? <VolumeX className="h-5 w-5" /> : <Bell className="h-5 w-5" />}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{muteVoice ? "Enable Voice Guide" : "Mute Voice Guide"}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
               
               {!startedDemo && (
                 <Button 
-                  className="bg-[#D4A166] hover:bg-[#A67D4F] text-black font-medium"
+                  className="bg-[#D4A166] hover:bg-[#A67D4F] text-black font-medium hidden md:flex"
                   onClick={(e) => {
                     e.preventDefault();
                     navigate('/verification');
@@ -161,31 +328,31 @@ export default function DemoPage() {
         </div>
       </header>
       
-      {/* Hero Section with modern design elements */}
-      <section className="relative py-20 px-5 overflow-hidden">
+      {/* Hero Section with mobile-first design */}
+      <section className="relative pt-8 pb-12 md:py-20 px-4 md:px-5 overflow-hidden">
         {/* Background decoration elements */}
-        <div className="absolute top-0 right-0 w-96 h-96 bg-[#D4A166]/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#1E3C0D]/30 rounded-full blur-3xl translate-y-1/3 -translate-x-1/4"></div>
+        <div className="absolute top-0 right-0 w-64 md:w-96 h-64 md:h-96 bg-[#D4A166]/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
+        <div className="absolute bottom-0 left-0 w-48 md:w-64 h-48 md:h-64 bg-[#1E3C0D]/30 rounded-full blur-3xl translate-y-1/3 -translate-x-1/4"></div>
         
-        <div className="container mx-auto max-w-6xl relative">
-          <div className="grid md:grid-cols-2 gap-16 items-center">
+        <div className="md:container md:mx-auto md:max-w-6xl relative">
+          <div className="grid md:grid-cols-2 gap-8 md:gap-16 items-center">
             <div className="relative z-10">
-              <div className="inline-block mb-3 px-4 py-1.5 rounded-full bg-[#D4A166]/20 text-[#D4A166] text-sm font-medium">
+              <div className="inline-block mb-2 md:mb-3 px-3 py-1 md:px-4 md:py-1.5 rounded-full bg-[#D4A166]/20 text-[#D4A166] text-xs md:text-sm font-medium">
                 Next Generation Identity Platform
               </div>
               
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-4 md:mb-6">
                 Your <span className="text-[#D4A166]">Digital Identity</span>, Reinvented
               </h1>
               
-              <p className="text-lg text-white/80 mb-8 leading-relaxed">
+              <p className="text-base md:text-lg text-white/80 mb-6 md:mb-8 leading-relaxed">
                 Simple biometric verification combined with enterprise-grade 
                 blockchain security — putting you in complete control 
                 of your digital presence.
               </p>
               
               {!startedDemo ? (
-                <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex flex-col sm:flex-row gap-3 md:gap-4">
                   <Button 
                     size="lg"
                     className="bg-[#D4A166] hover:bg-[#A67D4F] text-black transition-all duration-300 transform hover:translate-y-[-2px]"
@@ -209,9 +376,9 @@ export default function DemoPage() {
                 </div>
               ) : (
                 <Card className="bg-[#0F1D04]/80 border-[#D4A166]/20 backdrop-blur-sm">
-                  <CardHeader className="pb-2">
+                  <CardHeader className="pb-2 px-4 pt-4">
                     <div className="flex justify-between items-center">
-                      <CardTitle className="text-[#D4A166]">
+                      <CardTitle className="text-[#D4A166] text-base md:text-lg">
                         <div className="flex items-center">
                           <div className="w-2 h-2 rounded-full bg-[#D4A166] mr-2 animate-pulse"></div>
                           Interactive Demo
@@ -221,98 +388,99 @@ export default function DemoPage() {
                         <Button 
                           variant="ghost" 
                           size="sm"
-                          className="text-[#D4A166] hover:bg-[#D4A166]/10"
+                          className="text-[#D4A166] hover:bg-[#D4A166]/10 px-2 h-8"
                           onClick={() => setShowVoiceAgent(false)}
                         >
                           <VolumeX className="mr-1 h-4 w-4" />
-                          Mute Guide
+                          <span className="hidden sm:inline">Mute Guide</span>
                         </Button>
                       ) : (
                         <Button 
                           variant="ghost" 
                           size="sm"
-                          className="text-[#D4A166] hover:bg-[#D4A166]/10"
+                          className="text-[#D4A166] hover:bg-[#D4A166]/10 px-2 h-8"
                           onClick={() => !muteVoice && setShowVoiceAgent(true)}
                           disabled={muteVoice}
                         >
                           <Bell className="mr-1 h-4 w-4" />
-                          Enable Guide
+                          <span className="hidden sm:inline">Enable Guide</span>
                         </Button>
                       )}
                     </div>
-                    <CardDescription className="text-white/80">
+                    <CardDescription className="text-white/80 text-xs md:text-sm">
                       {showVoiceAgent 
                         ? "Our voice guide is explaining Heirloom's features" 
                         : "Follow the visual guide or enable voice assistance"}
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="pt-2">
-                    <div className="flex items-center py-2 px-4 bg-[#D4A166]/10 rounded-md mb-4">
-                      <Info className="h-4 w-4 text-[#D4A166] flex-shrink-0 mr-3" />
-                      <p className="text-sm text-white/90">
+                  <CardContent className="pt-2 px-4">
+                    <div className="flex items-center py-2 px-3 bg-[#D4A166]/10 rounded-md mb-3">
+                      <Info className="h-4 w-4 text-[#D4A166] flex-shrink-0 mr-2" />
+                      <p className="text-xs md:text-sm text-white/90">
                         {showVoiceAgent 
-                          ? "The demo will guide you through key features and navigate through the app automatically"
-                          : "You can explore at your own pace or enable the voice guide for a guided tour"}
+                          ? "The demo will guide you through key features and navigate automatically"
+                          : "You can explore at your own pace or enable the voice guide"}
                       </p>
                     </div>
                     
+                    {/* Mobile-friendly buttons */}
                     <div className="grid grid-cols-2 gap-2 mb-2">
                       <Button
                         variant="outline" 
                         size="sm"
-                        className="text-white/80 border-white/20 hover:bg-white/10"
+                        className="text-white/80 border-white/20 hover:bg-white/10 h-9"
                         onClick={(e) => {
                           e.preventDefault();
                           navigate('/verification');
                         }}
                       >
-                        <Fingerprint className="mr-2 h-4 w-4 text-[#D4A166]" />
-                        Try Verification
+                        <Fingerprint className="mr-1.5 h-4 w-4 text-[#D4A166]" />
+                        <span className="text-xs">Verification</span>
                       </Button>
                       <Button
                         variant="outline" 
                         size="sm"
-                        className="text-white/80 border-white/20 hover:bg-white/10"
+                        className="text-white/80 border-white/20 hover:bg-white/10 h-9"
                         onClick={(e) => {
                           e.preventDefault();
                           navigate('/dashboard');
                         }}
                       >
-                        <Shield className="mr-2 h-4 w-4 text-[#D4A166]" />
-                        View Dashboard
+                        <Shield className="mr-1.5 h-4 w-4 text-[#D4A166]" />
+                        <span className="text-xs">Dashboard</span>
                       </Button>
                     </div>
                   </CardContent>
-                  <CardFooter className="pt-0">
+                  <CardFooter className="pt-0 px-4 pb-4">
                     <div className="flex items-center w-full justify-between">
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-1.5">
                         <div className={cn(
-                          "w-3 h-3 rounded-full",
+                          "w-2.5 h-2.5 rounded-full",
                           showVoiceAgent ? "bg-[#D4A166] animate-pulse" : "bg-white/30"
                         )}></div>
                         <span className="text-xs text-white/60">
-                          {showVoiceAgent ? "Voice guide active" : "Voice guide inactive"}
+                          {showVoiceAgent ? "Voice active" : "Voice inactive"}
                         </span>
                       </div>
                       <Button 
                         variant="default"
                         size="sm"
-                        className="bg-[#D4A166]/90 hover:bg-[#D4A166] text-black"
+                        className="bg-[#D4A166]/90 hover:bg-[#D4A166] text-black h-8"
                         onClick={(e) => {
                           e.preventDefault();
                           navigate('/achievements');
                         }}
                       >
                         <Sparkles className="mr-1.5 h-3.5 w-3.5" />
-                        Explore Achievements
+                        <span className="text-xs">Achievements</span>
                       </Button>
                     </div>
                   </CardFooter>
                 </Card>
               )}
               
-              {/* Voice preference toggle */}
-              <div className="mt-6 flex items-center">
+              {/* Voice preference toggle for desktop */}
+              <div className="mt-4 md:mt-6 hidden md:flex items-center">
                 <button
                   onClick={toggleVoicePreference}
                   className="flex items-center text-sm text-white/60 hover:text-white/90 focus:outline-none"
@@ -330,7 +498,7 @@ export default function DemoPage() {
               </div>
             </div>
             
-            {/* Updated dashboard preview with modern design */}
+            {/* Updated dashboard preview with mobile-first design */}
             <div className="relative">
               <div className="bg-[#0F1D04]/80 rounded-2xl p-6 backdrop-blur-sm border border-white/10 shadow-[0_0_25px_rgba(212,161,102,0.1)]">
                 <div className="absolute -top-2 -left-2 bg-[#D4A166]/10 backdrop-blur-sm rounded-lg px-3 py-1.5 border border-[#D4A166]/30 shadow-lg">
