@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import FaceScanner from "@/components/face-scanner";
+import AppleFaceScanner from "@/components/apple-face-scanner";
 import SuccessModal from "@/components/success-modal";
 
 export default function Verification() {
