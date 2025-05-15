@@ -25,6 +25,9 @@ export default function FaceScanner({ onProgress, onComplete, isComplete }: Face
   const [isSimulating, setIsSimulating] = useState(false);
   const [debugSessionId, setDebugSessionId] = useState<string | undefined>(undefined);
   const [debugData, setDebugData] = useState<any>(null);
+  const [showFaceOutline, setShowFaceOutline] = useState(false);
+  const [faceDetected, setFaceDetected] = useState(false);
+  const [position, setPosition] = useState({ x: 0, y: 0, size: 0 });
   const { startDetection, stopDetection, verificationProgress, verificationResult, simulateVerification } = useFaceVerification();
   const isMobile = useIsMobile();
   const demoSimulationRef = useRef<(() => void) | null>(null);
