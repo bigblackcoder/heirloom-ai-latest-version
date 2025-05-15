@@ -8,7 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Shield } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SecuritySettings } from "@/components/security-settings";
 
 interface User {
   id: number;
@@ -160,57 +162,144 @@ export default function Settings() {
         <h1 className="text-xl font-semibold text-gray-900">Settings</h1>
       </header>
       
-      <div className="p-4 space-y-6">
-        {/* Biometric Verification Settings */}
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          <div className="px-4 py-3 bg-[#1e3c0d]/5 border-b border-[#1e3c0d]/10">
-            <h2 className="font-semibold text-[#1e3c0d]">Face Verification</h2>
-          </div>
-          
-          <div className="p-4 space-y-5">
-            {/* Confidence threshold setting */}
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <Label htmlFor="confidence-threshold" className="text-sm">
-                  Confidence Threshold
-                </Label>
-                <span className="text-sm font-medium text-[#1e3c0d]">
-                  {biometricSettings.confidenceThreshold}%
-                </span>
-              </div>
-              <Slider
-                id="confidence-threshold"
-                defaultValue={[biometricSettings.confidenceThreshold]}
-                min={65}
-                max={95}
-                step={5}
-                className="w-full"
-                onValueChange={(value) => {
-                  setBiometricSettings({
-                    ...biometricSettings,
-                    confidenceThreshold: value[0]
-                  });
-                }}
-              />
-              <p className="text-xs text-gray-500">
-                Higher threshold means more accurate verification but may require more attempts.
-              </p>
+      <Tabs defaultValue="preferences" className="w-full">
+        <TabsList className="grid grid-cols-2 w-full my-4 px-4">
+          <TabsTrigger value="preferences">Preferences</TabsTrigger>
+          <TabsTrigger value="security" className="flex items-center gap-1">
+            <Shield className="h-4 w-4" />
+            Security
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="preferences" className="p-4 space-y-6">
+          {/* Biometric Verification Settings */}
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+            <div className="px-4 py-3 bg-[#1e3c0d]/5 border-b border-[#1e3c0d]/10">
+              <h2 className="font-semibold text-[#1e3c0d]">Face Verification</h2>
             </div>
             
-            {/* Toggle settings */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="auto-retry" className="text-sm">Auto-retry</Label>
-                  <p className="text-xs text-gray-500">Automatically retry verification on failure</p>
+            <div className="p-4 space-y-5">
+              {/* Confidence threshold setting */}
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <Label htmlFor="confidence-threshold" className="text-sm">
+                    Confidence Threshold
+                  </Label>
+                  <span className="text-sm font-medium text-[#1e3c0d]">
+                    {biometricSettings.confidenceThreshold}%
+                  </span>
                 </div>
-                <Switch
-                  id="auto-retry"
-                  checked={biometricSettings.autoRetry}
-                  onCheckedChange={(checked) => {
+                <Slider
+                  id="confidence-threshold"
+                  defaultValue={[biometricSettings.confidenceThreshold]}
+                  min={65}
+                  max={95}
+                  step={5}
+                  className="w-full"
+                  onValueChange={(value) => {
                     setBiometricSettings({
                       ...biometricSettings,
-                      autoRetry: checked
+                      confidenceThreshold: value[0]
+                    });
+                  }}
+                />
+                <p className="text-xs text-gray-500">
+                  Higher threshold means more accurate verification but may require more attempts.
+                </p>
+              </div>
+              
+              {/* Toggle settings */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="auto-retry" className="text-sm">Auto-retry</Label>
+                    <p className="text-xs text-gray-500">Automatically retry verification on failure</p>
+                  </div>
+                  <Switch
+                    id="auto-retry"
+                    checked={biometricSettings.autoRetry}
+                    onCheckedChange={(checked) => {
+                      setBiometricSettings({
+                        ...biometricSettings,
+                        autoRetry: checked
+                      });
+                    }}
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="stability-check" className="text-sm">Stability Check</Label>
+                    <p className="text-xs text-gray-500">Ensure face is stable during verification</p>
+                  </div>
+                  <Switch
+                    id="stability-check"
+                    checked={biometricSettings.faceStabilityCheck}
+                    onCheckedChange={(checked) => {
+                      setBiometricSettings({
+                        ...biometricSettings,
+                        faceStabilityCheck: checked
+                      });
+                    }}
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="low-light" className="text-sm">Low Light Enhancement</Label>
+                    <p className="text-xs text-gray-500">Improve detection in poor lighting conditions</p>
+                  </div>
+                  <Switch
+                    id="low-light"
+                    checked={biometricSettings.lowLightEnhancement}
+                    onCheckedChange={(checked) => {
+                      setBiometricSettings({
+                        ...biometricSettings,
+                        lowLightEnhancement: checked
+                      });
+                    }}
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="save-scans" className="text-sm">Save Verified Scans</Label>
+                    <p className="text-xs text-gray-500">Store successful verifications to improve future accuracy</p>
+                  </div>
+                  <Switch
+                    id="save-scans"
+                    checked={biometricSettings.saveVerifiedScans}
+                    onCheckedChange={(checked) => {
+                      setBiometricSettings({
+                        ...biometricSettings,
+                        saveVerifiedScans: checked
+                      });
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* AI Connection Settings */}
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+            <div className="px-4 py-3 bg-[#1e3c0d]/5 border-b border-[#1e3c0d]/10">
+              <h2 className="font-semibold text-[#1e3c0d]">AI Connections</h2>
+            </div>
+            
+            <div className="p-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="auto-approve" className="text-sm">Auto-approve Identity Requests</Label>
+                  <p className="text-xs text-gray-500">Allow connected AIs to verify your identity without prompts</p>
+                </div>
+                <Switch
+                  id="auto-approve"
+                  checked={aiConnectionSettings.autoApprove}
+                  onCheckedChange={(checked) => {
+                    setAiConnectionSettings({
+                      ...aiConnectionSettings,
+                      autoApprove: checked
                     });
                   }}
                 />
@@ -218,16 +307,16 @@ export default function Settings() {
               
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <Label htmlFor="stability-check" className="text-sm">Stability Check</Label>
-                  <p className="text-xs text-gray-500">Ensure face is stable during verification</p>
+                  <Label htmlFor="lock-inactive" className="text-sm">Lock When Inactive</Label>
+                  <p className="text-xs text-gray-500">Automatically lock connections after 30 days of inactivity</p>
                 </div>
                 <Switch
-                  id="stability-check"
-                  checked={biometricSettings.faceStabilityCheck}
+                  id="lock-inactive"
+                  checked={aiConnectionSettings.lockConnectionsWhenInactive}
                   onCheckedChange={(checked) => {
-                    setBiometricSettings({
-                      ...biometricSettings,
-                      faceStabilityCheck: checked
+                    setAiConnectionSettings({
+                      ...aiConnectionSettings,
+                      lockConnectionsWhenInactive: checked
                     });
                   }}
                 />
@@ -235,16 +324,42 @@ export default function Settings() {
               
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <Label htmlFor="low-light" className="text-sm">Low Light Enhancement</Label>
-                  <p className="text-xs text-gray-500">Improve detection in poor lighting conditions</p>
+                  <Label htmlFor="notify-access" className="text-sm">Notify on Access</Label>
+                  <p className="text-xs text-gray-500">Send notification when an AI accesses your identity data</p>
                 </div>
                 <Switch
-                  id="low-light"
-                  checked={biometricSettings.lowLightEnhancement}
+                  id="notify-access"
+                  checked={aiConnectionSettings.notifyOnAccess}
                   onCheckedChange={(checked) => {
-                    setBiometricSettings({
-                      ...biometricSettings,
-                      lowLightEnhancement: checked
+                    setAiConnectionSettings({
+                      ...aiConnectionSettings,
+                      notifyOnAccess: checked
+                    });
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+          
+          {/* Privacy Settings */}
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+            <div className="px-4 py-3 bg-[#1e3c0d]/5 border-b border-[#1e3c0d]/10">
+              <h2 className="font-semibold text-[#1e3c0d]">Privacy</h2>
+            </div>
+            
+            <div className="p-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="share-analytics" className="text-sm">Share Analytics</Label>
+                  <p className="text-xs text-gray-500">Help improve the platform with anonymous usage data</p>
+                </div>
+                <Switch
+                  id="share-analytics"
+                  checked={privacySettings.shareAnalytics}
+                  onCheckedChange={(checked) => {
+                    setPrivacySettings({
+                      ...privacySettings,
+                      shareAnalytics: checked
                     });
                   }}
                 />
@@ -252,135 +367,36 @@ export default function Settings() {
               
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <Label htmlFor="save-scans" className="text-sm">Save Verified Scans</Label>
-                  <p className="text-xs text-gray-500">Store successful verifications to improve future accuracy</p>
+                  <Label htmlFor="metrics-collection" className="text-sm">Performance Metrics</Label>
+                  <p className="text-xs text-gray-500">Collect metrics to optimize verification performance</p>
                 </div>
                 <Switch
-                  id="save-scans"
-                  checked={biometricSettings.saveVerifiedScans}
+                  id="metrics-collection"
+                  checked={privacySettings.allowMetricsCollection}
                   onCheckedChange={(checked) => {
-                    setBiometricSettings({
-                      ...biometricSettings,
-                      saveVerifiedScans: checked
+                    setPrivacySettings({
+                      ...privacySettings,
+                      allowMetricsCollection: checked
                     });
                   }}
                 />
               </div>
             </div>
           </div>
-        </div>
-        
-        {/* AI Connection Settings */}
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          <div className="px-4 py-3 bg-[#1e3c0d]/5 border-b border-[#1e3c0d]/10">
-            <h2 className="font-semibold text-[#1e3c0d]">AI Connections</h2>
-          </div>
           
-          <div className="p-4 space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="auto-approve" className="text-sm">Auto-approve Identity Requests</Label>
-                <p className="text-xs text-gray-500">Allow connected AIs to verify your identity without prompts</p>
-              </div>
-              <Switch
-                id="auto-approve"
-                checked={aiConnectionSettings.autoApprove}
-                onCheckedChange={(checked) => {
-                  setAiConnectionSettings({
-                    ...aiConnectionSettings,
-                    autoApprove: checked
-                  });
-                }}
-              />
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="lock-inactive" className="text-sm">Lock When Inactive</Label>
-                <p className="text-xs text-gray-500">Automatically lock connections after 30 days of inactivity</p>
-              </div>
-              <Switch
-                id="lock-inactive"
-                checked={aiConnectionSettings.lockConnectionsWhenInactive}
-                onCheckedChange={(checked) => {
-                  setAiConnectionSettings({
-                    ...aiConnectionSettings,
-                    lockConnectionsWhenInactive: checked
-                  });
-                }}
-              />
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="notify-access" className="text-sm">Notify on Access</Label>
-                <p className="text-xs text-gray-500">Send notification when an AI accesses your identity data</p>
-              </div>
-              <Switch
-                id="notify-access"
-                checked={aiConnectionSettings.notifyOnAccess}
-                onCheckedChange={(checked) => {
-                  setAiConnectionSettings({
-                    ...aiConnectionSettings,
-                    notifyOnAccess: checked
-                  });
-                }}
-              />
-            </div>
-          </div>
-        </div>
+          {/* Action buttons */}
+          <Button 
+            className="w-full bg-[#1e3c0d] hover:bg-[#273414] py-6 rounded-xl"
+            onClick={handleSaveSettings}
+          >
+            Save Settings
+          </Button>
+        </TabsContent>
         
-        {/* Privacy Settings */}
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          <div className="px-4 py-3 bg-[#1e3c0d]/5 border-b border-[#1e3c0d]/10">
-            <h2 className="font-semibold text-[#1e3c0d]">Privacy</h2>
-          </div>
-          
-          <div className="p-4 space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="share-analytics" className="text-sm">Share Analytics</Label>
-                <p className="text-xs text-gray-500">Help improve the platform with anonymous usage data</p>
-              </div>
-              <Switch
-                id="share-analytics"
-                checked={privacySettings.shareAnalytics}
-                onCheckedChange={(checked) => {
-                  setPrivacySettings({
-                    ...privacySettings,
-                    shareAnalytics: checked
-                  });
-                }}
-              />
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="metrics-collection" className="text-sm">Performance Metrics</Label>
-                <p className="text-xs text-gray-500">Collect metrics to optimize verification performance</p>
-              </div>
-              <Switch
-                id="metrics-collection"
-                checked={privacySettings.allowMetricsCollection}
-                onCheckedChange={(checked) => {
-                  setPrivacySettings({
-                    ...privacySettings,
-                    allowMetricsCollection: checked
-                  });
-                }}
-              />
-            </div>
-          </div>
-        </div>
-        
-        {/* Action buttons */}
-        <Button 
-          className="w-full bg-[#1e3c0d] hover:bg-[#273414] py-6 rounded-xl"
-          onClick={handleSaveSettings}
-        >
-          Save Settings
-        </Button>
-      </div>
+        <TabsContent value="security">
+          <SecuritySettings />
+        </TabsContent>
+      </Tabs>
       
       {/* Bottom Navigation */}
       <NavigationBar currentPath="/profile" />

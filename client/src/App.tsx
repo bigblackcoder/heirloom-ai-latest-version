@@ -32,6 +32,9 @@ function Router() {
   // Use analytics to track page views
   useAnalytics();
   
+  // Initialize security monitoring
+  useSecurityMonitoring();
+  
   return (
     <Switch>
       <Route path="/" component={Home} />
