@@ -1,4 +1,5 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
+import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/hooks/use-auth";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -17,7 +18,18 @@ import Settings from "@/pages/settings";
 import Achievements from "@/pages/achievements";
 import Demo from "@/pages/demo";
 
+// Beta related imports
+import BetaBadge from "@/components/beta-badge";
+import BetaFeedbackForm from "@/components/beta-feedback-form";
+import OnboardingTips from "@/components/onboarding-tips";
+import BetaTesterDashboard from "@/components/beta-tester-dashboard";
+import { useAnalytics } from "@/hooks/use-analytics";
+import { initGA, trackEvent } from "@/lib/analytics";
+
 function Router() {
+  // Use analytics to track page views
+  useAnalytics();
+  
   return (
     <Switch>
       <Route path="/" component={Home} />
@@ -32,6 +44,7 @@ function Router() {
       <Route path="/settings" component={Settings} />
       <Route path="/achievements" component={Achievements} />
       <Route path="/demo" component={Demo} />
+      <Route path="/beta-dashboard" component={BetaTesterDashboard} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -40,14 +53,41 @@ function Router() {
 function App() {
   // Get current path for responsive layout
   const path = window.location.pathname;
-  const isFullWidthPage = path === '/demo';
+  const isFullWidthPage = path === '/demo' || path === '/beta-dashboard';
+  const [location] = useLocation();
+  
+  // Initialize Google Analytics when app loads
+  useEffect(() => {
+    // Verify required environment variable is present
+    if (!import.meta.env.VITE_GA_MEASUREMENT_ID) {
+      console.warn('Missing required Google Analytics key: VITE_GA_MEASUREMENT_ID');
+    } else {
+      initGA();
+      trackEvent('app_start', 'application', 'initialization');
+    }
+  }, []);
   
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <div className={`min-h-screen bg-background ${isFullWidthPage ? 'w-full' : 'max-w-md mx-auto'} overflow-hidden relative`}>
+          {/* Beta badge shown in top-right corner */}
+          <div className="absolute top-2 right-2 z-50">
+            <BetaBadge />
+          </div>
+          
+          {/* Feedback button shown in bottom-right for authenticated pages */}
+          {location !== '/' && location !== '/login' && location !== '/signup' && (
+            <div className="fixed bottom-4 right-4 z-40 feedback-button">
+              <BetaFeedbackForm />
+            </div>
+          )}
+          
           <Router />
           <Toaster />
+          
+          {/* Onboarding tips shown when needed */}
+          <OnboardingTips />
         </div>
       </AuthProvider>
     </QueryClientProvider>
