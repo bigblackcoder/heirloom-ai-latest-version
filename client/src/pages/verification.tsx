@@ -194,7 +194,7 @@ export default function Verification() {
           </p>
         </div>
         
-        <FaceScanner 
+        <AppleFaceScanner 
           onProgress={handleVerificationProgress} 
           onComplete={handleVerificationComplete}
           isComplete={isVerificationComplete}

@@ -66,11 +66,14 @@ export default function AppleFaceScanner({ onProgress, onComplete, isComplete }:
     if (!isComplete && hasPermission && !isSimulating) {
       console.log("Face detection started");
       const interval = setInterval(() => {
-        if (webcamRef.current && webcamRef.current.video && webcamRef.current.video.readyState === 4) {
-          // Take a screenshot and start detection
-          const screenshot = webcamRef.current.getScreenshot();
-          if (screenshot) {
-            startDetection(screenshot);
+        if (webcamRef.current && webcamRef.current.video) {
+          const videoElement = webcamRef.current.video;
+          if (videoElement.readyState === 4) {
+            // Take a screenshot and start detection
+            const screenshot = webcamRef.current.getScreenshot();
+            if (screenshot) {
+              startDetection(screenshot);
+            }
           }
         }
       }, 100); // Check every 100ms
