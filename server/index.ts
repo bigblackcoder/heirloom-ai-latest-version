@@ -90,8 +90,8 @@ app.use((req, res, next) => {
     log("Production static file serving setup complete");
   }
 
-  // Use port 3000 in production, 5000 in development
-  const port = process.env.NODE_ENV === 'production' ? 3000 : 5000;
+  // Use port 5000 in both production and development
+  const port = 5000;
   server.listen({
     port,
     host: "0.0.0.0",
@@ -100,26 +100,28 @@ app.use((req, res, next) => {
     log(`serving on port ${port}`);
   });
   
-  // Start the verification service on port 8000
-  try {
-    const { startVerificationService } = await import('./verification_proxy.js');
-    await startVerificationService();
-    log('Verification service started successfully');
-  } catch (error) {
-    log(`Failed to start verification service: ${error.message}`);
-    
-    // In production, retry after a short delay
-    if (process.env.NODE_ENV === 'production') {
-      log('Will retry starting verification service in 5 seconds...');
-      setTimeout(async () => {
-        try {
-          const { startVerificationService } = await import('./verification_proxy.js');
-          await startVerificationService();
-          log('Verification service started successfully on retry');
-        } catch (retryError) {
-          log(`Failed to start verification service on retry: ${retryError.message}`);
-        }
-      }, 5000);
+  // Start the verification service on port 8000 in background
+  setTimeout(async () => {
+    try {
+      const { startVerificationService } = await import('./verification_proxy.js');
+      await startVerificationService();
+      log('Verification service started successfully');
+    } catch (error) {
+      log(`Failed to start verification service: ${error.message}`);
+      
+      // In production, retry after a short delay
+      if (process.env.NODE_ENV === 'production') {
+        log('Will retry starting verification service in 5 seconds...');
+        setTimeout(async () => {
+          try {
+            const { startVerificationService } = await import('./verification_proxy.js');
+            await startVerificationService();
+            log('Verification service started successfully on retry');
+          } catch (retryError) {
+            log(`Failed to start verification service on retry: ${retryError.message}`);
+          }
+        }, 5000);
+      }
     }
-  }
+  }, 0);
 })();
