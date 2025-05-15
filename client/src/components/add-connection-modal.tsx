@@ -37,35 +37,42 @@ const aiServices = [
     id: "claude",
     name: "Claude AI",
     description: "Anthropic's Claude assistant",
-    icon: "/images/claude-color.png",
+    icon: "/images/ai-services/claude-color.png",
     color: "#5738ca"
   },
   {
     id: "gemini",
     name: "Google Gemini",
     description: "Google's advanced AI assistant",
-    icon: "/images/gemini-color.png",
+    icon: "/images/ai-services/gemini-color.png",
     color: "#1e88e5"
   },
   {
     id: "gpt",
     name: "ChatGPT",
     description: "OpenAI's powerful assistant",
-    icon: "/images/openai-logo.png",
+    icon: "/images/ai-services/openai-logo.png",
     color: "#10a37f"
   },
   {
     id: "perplexity",
     name: "Perplexity AI",
     description: "AI-powered answer engine",
-    icon: "/images/perplexity-logo.png",
+    icon: "/images/ai-services/perplexity-logo.png",
     color: "#f97316"
+  },
+  {
+    id: "mcp",
+    name: "MCP Assistant", 
+    description: "Managed credential provider",
+    icon: "/images/ai-services/mcp.png",
+    color: "#283142"
   },
   {
     id: "bing",
     name: "Microsoft Copilot",
     description: "Microsoft's AI companion",
-    icon: "/images/copilot-logo.png",
+    icon: "/images/ai-services/copilot-logo.png",
     color: "#0078d4"
   }
 ];
@@ -174,54 +181,29 @@ export default function AddConnectionModal({ isOpen, onClose }: AddConnectionMod
                         <div
                           key={service.id}
                           className={`
-                            border rounded-xl p-3 cursor-pointer transition-all
+                            border rounded-xl p-3 cursor-pointer transition-all duration-200
                             ${selectedService === service.id 
-                              ? `border-2 border-[${service.color}] bg-[${service.color}]/5` 
-                              : 'border-gray-200 hover:border-gray-300'}
+                              ? `border-2 shadow-md` 
+                              : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'}
                           `}
+                          style={{
+                            borderColor: selectedService === service.id ? service.color : undefined,
+                            backgroundColor: selectedService === service.id ? `${service.color}10` : undefined
+                          }}
                           onClick={() => handleServiceSelect(service.id)}
                         >
                           <div className="flex items-center mb-2">
                             <div
-                              className="w-8 h-8 rounded-full flex items-center justify-center mr-2"
-                              style={{ backgroundColor: `${service.color}20` }}
+                              className="w-10 h-10 rounded-full flex items-center justify-center mr-2 overflow-hidden bg-white"
+                              style={{ 
+                                boxShadow: `0 0 0 2px ${service.color}25`
+                              }}
                             >
-                              <svg 
-                                viewBox="0 0 24 24" 
-                                fill="none" 
-                                className="w-5 h-5"
-                                style={{ color: service.color }}
-                              >
-                                {service.id === "claude" && (
-                                  <>
-                                    <path d="M12 2L5 5V19L12 22L19 19V5L12 2Z" fill="currentColor" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                                    <path d="M12 11C13.1046 11 14 10.1046 14 9C14 7.89543 13.1046 7 12 7C10.8954 7 10 7.89543 10 9C10 10.1046 10.8954 11 12 11Z" fill="white" stroke="white" strokeWidth="0.5"/>
-                                    <path d="M12 11V17" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-                                  </>
-                                )}
-                                
-                                {service.id === "gemini" && (
-                                  <>
-                                    <path d="M6 12L12 8L18 12L12 16L6 12Z" fill="currentColor" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                                    <path d="M12 2V8M12 16V22" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                                  </>
-                                )}
-                                
-                                {service.id === "gpt" && (
-                                  <>
-                                    <rect width="24" height="24" rx="5" fill="currentColor" fillOpacity="0.2"/>
-                                    <path d="M19.5 8.25l-7.5 4.5-7.5-4.5m7.5 4.5v9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                                    <path d="M19.5 15.75l-7.5 4.5-7.5-4.5m16.5-11.25l-7.5 4.5-7.5-4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                                  </>
-                                )}
-                                
-                                {(service.id !== "claude" && service.id !== "gemini" && service.id !== "gpt") && (
-                                  <>
-                                    <circle cx="12" cy="12" r="10" fill="currentColor" fillOpacity="0.2" />
-                                    <path d="M12 16V8M8 12h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                                  </>
-                                )}
-                              </svg>
+                              <img 
+                                src={service.icon}
+                                alt={service.name} 
+                                className="w-8 h-8 object-contain"
+                              />
                             </div>
                             <div>
                               <div className="font-medium text-sm">{service.name}</div>
