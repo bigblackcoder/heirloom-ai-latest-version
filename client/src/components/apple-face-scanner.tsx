@@ -27,6 +27,14 @@ export default function AppleFaceScanner({ onProgress, onComplete, isComplete }:
   const [faceDetected, setFaceDetected] = useState(false);
   const [faceInPosition, setFaceInPosition] = useState(false);
   const [scanComplete, setScanComplete] = useState(false);
+  const [facePosition, setFacePosition] = useState("center");
+  const [isStable, setIsStable] = useState(false);
+  const [motionTracking, setMotionTracking] = useState({
+    lastX: 0,
+    lastY: 0,
+    movement: 0,
+    stabilityCounter: 0
+  });
   const { startDetection, stopDetection, verificationProgress, verificationResult, simulateVerification } = useFaceVerification();
   const isMobile = useIsMobile();
   const demoSimulationRef = useRef<(() => void) | null>(null);
@@ -61,11 +69,85 @@ export default function AppleFaceScanner({ onProgress, onComplete, isComplete }:
     checkPermission();
   }, []);
 
-  // Start detection when component mounts and stop on unmount
+  // Track face movement using the camera video
   useEffect(() => {
-    if (!isComplete && hasPermission && !isSimulating) {
+    if (!isComplete && hasPermission && !isSimulating && webcamRef.current && webcamRef.current.video) {
+      // Set up a canvas to analyze video frames for motion
+      const video = webcamRef.current.video;
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d', { willReadFrequently: true });
+      
+      if (!context) return;
+      
+      canvas.width = 100; // Small size for performance
+      canvas.height = 100;
+      
+      let lastImageData: ImageData | null = null;
+      
+      const trackMovement = () => {
+        if (!video || video.readyState !== 4) return;
+        
+        // Draw the current video frame to canvas
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const currentImageData = context.getImageData(0, 0, canvas.width, canvas.height);
+        
+        // Skip first frame
+        if (!lastImageData) {
+          lastImageData = currentImageData;
+          return;
+        }
+        
+        // Calculate difference between frames to detect motion
+        let diff = 0;
+        const current = currentImageData.data;
+        const last = lastImageData.data;
+        
+        // Sample pixels (for performance)
+        for (let i = 0; i < current.length; i += 40) {
+          diff += Math.abs(current[i] - last[i]);
+        }
+        
+        diff = diff / (current.length / 40); // Normalize
+        
+        // Update motion tracking state
+        setMotionTracking(prev => {
+          const newState = {...prev};
+          newState.movement = diff;
+          
+          // Check if stable (low movement)
+          if (diff < 10) {
+            newState.stabilityCounter = Math.min(prev.stabilityCounter + 1, 30);
+          } else {
+            newState.stabilityCounter = Math.max(prev.stabilityCounter - 2, 0);
+          }
+          
+          // Update face stability state
+          if (newState.stabilityCounter > 15 && !isStable) {
+            setIsStable(true);
+          } else if (newState.stabilityCounter < 5 && isStable) {
+            setIsStable(false);
+          }
+          
+          return newState;
+        });
+        
+        // Get face position feedback
+        if (diff > 30) {
+          setFacePosition('moving');
+        } else if (verificationProgress > FACE_POSITIONED_THRESHOLD) {
+          setFacePosition('center');
+        }
+        
+        // Store current frame as last frame
+        lastImageData = currentImageData;
+      };
+      
+      // Run motion tracking
+      const movementInterval = setInterval(trackMovement, 100);
+      
+      // Run face detection
       console.log("Face detection started");
-      const interval = setInterval(() => {
+      const detectionInterval = setInterval(() => {
         if (webcamRef.current && webcamRef.current.video) {
           const videoElement = webcamRef.current.video;
           if (videoElement.readyState === 4) {
@@ -78,9 +160,12 @@ export default function AppleFaceScanner({ onProgress, onComplete, isComplete }:
         }
       }, 100); // Check every 100ms
       
-      return () => clearInterval(interval);
+      return () => {
+        clearInterval(movementInterval);
+        clearInterval(detectionInterval);
+      };
     }
-  }, [hasPermission, isComplete, isSimulating, startDetection]);
+  }, [hasPermission, isComplete, isSimulating, startDetection, isStable, verificationProgress, FACE_POSITIONED_THRESHOLD]);
 
   // Listen for verification progress and update UI states
   useEffect(() => {
@@ -175,14 +260,23 @@ export default function AppleFaceScanner({ onProgress, onComplete, isComplete }:
           <div className="mt-2 flex flex-col items-center">
             {/* Status Message */}
             <p className="text-sm font-medium text-gray-600 dark:text-gray-300">
-              {faceDetected ? "Face detected! Hold still..." : "Position your face in the frame"}
+              {!faceDetected ? "Position your face in the frame" :
+               facePosition === 'moving' ? "Please hold still..." :
+               !isStable ? "Try to remain still" :
+               "Perfect! Hold position"}
             </p>
             
             {/* iOS-style Status Pill */}
             <div className="mt-3 inline-flex items-center px-3 py-1 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 shadow-md">
-              <div className={`mr-2 h-2.5 w-2.5 rounded-full ${verificationProgress > 50 ? "bg-green-300 animate-pulse" : "bg-gray-200"}`}></div>
+              <div className={`mr-2 h-2.5 w-2.5 rounded-full 
+                ${facePosition === 'moving' ? "bg-yellow-300 animate-pulse" : 
+                  verificationProgress > 50 ? "bg-green-300 animate-pulse" : 
+                  "bg-gray-200"}`}>
+              </div>
               <span className="text-xs font-medium text-white">
-                {verificationProgress > 80 ? "Almost done" : 
+                {facePosition === 'moving' ? "Movement detected" :
+                 !isStable ? "Stabilizing..." :
+                 verificationProgress > 80 ? "Almost done" : 
                  verificationProgress > 40 ? "Scanning..." : 
                  "Detecting face..."}
               </span>
@@ -201,19 +295,26 @@ export default function AppleFaceScanner({ onProgress, onComplete, isComplete }:
       
       {/* Camera Frame (Apple Style) */}
       <div className="relative w-72 h-72 mb-4">
-        {/* Outer Ring Animation */}
-        <div className={`absolute inset-0 rounded-full border-4 ${faceDetected ? "border-green-400" : "border-gray-300"} 
-                        ${faceDetected && "animate-pulse"} transition-colors duration-300`}></div>
+        {/* Outer Ring Animation - Changes color based on face position and stability */}
+        <div className={`absolute inset-0 rounded-full border-4 
+                        ${facePosition === 'moving' ? "border-yellow-400" : 
+                          !isStable ? "border-blue-400" :
+                          faceDetected ? "border-green-400" : 
+                          "border-gray-300"} 
+                        ${(facePosition === 'moving' || !isStable) ? "animate-pulse" : 
+                          faceDetected && "animate-pulse"} transition-colors duration-300`}>
+        </div>
         
         {/* Camera container */}
         <div className="absolute inset-2 flex items-center justify-center rounded-full overflow-hidden bg-black">
           {/* iOS-style scan overlay */}
           <div className={`absolute inset-0 z-10 transition-opacity duration-500 ${faceDetected ? "opacity-100" : "opacity-0"}`}>
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-blue-500/10 to-transparent" 
-                style={{ 
-                  backgroundSize: "100% 8px",
-                  animation: "scanAnimation 2s linear infinite"
-                }}
+            <div 
+              className={`absolute inset-0 bg-gradient-to-b from-transparent via-blue-500/10 to-transparent`}
+              style={{ 
+                backgroundSize: "100% 8px",
+                animation: "scanAnimation 2s linear infinite"
+              }}
             />
           </div>
           
