@@ -1,0 +1,77 @@
+#!/bin/bash
+
+# Pre-commit hook to detect AWS credentials and other sensitive information
+# Place this file in .git/hooks/pre-commit and make it executable
+
+# Define patterns to search for
+PATTERNS=(
+    "AKIA[0-9A-Z]{16}" # AWS Access Key ID
+    "aws_access_key_id"
+    "aws_secret_access_key"
+    "password.*=.*[a-zA-Z0-9]+"
+    "secret.*=.*[a-zA-Z0-9]+"
+    "token.*=.*[a-zA-Z0-9]+"
+    "BEGIN (RSA|DSA|EC|OPENSSH|PRIVATE) KEY"
+    "-----BEGIN CERTIFICATE"
+)
+
+# Files to exclude 
+EXCLUDE_FILES=(
+    ".git/"
+    "node_modules/"
+    ".env.example"
+    ".githooks/"
+    "dist/"
+)
+
+# Function to check a file for sensitive information
+check_file() {
+    local file="$1"
+    
+    # Skip binary files and excluded files
+    if [[ -z "$(file "$file" | grep -E 'text|ASCII')" ]]; then
+        return 0
+    fi
+    
+    # Check against exclusion patterns
+    for exclude in "${EXCLUDE_FILES[@]}"; do
+        if [[ "$file" == *"$exclude"* ]]; then
+            return 0
+        fi
+    done
+    
+    # Check file for sensitive patterns
+    for pattern in "${PATTERNS[@]}"; do
+        if grep -E "$pattern" "$file" > /dev/null; then
+            echo "WARNING: Potential credential found in $file"
+            echo "Matched pattern: $pattern"
+            echo "Please remove the credential or add it to .env file instead."
+            return 1
+        fi
+    done
+    
+    return 0
+}
+
+# Get list of staged files
+FILES=$(git diff --cached --name-only --diff-filter=ACM)
+
+# Exit code
+EXIT_CODE=0
+
+# Check each staged file
+for file in $FILES; do
+    check_file "$file"
+    if [ $? -ne 0 ]; then
+        EXIT_CODE=1
+    fi
+done
+
+# If credentials were found, abort the commit
+if [ $EXIT_CODE -ne 0 ]; then
+    echo "Aborting commit due to potential credentials in staged files."
+    echo "Fix the issues above, or use 'git commit --no-verify' to bypass this check (NOT RECOMMENDED)."
+    exit 1
+fi
+
+exit 0
