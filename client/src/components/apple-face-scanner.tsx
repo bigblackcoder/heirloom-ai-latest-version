@@ -4,6 +4,9 @@ import { useFaceVerification } from '@/hooks/use-face-verification';
 import { useIsMobile } from '@/hooks/use-is-mobile';
 import { DebugSession } from './debug-session';
 
+// Type for face positioning instructions
+type FacePositionType = 'center' | 'moving' | 'unstable' | 'detecting' | 'aligned';
+
 // Global window type extension for mouse tracking
 declare global {
   interface Window {
@@ -27,14 +30,23 @@ export default function AppleFaceScanner({ onProgress, onComplete, isComplete }:
   const [faceDetected, setFaceDetected] = useState(false);
   const [faceInPosition, setFaceInPosition] = useState(false);
   const [scanComplete, setScanComplete] = useState(false);
-  const [facePosition, setFacePosition] = useState("center");
+  
+  // Updated face position with specific type
+  const [facePosition, setFacePosition] = useState<FacePositionType>('detecting');
   const [isStable, setIsStable] = useState(false);
+  
+  // Improved motion tracking state
   const [motionTracking, setMotionTracking] = useState({
-    lastX: 0,
-    lastY: 0,
     movement: 0,
-    stabilityCounter: 0
+    stabilityCounter: 0,
+    movingTextTimer: 0,
+    lastMotionUpdate: Date.now()
   });
+  
+  // Canvas reference for motion detection
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const lastImageDataRef = useRef<ImageData | null>(null);
+  
   const { startDetection, stopDetection, verificationProgress, verificationResult, simulateVerification } = useFaceVerification();
   const isMobile = useIsMobile();
   const demoSimulationRef = useRef<(() => void) | null>(null);
@@ -46,6 +58,12 @@ export default function AppleFaceScanner({ onProgress, onComplete, isComplete }:
   const FACE_DETECTED_THRESHOLD = 10;
   const FACE_POSITIONED_THRESHOLD = 40;
   const SCAN_COMPLETE_THRESHOLD = 85;
+  
+  // Motion detection constants
+  const MOTION_THRESHOLD = 15;
+  const HIGH_MOTION_THRESHOLD = 30;
+  const STABILITY_MAX = 30;
+  const STABILITY_THRESHOLD = 15;
 
   // Check camera permission on mount
   useEffect(() => {
@@ -69,103 +87,174 @@ export default function AppleFaceScanner({ onProgress, onComplete, isComplete }:
     checkPermission();
   }, []);
 
-  // Track face movement using the camera video
+  // Initialize the motion detection canvas once
   useEffect(() => {
-    if (!isComplete && hasPermission && !isSimulating && webcamRef.current && webcamRef.current.video) {
-      // Set up a canvas to analyze video frames for motion
-      const video = webcamRef.current.video;
+    // Create the canvas element for motion detection
+    if (!canvasRef.current) {
       const canvas = document.createElement('canvas');
-      const context = canvas.getContext('2d', { willReadFrequently: true });
+      canvas.width = 80; // Small size for performance
+      canvas.height = 60;
+      canvasRef.current = canvas;
+    }
+  }, []);
+
+  // Dedicated function for motion detection
+  const detectMotion = (video: HTMLVideoElement) => {
+    if (!canvasRef.current || video.readyState !== 4) return 0;
+    
+    const canvas = canvasRef.current;
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    if (!context) return 0;
+    
+    // Draw the current video frame to canvas
+    try {
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const currentImageData = context.getImageData(0, 0, canvas.width, canvas.height);
       
-      if (!context) return;
+      // Skip first frame
+      if (!lastImageDataRef.current) {
+        lastImageDataRef.current = currentImageData;
+        return 0;
+      }
       
-      canvas.width = 100; // Small size for performance
-      canvas.height = 100;
+      // Calculate difference between frames to detect motion
+      let diff = 0;
+      const current = currentImageData.data;
+      const last = lastImageDataRef.current.data;
       
-      let lastImageData: ImageData | null = null;
+      // Sample pixels (for performance)
+      const step = 16; // Skip pixels for better performance
+      for (let i = 0; i < current.length; i += step) {
+        diff += Math.abs(current[i] - last[i]);
+      }
       
-      const trackMovement = () => {
-        if (!video || video.readyState !== 4) return;
+      diff = diff / (current.length / step); // Normalize
+      
+      // Store current frame as last frame
+      lastImageDataRef.current = currentImageData;
+      
+      return diff;
+    } catch (e) {
+      console.error("Error detecting motion:", e);
+      return 0;
+    }
+  };
+
+  // Track face movement using the camera video and update facial captions
+  useEffect(() => {
+    if (!isComplete && hasPermission && !isSimulating && webcamRef.current?.video) {
+      // Set up motion detection and face tracking
+      const video = webcamRef.current.video;
+      
+      // Processing function for each frame
+      const processFrame = () => {
+        if (!video || isComplete) return;
         
-        // Draw the current video frame to canvas
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const currentImageData = context.getImageData(0, 0, canvas.width, canvas.height);
+        // Detect motion in the video frame
+        const motionValue = detectMotion(video);
         
-        // Skip first frame
-        if (!lastImageData) {
-          lastImageData = currentImageData;
-          return;
-        }
-        
-        // Calculate difference between frames to detect motion
-        let diff = 0;
-        const current = currentImageData.data;
-        const last = lastImageData.data;
-        
-        // Sample pixels (for performance)
-        for (let i = 0; i < current.length; i += 40) {
-          diff += Math.abs(current[i] - last[i]);
-        }
-        
-        diff = diff / (current.length / 40); // Normalize
-        
-        // Update motion tracking state
+        // Update motion tracking state with timestamps for UI feedback
+        const now = Date.now();
         setMotionTracking(prev => {
           const newState = {...prev};
-          newState.movement = diff;
+          newState.movement = motionValue;
+          newState.lastMotionUpdate = now;
           
           // Check if stable (low movement)
-          if (diff < 10) {
-            newState.stabilityCounter = Math.min(prev.stabilityCounter + 1, 30);
+          if (motionValue < MOTION_THRESHOLD) {
+            newState.stabilityCounter = Math.min(prev.stabilityCounter + 1, STABILITY_MAX);
+            // Reset moving text timer when motion is low
+            newState.movingTextTimer = 0;
           } else {
-            newState.stabilityCounter = Math.max(prev.stabilityCounter - 2, 0);
-          }
-          
-          // Update face stability state
-          if (newState.stabilityCounter > 15 && !isStable) {
-            setIsStable(true);
-          } else if (newState.stabilityCounter < 5 && isStable) {
-            setIsStable(false);
+            // Higher penalty for more movement
+            const penalty = motionValue > HIGH_MOTION_THRESHOLD ? 3 : 1;
+            newState.stabilityCounter = Math.max(prev.stabilityCounter - penalty, 0);
+            
+            // Increment moving text timer when motion is high
+            newState.movingTextTimer = prev.movingTextTimer + 1;
           }
           
           return newState;
         });
         
-        // Get face position feedback
-        if (diff > 30) {
+        // Update face stability state for UI feedback
+        if (motionTracking.stabilityCounter > STABILITY_THRESHOLD && !isStable) {
+          setIsStable(true);
+        } else if (motionTracking.stabilityCounter < 5 && isStable) {
+          setIsStable(false);
+        }
+        
+        // Set face position feedback (used for UI captions)
+        if (motionTracking.movingTextTimer > 3 || motionValue > HIGH_MOTION_THRESHOLD) {
           setFacePosition('moving');
-        } else if (verificationProgress > FACE_POSITIONED_THRESHOLD) {
+        } else if (!faceDetected && verificationProgress < FACE_DETECTED_THRESHOLD) {
+          setFacePosition('detecting');
+        } else if (verificationProgress > FACE_POSITIONED_THRESHOLD && isStable) {
+          setFacePosition('aligned');
+        } else if (!isStable) {
+          setFacePosition('unstable');
+        } else {
           setFacePosition('center');
         }
         
-        // Store current frame as last frame
-        lastImageData = currentImageData;
+        // Update face detection states based on progress
+        if (verificationProgress >= FACE_DETECTED_THRESHOLD && !faceDetected) {
+          setFaceDetected(true);
+        }
+        
+        if (verificationProgress >= FACE_POSITIONED_THRESHOLD && !faceInPosition) {
+          setFaceInPosition(true);
+        }
+        
+        if (verificationProgress >= SCAN_COMPLETE_THRESHOLD && !scanComplete) {
+          setScanComplete(true);
+        }
       };
       
-      // Run motion tracking
-      const movementInterval = setInterval(trackMovement, 100);
+      // Run the frame processing with animation frames for smoother performance
+      let frameId: number | null = null;
       
-      // Run face detection
+      const animateFrame = () => {
+        processFrame();
+        frameId = requestAnimationFrame(animateFrame);
+      };
+      
+      frameId = requestAnimationFrame(animateFrame);
+      
+      // Separate interval for face detection (less frequent to reduce API load)
       console.log("Face detection started");
       const detectionInterval = setInterval(() => {
-        if (webcamRef.current && webcamRef.current.video) {
-          const videoElement = webcamRef.current.video;
-          if (videoElement.readyState === 4) {
-            // Take a screenshot and start detection
-            const screenshot = webcamRef.current.getScreenshot();
-            if (screenshot) {
-              startDetection(screenshot);
-            }
+        if (webcamRef.current?.video?.readyState === 4) {
+          const screenshot = webcamRef.current.getScreenshot();
+          if (screenshot) {
+            startDetection(screenshot);
           }
         }
-      }, 100); // Check every 100ms
+      }, 500); // Less frequent checks to reduce server load
       
       return () => {
-        clearInterval(movementInterval);
+        if (frameId !== null) cancelAnimationFrame(frameId);
         clearInterval(detectionInterval);
       };
     }
-  }, [hasPermission, isComplete, isSimulating, startDetection, isStable, verificationProgress, FACE_POSITIONED_THRESHOLD]);
+  }, [
+    hasPermission, 
+    isComplete, 
+    isSimulating, 
+    startDetection, 
+    isStable, 
+    faceDetected,
+    faceInPosition,
+    scanComplete,
+    motionTracking.movingTextTimer,
+    motionTracking.stabilityCounter,
+    FACE_DETECTED_THRESHOLD,
+    FACE_POSITIONED_THRESHOLD, 
+    SCAN_COMPLETE_THRESHOLD,
+    MOTION_THRESHOLD,
+    HIGH_MOTION_THRESHOLD,
+    STABILITY_THRESHOLD
+  ]);
 
   // Listen for verification progress and update UI states
   useEffect(() => {
@@ -258,24 +347,29 @@ export default function AppleFaceScanner({ onProgress, onComplete, isComplete }:
         
         {verificationProgress < 100 && (
           <div className="mt-2 flex flex-col items-center">
-            {/* Status Message */}
+            {/* Status Message - Improved with motion feedback */}
             <p className="text-sm font-medium text-gray-600 dark:text-gray-300">
-              {!faceDetected ? "Position your face in the frame" :
+              {facePosition === 'detecting' ? "Position your face in the frame" :
                facePosition === 'moving' ? "Please hold still..." :
-               !isStable ? "Try to remain still" :
-               "Perfect! Hold position"}
+               facePosition === 'unstable' ? "Try to remain still" :
+               facePosition === 'aligned' ? "Perfect! Hold position" :
+               "Keep your face centered"}
             </p>
             
-            {/* iOS-style Status Pill */}
+            {/* iOS-style Status Pill - Updated with more motion states */}
             <div className="mt-3 inline-flex items-center px-3 py-1 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 shadow-md">
               <div className={`mr-2 h-2.5 w-2.5 rounded-full 
                 ${facePosition === 'moving' ? "bg-yellow-300 animate-pulse" : 
+                  facePosition === 'unstable' ? "bg-blue-300 animate-pulse" :
+                  facePosition === 'aligned' ? "bg-green-300 animate-pulse" :
                   verificationProgress > 50 ? "bg-green-300 animate-pulse" : 
                   "bg-gray-200"}`}>
               </div>
               <span className="text-xs font-medium text-white">
-                {facePosition === 'moving' ? "Movement detected" :
-                 !isStable ? "Stabilizing..." :
+                {facePosition === 'detecting' ? "Finding face..." :
+                 facePosition === 'moving' ? "Too much movement" :
+                 facePosition === 'unstable' ? "Stabilizing..." :
+                 facePosition === 'aligned' ? "Face aligned" :
                  verificationProgress > 80 ? "Almost done" : 
                  verificationProgress > 40 ? "Scanning..." : 
                  "Detecting face..."}
@@ -295,25 +389,37 @@ export default function AppleFaceScanner({ onProgress, onComplete, isComplete }:
       
       {/* Camera Frame (Apple Style) */}
       <div className="relative w-72 h-72 mb-4">
-        {/* Outer Ring Animation - Changes color based on face position and stability */}
+        {/* Outer Ring Animation - Updated with improved status indicators */}
         <div className={`absolute inset-0 rounded-full border-4 
                         ${facePosition === 'moving' ? "border-yellow-400" : 
-                          !isStable ? "border-blue-400" :
-                          faceDetected ? "border-green-400" : 
-                          "border-gray-300"} 
-                        ${(facePosition === 'moving' || !isStable) ? "animate-pulse" : 
-                          faceDetected && "animate-pulse"} transition-colors duration-300`}>
+                          facePosition === 'unstable' ? "border-blue-400" :
+                          facePosition === 'aligned' ? "border-green-400" : 
+                          facePosition === 'detecting' ? "border-gray-300" :
+                          "border-blue-300"} 
+                        ${(facePosition === 'moving') ? "animate-pulse" : 
+                          (facePosition === 'unstable') ? "animate-pulse" : 
+                          (facePosition === 'aligned') && "animate-pulse"} 
+                        transition-colors duration-300`}>
         </div>
+        
+        {/* Face outline guide - appears when face is detected but needs positioning */}
+        {faceDetected && (facePosition === 'unstable' || facePosition === 'moving') && (
+          <div className="absolute inset-4 rounded-full border-2 border-dashed border-white/30 z-20"></div>
+        )}
         
         {/* Camera container */}
         <div className="absolute inset-2 flex items-center justify-center rounded-full overflow-hidden bg-black">
-          {/* iOS-style scan overlay */}
+          {/* iOS-style scan overlay - different animations by state */}
           <div className={`absolute inset-0 z-10 transition-opacity duration-500 ${faceDetected ? "opacity-100" : "opacity-0"}`}>
             <div 
-              className={`absolute inset-0 bg-gradient-to-b from-transparent via-blue-500/10 to-transparent`}
+              className={`absolute inset-0 bg-gradient-to-b from-transparent 
+                          ${facePosition === 'moving' ? "via-yellow-500/10" : 
+                            facePosition === 'unstable' ? "via-blue-500/10" : 
+                            facePosition === 'aligned' ? "via-green-500/10" :
+                            "via-blue-500/10"} to-transparent`}
               style={{ 
                 backgroundSize: "100% 8px",
-                animation: "scanAnimation 2s linear infinite"
+                animation: `scanAnimation ${facePosition === 'moving' ? "1s" : "2s"} linear infinite`
               }}
             />
           </div>
@@ -377,13 +483,22 @@ export default function AppleFaceScanner({ onProgress, onComplete, isComplete }:
           </div>
         )}
         
-        {/* Success Checkmark - appears when verification is complete */}
+        {/* Success Animation - Apple-style success checkmark */}
         {(verificationProgress === 100 || isComplete) && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full animate-fadeIn">
-            <div className="rounded-full bg-green-500 p-4 animate-scaleIn">
-              <svg className="w-16 h-16 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
+          <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full animate-fadeIn z-30">
+            <div className="relative">
+              {/* Outer success circle with glow */}
+              <div className="absolute inset-0 rounded-full bg-green-500 opacity-40 animate-ping"></div>
+              
+              {/* Main success circle */}
+              <div className="rounded-full bg-gradient-to-br from-green-400 to-green-600 p-5 shadow-lg animate-scaleIn relative z-10">
+                <svg className="w-16 h-16 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              
+              {/* Inner white success flash */}
+              <div className="absolute inset-0 bg-white rounded-full opacity-0 animate-successFlash z-20"></div>
             </div>
           </div>
         )}
@@ -431,12 +546,31 @@ export default function AppleFaceScanner({ onProgress, onComplete, isComplete }:
             to { transform: scale(1); }
           }
           
+          @keyframes successFlash {
+            0% { opacity: 0; }
+            50% { opacity: 0.8; }
+            100% { opacity: 0; }
+          }
+          
+          @keyframes ping {
+            0% { transform: scale(0.8); opacity: 0.8; }
+            70%, 100% { transform: scale(1.8); opacity: 0; }
+          }
+          
           .animate-fadeIn {
             animation: fadeIn 0.5s ease-out forwards;
           }
           
           .animate-scaleIn {
-            animation: scaleIn 0.3s ease-out forwards;
+            animation: scaleIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+          }
+          
+          .animate-successFlash {
+            animation: successFlash 0.8s ease-out forwards;
+          }
+          
+          .animate-ping {
+            animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
           }
         `}
       </style>
