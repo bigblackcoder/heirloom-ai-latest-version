@@ -73,7 +73,9 @@ app.use((req, res, next) => {
   if (app.get("env") === "development") {
     await setupVite(app, server);
   } else {
+    log("Setting up production static file serving...");
     serveStatic(app);
+    log("Production static file serving setup complete");
   }
 
   // Use port 3000 in production, 5000 in development
