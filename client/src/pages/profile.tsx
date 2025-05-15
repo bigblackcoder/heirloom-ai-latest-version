@@ -37,64 +37,16 @@ export default function Profile() {
     enabled: true
   });
 
-  // Upload profile picture mutation
-  const uploadMutation = useMutation({
-    mutationFn: async (fileData: string) => {
-      const response = await fetch('/api/user/profile-picture', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ avatarData: fileData }),
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to upload profile picture');
-      }
-      
-      return await response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
-      toast({
-        title: "Profile picture updated",
-        description: "Your profile picture has been updated successfully",
-      });
-      setIsUploading(false);
-    },
-    onError: (error) => {
-      toast({
-        title: "Error updating profile picture",
-        description: error.message,
-        variant: "destructive",
-      });
-      setIsUploading(false);
-    }
-  });
-
-  const handleProfilePictureClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  // Simplified profile picture upload
+  const handleProfilePictureChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast({
-        title: "File too large",
-        description: "Please select an image under 5MB",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Validate file type
+    // Simple validation
     if (!file.type.startsWith('image/')) {
       toast({
-        title: "Invalid file type",
-        description: "Please select an image file",
+        title: "Invalid file",
+        description: "Please select a valid image file",
         variant: "destructive"
       });
       return;
@@ -102,36 +54,42 @@ export default function Profile() {
 
     setIsUploading(true);
     
-    const reader = new FileReader();
-    reader.onerror = () => {
-      setIsUploading(false);
-      toast({
-        title: "Error reading file",
-        description: "There was an error reading the selected file",
-        variant: "destructive"
+    try {
+      // Create a FormData object
+      const formData = new FormData();
+      formData.append('profilePicture', file);
+      
+      // Upload the image using form data
+      const response = await fetch('/api/user/profile-picture-form', {
+        method: 'POST',
+        body: formData,
       });
-    };
-
-    reader.onloadend = () => {
-      try {
-        const base64String = reader.result as string;
-        // Extract the base64 data part (remove the data:image/xyz;base64, prefix)
-        const base64Data = base64String.split(',')[1];
-        if (!base64Data) {
-          throw new Error("Invalid file format");
-        }
-        uploadMutation.mutate(base64Data);
-      } catch (error) {
-        setIsUploading(false);
-        toast({
-          title: "File processing error",
-          description: "There was an error processing your image",
-          variant: "destructive"
-        });
+      
+      if (!response.ok) {
+        throw new Error('Failed to upload profile picture');
       }
-    };
-    
-    reader.readAsDataURL(file);
+      
+      // Update the UI
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+      
+      toast({
+        title: "Profile picture updated",
+        description: "Your profile picture has been updated successfully",
+      });
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast({
+        title: "Upload failed",
+        description: "There was a problem uploading your image. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleProfilePictureClick = () => {
+    fileInputRef.current?.click();
   };
 
   const handleLogout = async () => {
@@ -159,7 +117,7 @@ export default function Profile() {
         <input 
           type="file" 
           ref={fileInputRef}
-          onChange={handleFileChange}
+          onChange={handleProfilePictureChange}
           accept="image/*"
           className="hidden"
         />

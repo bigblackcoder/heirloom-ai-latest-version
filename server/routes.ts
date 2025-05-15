@@ -134,7 +134,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Update user's profile picture
+  // Update user's profile picture (JSON base64 method)
   app.post("/api/user/profile-picture", requireAuth, async (req: Request, res: Response) => {
     try {
       const { avatarData } = req.body;
@@ -187,6 +187,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error("Error updating profile picture:", error);
+      res.status(500).json({ message: "Error updating profile picture" });
+    }
+  });
+  
+  // Update user's profile picture using form-data (more reliable)
+  app.post("/api/user/profile-picture-form", requireAuth, async (req: Request, res: Response) => {
+    try {
+      if (!req.files || !req.files.profilePicture) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+      
+      const file = req.files.profilePicture;
+      
+      // Handle single file or array of files
+      const uploadedFile = Array.isArray(file) ? file[0] : file;
+      
+      // Check file type
+      if (!uploadedFile.mimetype.startsWith('image/')) {
+        return res.status(400).json({ message: "Uploaded file is not an image" });
+      }
+      
+      // Convert file to base64
+      const fileData = uploadedFile.data.toString('base64');
+      const avatar = `data:${uploadedFile.mimetype};base64,${fileData}`;
+      
+      // Update the user's avatar
+      const updatedUser = await storage.updateUser(req.session.userId!, { 
+        avatar,
+        updatedAt: new Date()
+      });
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Don't return the password
+      const { password, ...userResponse } = updatedUser;
+      
+      // Log the activity
+      await storage.createActivity({
+        userId: req.session.userId!,
+        type: "profile-updated",
+        description: "Profile picture updated (form upload)",
+        metadata: { updatedAt: new Date().toISOString() }
+      });
+      
+      res.status(200).json({
+        message: "Profile picture updated successfully",
+        user: userResponse
+      });
+    } catch (error) {
+      console.error("Error updating profile picture (form upload):", error);
       res.status(500).json({ message: "Error updating profile picture" });
     }
   });
