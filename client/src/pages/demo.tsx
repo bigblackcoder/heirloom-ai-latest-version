@@ -363,7 +363,7 @@ export default function DemoPage() {
                   <Button 
                     variant="outline"
                     size="lg"
-                    className="border-white/30 text-white hover:bg-white/10 transition-all duration-300"
+                    className="border-white/30 bg-white text-black hover:bg-white/90 transition-all duration-300"
                     onClick={(e) => {
                       e.preventDefault();
                       navigate('/dashboard');
@@ -827,7 +827,7 @@ export default function DemoPage() {
                 <Button 
                   variant="outline"
                   size="lg"
-                  className="border-white/30 text-white hover:bg-white/10"
+                  className="border-white/30 bg-white text-black hover:bg-white/90"
                   onClick={() => navigate('/verification')}
                 >
                   Try Verification
@@ -881,7 +881,7 @@ export default function DemoPage() {
               <a href="#about" className="text-white/70 hover:text-white transition-colors">About</a>
               <Button 
                 variant="outline"
-                className="border-white/30 text-white hover:bg-white/10"
+                className="border-white/30 bg-white text-black hover:bg-white/90"
                 onClick={() => navigate('/verification')}
               >
                 Try Demo
