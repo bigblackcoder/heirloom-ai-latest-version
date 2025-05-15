@@ -25,6 +25,8 @@ import OnboardingTips from "@/components/onboarding-tips";
 import BetaTesterDashboard from "@/components/beta-tester-dashboard";
 import { useAnalytics } from "@/hooks/use-analytics";
 import { initGA, trackEvent } from "@/lib/analytics";
+import { SecurityAlertProvider } from "@/components/security-alert";
+import { useSecurityMonitoring } from "@/hooks/use-security-monitoring";
 
 function Router() {
   // Use analytics to track page views
@@ -70,25 +72,27 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <div className={`min-h-screen bg-background ${isFullWidthPage ? 'w-full' : 'max-w-md mx-auto'} overflow-hidden relative`}>
-          {/* Beta badge shown in top-right corner */}
-          <div className="absolute top-2 right-2 z-50">
-            <BetaBadge />
-          </div>
-          
-          {/* Feedback button shown in bottom-right for authenticated pages */}
-          {location !== '/' && location !== '/login' && location !== '/signup' && (
-            <div className="fixed bottom-4 right-4 z-40 feedback-button">
-              <BetaFeedbackForm />
+        <SecurityAlertProvider>
+          <div className={`min-h-screen bg-background ${isFullWidthPage ? 'w-full' : 'max-w-md mx-auto'} overflow-hidden relative`}>
+            {/* Beta badge shown in top-right corner */}
+            <div className="absolute top-2 right-2 z-50">
+              <BetaBadge />
             </div>
-          )}
-          
-          <Router />
-          <Toaster />
-          
-          {/* Onboarding tips shown when needed */}
-          <OnboardingTips />
-        </div>
+            
+            {/* Feedback button shown in bottom-right for authenticated pages */}
+            {location !== '/' && location !== '/login' && location !== '/signup' && (
+              <div className="fixed bottom-4 right-4 z-40 feedback-button">
+                <BetaFeedbackForm />
+              </div>
+            )}
+            
+            <Router />
+            <Toaster />
+            
+            {/* Onboarding tips shown when needed */}
+            <OnboardingTips />
+          </div>
+        </SecurityAlertProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
