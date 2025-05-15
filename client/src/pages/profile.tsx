@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'wouter';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { User } from '@/lib/types';
 import NavigationBar from '@/components/navigation-bar';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -18,12 +18,18 @@ import {
   Edit,
   Clock,
   Lock,
-  UserCircle2
+  UserCircle2,
+  Upload,
+  Loader2
 } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
 
 export default function Profile() {
   const [location, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState('personal');
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const queryClient = useQueryClient();
 
   // Fetch user data
   const { data: user, isLoading } = useQuery({ 
@@ -31,20 +37,68 @@ export default function Profile() {
     enabled: true
   });
 
-  const mockUser: User = {
-    id: 1,
-    firstName: 'Alex',
-    lastName: 'Morgan',
-    username: 'alex.morgan',
-    email: 'alex@example.com',
-    memberSince: '2023-05-15T10:00:00Z',
-    isVerified: true,
-    avatar: ''
+  // Upload profile picture mutation
+  const uploadMutation = useMutation({
+    mutationFn: async (fileData: string) => {
+      const response = await fetch('/api/user/profile-picture', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ avatarData: fileData }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to upload profile picture');
+      }
+      
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+      toast({
+        title: "Profile picture updated",
+        description: "Your profile picture has been updated successfully",
+      });
+      setIsUploading(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error updating profile picture",
+        description: error.message,
+        variant: "destructive",
+      });
+      setIsUploading(false);
+    }
+  });
+
+  const handleProfilePictureClick = () => {
+    fileInputRef.current?.click();
   };
 
-  const handleLogout = () => {
-    // Handle logout logic
-    navigate('/');
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      // Extract the base64 data part (remove the data:image/xyz;base64, prefix)
+      const base64Data = base64String.split(',')[1];
+      uploadMutation.mutate(base64Data);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      navigate('/');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   return (
@@ -59,34 +113,55 @@ export default function Profile() {
       </header>
 
       <main className="flex-1 pb-16">
+        {/* Hidden file input for avatar upload */}
+        <input 
+          type="file" 
+          ref={fileInputRef}
+          onChange={handleFileChange}
+          accept="image/*"
+          className="hidden"
+        />
+
         {/* Profile header */}
         <div className="bg-primary/5 p-6 flex flex-col items-center">
           <div className="relative mb-4">
-            <Avatar className="h-24 w-24 border-4 border-background">
-              <AvatarImage src={user?.avatar || ''} alt={user?.firstName || 'User'} />
+            <Avatar 
+              className="h-24 w-24 border-4 border-background cursor-pointer" 
+              onClick={handleProfilePictureClick}
+            >
+              <AvatarImage src={user?.avatar || ''} alt={user?.username || 'User'} />
               <AvatarFallback className="bg-primary/20 text-primary text-xl">
-                {user?.firstName?.[0] || mockUser.firstName[0]}
-                {user?.lastName?.[0] || mockUser.lastName[0]}
+                {(user?.firstName?.[0] || '') + (user?.lastName?.[0] || '')}
+                {!user?.firstName && !user?.lastName && user?.username?.substring(0, 2)}
+                {!user?.firstName && !user?.lastName && !user?.username && 'U'}
               </AvatarFallback>
             </Avatar>
             <Button 
               size="icon" 
               variant="secondary" 
               className="absolute -bottom-2 -right-2 rounded-full h-8 w-8"
+              onClick={handleProfilePictureClick}
+              disabled={isUploading}
             >
-              <Edit className="h-4 w-4" />
+              {isUploading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Edit className="h-4 w-4" />
+              )}
             </Button>
           </div>
           
           <h2 className="text-2xl font-bold">
-            {user?.firstName || mockUser.firstName} {user?.lastName || mockUser.lastName}
+            {user?.firstName && user?.lastName 
+              ? `${user.firstName} ${user.lastName}`
+              : user?.username || 'User'}
           </h2>
           
           <div className="flex items-center text-muted-foreground mt-1">
-            <span className="text-sm">{user?.username || mockUser.username}</span>
+            <span className="text-sm">{user?.email || ''}</span>
           </div>
           
-          {(user?.isVerified || mockUser.isVerified) && (
+          {user?.isVerified && (
             <Badge variant="outline" className="mt-2 flex items-center gap-1 border-green-500 text-green-500">
               <CheckCircle className="h-3 w-3" />
               <span>Verified Identity</span>
@@ -113,27 +188,36 @@ export default function Profile() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-4 pt-0 space-y-3">
-                <div>
-                  <div className="text-sm text-muted-foreground">Full Name</div>
-                  <div>{user?.firstName || mockUser.firstName} {user?.lastName || mockUser.lastName}</div>
-                </div>
+                {user?.firstName && user?.lastName && (
+                  <div>
+                    <div className="text-sm text-muted-foreground">Full Name</div>
+                    <div>{user.firstName} {user.lastName}</div>
+                  </div>
+                )}
                 <div>
                   <div className="text-sm text-muted-foreground">Email</div>
-                  <div>{user?.email || mockUser.email}</div>
+                  <div>{user?.email || 'Not provided'}</div>
                 </div>
                 <div>
                   <div className="text-sm text-muted-foreground">Username</div>
-                  <div>{user?.username || mockUser.username}</div>
+                  <div>{user?.username || 'Not provided'}</div>
                 </div>
                 <div>
                   <div className="text-sm text-muted-foreground">Member Since</div>
-                  <div>{new Date(user?.memberSince || mockUser.memberSince).toLocaleDateString('en-US', {
+                  <div>{new Date(user?.createdAt || Date.now()).toLocaleDateString('en-US', {
                     year: 'numeric',
                     month: 'long',
                     day: 'numeric'
                   })}</div>
                 </div>
-                <Button variant="outline" className="w-full mt-2">
+                <Button 
+                  variant="outline" 
+                  className="w-full mt-2"
+                  onClick={() => toast({
+                    title: "Feature coming soon",
+                    description: "Profile editing will be available in the next update."
+                  })}
+                >
                   <Edit className="h-4 w-4 mr-2" />
                   Edit Profile
                 </Button>
