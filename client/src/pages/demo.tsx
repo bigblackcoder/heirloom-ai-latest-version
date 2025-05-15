@@ -565,6 +565,48 @@ export default function DemoPage() {
             ))}
           </div>
           
+          {/* Compact Feature Cards */}
+          <div className="grid gap-4 md:grid-cols-3 mb-10">
+            {/* Compact Card 1 */}
+            <div className="rounded-lg border border-white/10 bg-black/30 p-4 backdrop-blur-sm">
+              <div className="mb-3 aspect-video w-full overflow-hidden rounded-md">
+                <img 
+                  src="/images/dashboard.png" 
+                  alt="Dashboard Interface" 
+                  className="h-full w-full object-cover transition-all duration-300 hover:scale-105"
+                />
+              </div>
+              <h3 className="text-lg font-semibold text-white">Intuitive Dashboard</h3>
+              <p className="mt-1 text-sm text-white/70">Manage your digital identity assets with our user-friendly dashboard interface.</p>
+            </div>
+            
+            {/* Compact Card 2 */}
+            <div className="rounded-lg border border-white/10 bg-black/30 p-4 backdrop-blur-sm">
+              <div className="mb-3 aspect-video w-full overflow-hidden rounded-md">
+                <img 
+                  src="/images/verification-preview.png" 
+                  alt="Facial Verification" 
+                  className="h-full w-full object-cover transition-all duration-300 hover:scale-105"
+                />
+              </div>
+              <h3 className="text-lg font-semibold text-white">Advanced Verification</h3>
+              <p className="mt-1 text-sm text-white/70">State-of-the-art facial recognition with DeepFace technology for secure identity verification.</p>
+            </div>
+            
+            {/* Compact Card 3 */}
+            <div className="rounded-lg border border-white/10 bg-black/30 p-4 backdrop-blur-sm">
+              <div className="mb-3 aspect-video w-full overflow-hidden rounded-md">
+                <img 
+                  src="/images/security-preview.png" 
+                  alt="Security Controls" 
+                  className="h-full w-full object-cover transition-all duration-300 hover:scale-105"
+                />
+              </div>
+              <h3 className="text-lg font-semibold text-white">Enhanced Security</h3>
+              <p className="mt-1 text-sm text-white/70">Enterprise-grade security with blockchain verification and encrypted storage.</p>
+            </div>
+          </div>
+          
           {/* Feature Cards - Mobile-First with optimized spacing */}
           <div className="space-y-4 md:space-y-6">
             {/* Identity Verification Card */}
