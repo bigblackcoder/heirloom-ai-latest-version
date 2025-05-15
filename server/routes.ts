@@ -10,6 +10,7 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 import { verifyFace, detectFaceBasic } from "./deepface";
+import { verifyFace as verifyFaceAPI, verifyVideo } from "./verification_proxy";
 import { log } from "./vite";
 import { blockchainService } from "./blockchain/service";
 import { requireAuth, requireVerified } from "./middleware/auth";
@@ -192,19 +193,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       let verificationResult;
       
-      // Check if we should use basic detection
-      if (useBasicDetection) {
-        log(`[DEBUG:${debugSessionId}] Using lightweight face detection`, "face-verify");
-        verificationResult = await detectFaceBasic(image, userId, saveToDb);
-      } else {
-        try {
-          // Verify the face using DeepFace, pass userId for face matching
-          log(`[DEBUG:${debugSessionId}] Processing face verification with DeepFace...`, "face-verify");
-          verificationResult = await verifyFace(image, userId, saveToDb);
-        } catch (deepfaceError) {
-          // Fallback to basic detection if DeepFace fails
-          log(`[DEBUG:${debugSessionId}] DeepFace error, falling back to lightweight detection: ${deepfaceError}`, "face-verify");
+      // Try using the FastAPI verification service first
+      try {
+        log(`[DEBUG:${debugSessionId}] Attempting verification with FastAPI service...`, "face-verify");
+        
+        // Prepare request for FastAPI service
+        const apiRequest = {
+          image: image,
+          userId: userId,
+          saveToDb: saveToDb,
+          requestId: debugSessionId,
+          checkDbOnly: checkDbOnly,
+          useBasicDetection: useBasicDetection
+        };
+        
+        // Call the FastAPI service
+        verificationResult = await verifyFaceAPI(apiRequest);
+        
+        log(`[DEBUG:${debugSessionId}] FastAPI verification result: ${verificationResult.success ? 'Success' : 'Failed'}`, "face-verify");
+      } catch (apiError) {
+        // Log the FastAPI service error
+        log(`[DEBUG:${debugSessionId}] FastAPI service error, falling back to local verification: ${apiError}`, "face-verify");
+        
+        // Fallback to local verification
+        if (useBasicDetection) {
+          log(`[DEBUG:${debugSessionId}] Using lightweight face detection`, "face-verify");
           verificationResult = await detectFaceBasic(image, userId, saveToDb);
+        } else {
+          try {
+            // Verify the face using DeepFace, pass userId for face matching
+            log(`[DEBUG:${debugSessionId}] Processing face verification with DeepFace...`, "face-verify");
+            verificationResult = await verifyFace(image, userId, saveToDb);
+          } catch (deepfaceError) {
+            // Fallback to basic detection if DeepFace fails
+            log(`[DEBUG:${debugSessionId}] DeepFace error, falling back to lightweight detection: ${deepfaceError}`, "face-verify");
+            verificationResult = await detectFaceBasic(image, userId, saveToDb);
+          }
         }
       }
       
