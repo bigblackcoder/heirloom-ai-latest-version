@@ -62,9 +62,21 @@ app.use((req, res, next) => {
     throw err;
   });
 
-  // Add health check endpoint
-  app.get('/', (req, res) => {
-    res.status(200).json({ status: 'healthy' });
+  // Add health check endpoint at /api/health instead of root
+  app.get('/api/health', (req, res) => {
+    res.status(200).json({ 
+      status: 'healthy',
+      version: process.env.npm_package_version || '1.0.0',
+      environment: process.env.NODE_ENV || 'development'
+    });
+  });
+  
+  // Root endpoint for API - still keeps the health check accessible
+  app.get('/api', (req, res) => {
+    res.status(200).json({ 
+      status: 'healthy',
+      name: 'Heirloom Identity Platform API'
+    });
   });
 
   // importantly only setup vite in development and after

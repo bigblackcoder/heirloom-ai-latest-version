@@ -76,11 +76,3 @@ args = "npm run build"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "NODE_ENV=production node dist/index.js"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "NODE_ENV=production node dist/index.js"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "NODE_ENV=production node dist/index.js"
