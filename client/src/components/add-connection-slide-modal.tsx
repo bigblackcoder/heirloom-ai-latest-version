@@ -100,42 +100,42 @@ export default function AddConnectionSlideModal({
       id: "claude", 
       name: "Claude AI", 
       description: "Anthropic's Claude assistant",
-      icon: "/images/ai-services/claude-color.png", 
+      icon: "/images/claude-logo.svg", 
       color: "#5738ca" 
     },
     { 
       id: "gpt", 
       name: "ChatGPT", 
       description: "OpenAI's powerful assistant",
-      icon: "/images/ai-services/openai-logo.png", 
+      icon: "/images/openai-logo.svg", 
       color: "#10a37f" 
     },
     { 
       id: "gemini", 
       name: "Google Gemini", 
       description: "Google's advanced AI assistant",
-      icon: "/images/ai-services/gemini-color.png", 
+      icon: "/images/gemini-logo.svg", 
       color: "#1e88e5" 
     },
     { 
       id: "perplexity", 
       name: "Perplexity AI", 
       description: "AI-powered answer engine",
-      icon: "/images/ai-services/perplexity-logo.png", 
+      icon: "/images/perplexity-logo.svg", 
       color: "#f97316" 
     },
     { 
       id: "bing", 
       name: "Microsoft Copilot", 
       description: "Microsoft's AI companion",
-      icon: "/images/ai-services/copilot-logo.png", 
+      icon: "/images/copilot-logo.svg", 
       color: "#0078d4" 
     },
     { 
       id: "mcp", 
       name: "MCP Assistant", 
       description: "Managed credential provider",
-      icon: "/images/ai-services/mcp.png", 
+      icon: "/images/mcp-logo.svg", 
       color: "#283142" 
     },
   ];
