@@ -38,7 +38,18 @@ export default function DemoPage() {
     }
   }, []);
   
-  const startDemo = (withVoice = true) => {
+  // Function to start the demo, accepting either a boolean directly or a React mouse event
+  const startDemo = (withVoiceOrEvent: boolean | React.MouseEvent<HTMLButtonElement> = true) => {
+    // Check if it's a mouse event or a boolean
+    const withVoice = typeof withVoiceOrEvent === 'boolean' 
+      ? withVoiceOrEvent 
+      : true; // Default to true if it's an event
+      
+    if (typeof withVoiceOrEvent !== 'boolean') {
+      // If it's an event, prevent default browser behavior
+      withVoiceOrEvent.preventDefault();
+    }
+    
     setShowVoiceAgent(withVoice && !muteVoice);
     setStartedDemo(true);
     
@@ -124,7 +135,7 @@ export default function DemoPage() {
                         muteVoice ? "bg-[#D4A166]/20 text-[#D4A166]" : "text-white/80"
                       )}
                     >
-                      {muteVoice ? <VolumeMute className="h-5 w-5" /> : <Bell className="h-5 w-5" />}
+                      {muteVoice ? <VolumeX className="h-5 w-5" /> : <Bell className="h-5 w-5" />}
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
@@ -136,7 +147,10 @@ export default function DemoPage() {
               {!startedDemo && (
                 <Button 
                   className="bg-[#D4A166] hover:bg-[#A67D4F] text-black font-medium"
-                  onClick={() => navigate('/verification')}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    navigate('/verification');
+                  }}
                 >
                   Try Verification
                   <ArrowRight className="ml-2 h-4 w-4" />
@@ -175,7 +189,10 @@ export default function DemoPage() {
                   <Button 
                     size="lg"
                     className="bg-[#D4A166] hover:bg-[#A67D4F] text-black transition-all duration-300 transform hover:translate-y-[-2px]"
-                    onClick={() => startDemo(true)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      startDemo(true);
+                    }}
                   >
                     <Play className="mr-2 h-5 w-5" />
                     Interactive Demo
@@ -184,7 +201,10 @@ export default function DemoPage() {
                     variant="outline"
                     size="lg"
                     className="border-white/30 text-white hover:bg-white/10 transition-all duration-300"
-                    onClick={() => navigate('/dashboard')}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      navigate('/dashboard');
+                    }}
                   >
                     Explore Dashboard
                     <ChevronRight className="ml-2 h-5 w-5" />
@@ -207,7 +227,7 @@ export default function DemoPage() {
                           className="text-[#D4A166] hover:bg-[#D4A166]/10"
                           onClick={() => setShowVoiceAgent(false)}
                         >
-                          <VolumeMute className="mr-1 h-4 w-4" />
+                          <VolumeX className="mr-1 h-4 w-4" />
                           Mute Guide
                         </Button>
                       ) : (
@@ -244,7 +264,10 @@ export default function DemoPage() {
                         variant="outline" 
                         size="sm"
                         className="text-white/80 border-white/20 hover:bg-white/10"
-                        onClick={() => navigate('/verification')}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          navigate('/verification');
+                        }}
                       >
                         <Fingerprint className="mr-2 h-4 w-4 text-[#D4A166]" />
                         Try Verification
@@ -253,7 +276,10 @@ export default function DemoPage() {
                         variant="outline" 
                         size="sm"
                         className="text-white/80 border-white/20 hover:bg-white/10"
-                        onClick={() => navigate('/dashboard')}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          navigate('/dashboard');
+                        }}
                       >
                         <Shield className="mr-2 h-4 w-4 text-[#D4A166]" />
                         View Dashboard
@@ -275,7 +301,10 @@ export default function DemoPage() {
                         variant="default"
                         size="sm"
                         className="bg-[#D4A166]/90 hover:bg-[#D4A166] text-black"
-                        onClick={() => navigate('/achievements')}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          navigate('/achievements');
+                        }}
                       >
                         <Sparkles className="mr-1.5 h-3.5 w-3.5" />
                         Explore Achievements
