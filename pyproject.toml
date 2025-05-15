@@ -5,7 +5,12 @@ description = "Add your description here"
 requires-python = ">=3.11"
 dependencies = [
     "deepface==0.0.79",
+    "fastapi>=0.103.2",
     "numpy==1.24.3",
     "opencv-python-headless==4.8.0.74",
+    "pillow>=11.1.0",
+    "python-multipart>=0.0.20",
+    "requests>=2.32.3",
     "tensorflow==2.13.0",
+    "uvicorn>=0.34.2",
 ]

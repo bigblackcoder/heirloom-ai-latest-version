@@ -1,0 +1,78 @@
+Heirloom Identity Platform Backend Technology Stack
+As the Planner, I'll provide a comprehensive breakdown of the backend technologies and dependencies used in the Heirloom Identity Platform. This is designed to be precise enough for another agent to understand and reproduce the setup.
+
+Core Backend Structure
+The backend of the Heirloom Identity Platform is primarily built with:
+
+Python FastAPI Framework: A modern, high-performance web framework for building APIs with Python based on standard Python type hints.
+Python 3.10: The project has been updated to use Python 3.10 for improved performance and feature support.
+Key Components and Dependencies
+1. Video Processing and Face Verification
+FFmpeg: Open-source video processing library (recently integrated to replace Zencoder)
+DeepFace: Python library for facial recognition and verification
+Python-FFmpeg/ffmpeg-python: Python wrappers for the FFmpeg command line
+2. API and Server Framework
+FastAPI: Main API framework
+Uvicorn: ASGI server for running the FastAPI application
+Pydantic: Data validation and settings management
+3. Database and Storage
+The application appears to use either file-based storage or a database (likely a SQL variant) for storing user verification data
+Storage paths are configured for verification videos and processed frames
+4. Additional Dependencies
+Python Dependencies:
+Standard libraries for file processing, image handling, and video processing
+Network communication libraries for API integration
+Testing libraries for verification and validation
+Installation Instructions for Another Agent
+To replicate this backend setup, an agent would need to:
+
+Set up Python Environment:
+bash
+CopyInsert
+# Create a Python 3.10 virtual environment
+python3.10 -m venv .venv310
+source .venv310/bin/activate
+Install FFmpeg:
+bash
+CopyInsert
+# On macOS
+brew install ffmpeg
+
+# On Ubuntu/Debian
+sudo apt-get update
+sudo apt-get install ffmpeg
+Install Python Dependencies:
+bash
+CopyInsert
+# Install from requirements file (presumed to be in pyproject.toml or requirements.txt)
+pip install -e .
+# or
+pip install -r requirements.txt
+Install DeepFace and FFmpeg Python Libraries:
+bash
+CopyInsert in Terminal
+pip install deepface ffmpeg-python
+Configure Environment:
+Set up environment variables for API keys, storage paths, and service configurations
+Create necessary directories for video storage and processing
+Start the Backend Server:
+bash
+CopyInsert
+# Likely command to start the FastAPI server
+uvicorn backend-fastapi.main:app --reload
+Key Integration Points
+For an agent to understand how the backend works:
+
+Video Processing Flow:
+Videos are uploaded from front-end (web/mobile)
+FFmpeg processes videos (transcoding, frame extraction)
+DeepFace analyzes video frames for identity verification
+Results are returned to the client
+API Endpoints:
+Endpoints for video upload and processing
+Endpoints for face verification
+Status checking endpoints for asynchronous processing
+Service Integration:
+The backend uses an abstraction layer allowing either FFmpeg or Zencoder
+Configuration determines which service is used
+This represents the current state of the backend after our recent FFmpeg integration. The system maintains backwards compatibility while providing enhanced video processing capabilities.
