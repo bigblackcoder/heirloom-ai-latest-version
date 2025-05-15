@@ -1,5 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
 import path from "path";
+import fileUpload from "express-fileupload";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { sessionMiddleware } from "./session";
@@ -8,6 +9,14 @@ const app = express();
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 app.use(express.static(path.join(process.cwd(), "public")));
+
+// Add file upload middleware
+app.use(fileUpload({
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max file size
+  useTempFiles: false,
+  abortOnLimit: true,
+  responseOnLimit: "File size limit exceeded (10MB)"
+}));
 
 // Add session support
 app.use(sessionMiddleware);

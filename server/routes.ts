@@ -1,5 +1,13 @@
-import type { Express, Request, Response } from "express";
+import type { Express, Response } from "express";
+import type { Request as ExpressRequest } from "express";
+import type { FileArray, UploadedFile } from "express-fileupload";
+
+// Extend Request type to include files for express-fileupload
+interface Request extends ExpressRequest {
+  files?: FileArray;
+}
 import { createServer, type Server } from "http";
+import fileUpload from "express-fileupload";
 import { storage } from "./storage";
 import { 
   insertUserSchema, 
