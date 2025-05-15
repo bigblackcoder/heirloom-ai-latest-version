@@ -879,6 +879,17 @@ export default function DemoPage() {
             </div>
             
             <div className="bg-[#182E0B] rounded-2xl p-6 shadow-xl">
+              {/* Hide the ecosystem model as requested */}
+              {false && (
+                <div className="mb-6">
+                  <img 
+                    src="/images/ecosystem-model.png" 
+                    alt="Heirloom Ecosystem Model" 
+                    className="rounded-lg shadow-lg w-full"
+                  />
+                </div>
+              )}
+              
               <img 
                 src="/images/team.png" 
                 alt="Heirloom Team" 
