@@ -139,15 +139,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { avatarData } = req.body;
       
-      if (!avatarData) {
-        return res.status(400).json({ message: "No avatar data provided" });
+      if (!avatarData || typeof avatarData !== 'string') {
+        return res.status(400).json({ message: "No avatar data provided or invalid format" });
       }
       
-      // Create a data URL from the base64 data
-      const avatar = `data:image/jpeg;base64,${avatarData}`;
+      // Validate base64 data
+      try {
+        // Check if it's a valid base64 string
+        Buffer.from(avatarData, 'base64').toString('base64');
+      } catch (e) {
+        return res.status(400).json({ message: "Invalid base64 data format" });
+      }
+      
+      // Create a data URL from the base64 data - detect mime type or default to jpeg
+      let mimeType = 'image/jpeg'; // Default mime type
+      const avatar = `data:${mimeType};base64,${avatarData}`;
       
       // Update the user's avatar
-      const updatedUser = await storage.updateUser(req.session.userId!, { avatar });
+      const updatedUser = await storage.updateUser(req.session.userId!, { 
+        avatar,
+        updatedAt: new Date()
+      });
       
       if (!updatedUser) {
         return res.status(404).json({ message: "User not found" });
@@ -163,6 +175,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         description: "Profile picture updated",
         metadata: { updatedAt: new Date().toISOString() }
       });
+      
+      // Clear any existing session data for this route
+      if (req.session.save) {
+        req.session.save();
+      }
       
       res.status(200).json({
         message: "Profile picture updated successfully",

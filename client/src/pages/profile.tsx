@@ -80,15 +80,57 @@ export default function Profile() {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please select an image under 5MB",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid file type",
+        description: "Please select an image file",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsUploading(true);
     
     const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64String = reader.result as string;
-      // Extract the base64 data part (remove the data:image/xyz;base64, prefix)
-      const base64Data = base64String.split(',')[1];
-      uploadMutation.mutate(base64Data);
+    reader.onerror = () => {
+      setIsUploading(false);
+      toast({
+        title: "Error reading file",
+        description: "There was an error reading the selected file",
+        variant: "destructive"
+      });
     };
+
+    reader.onloadend = () => {
+      try {
+        const base64String = reader.result as string;
+        // Extract the base64 data part (remove the data:image/xyz;base64, prefix)
+        const base64Data = base64String.split(',')[1];
+        if (!base64Data) {
+          throw new Error("Invalid file format");
+        }
+        uploadMutation.mutate(base64Data);
+      } catch (error) {
+        setIsUploading(false);
+        toast({
+          title: "File processing error",
+          description: "There was an error processing your image",
+          variant: "destructive"
+        });
+      }
+    };
+    
     reader.readAsDataURL(file);
   };
 
@@ -159,6 +201,11 @@ export default function Profile() {
           
           <div className="flex items-center text-muted-foreground mt-1">
             <span className="text-sm">{user?.email || ''}</span>
+          </div>
+          
+          {/* Debug info to help users understand how profile pictures work */}
+          <div className="mt-2 text-xs text-muted-foreground max-w-xs text-center">
+            <p>Tap the profile picture or edit button to upload a new image. Your picture will appear in the navigation bar.</p>
           </div>
           
           {user?.isVerified && (
