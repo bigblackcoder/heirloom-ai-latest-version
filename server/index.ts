@@ -62,6 +62,11 @@ app.use((req, res, next) => {
     throw err;
   });
 
+  // Add health check endpoint
+  app.get('/', (req, res) => {
+    res.status(200).json({ status: 'healthy' });
+  });
+
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
@@ -71,9 +76,8 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client
-  const port = 5000;
+  // Use port 3000 in production, 5000 in development
+  const port = process.env.NODE_ENV === 'production' ? 3000 : 5000;
   server.listen({
     port,
     host: "0.0.0.0",
