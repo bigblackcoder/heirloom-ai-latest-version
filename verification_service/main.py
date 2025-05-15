@@ -1,548 +1,546 @@
 #!/usr/bin/env python3
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+
+from fastapi import FastAPI, File, UploadFile, Form, HTTPException, BackgroundTasks
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import Optional, Dict, Any, List
-import uvicorn
-import uuid
-import os
-import sys
 import base64
-import json
-import shutil
-from datetime import datetime
-import numpy as np
 import cv2
+import numpy as np
+import json
+import os
+import uuid
+import tempfile
+from typing import Optional, Dict, Any, List, Union
+import logging
+import time
+import sys
+import traceback
+from datetime import datetime
 
-# Import DeepFace if available
-try:
-    from deepface import DeepFace
-    DEEPFACE_AVAILABLE = True
-except ImportError:
-    DEEPFACE_AVAILABLE = False
-    print("DeepFace not available, will use fallback detection methods")
-
-# Setup paths
-CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT_DIR = os.path.dirname(CURRENT_DIR)
-FACE_DB_DIR = os.path.join(ROOT_DIR, "face_db")
-TEMP_DIR = os.path.join(CURRENT_DIR, "temp")
-
-# Create necessary directories
-os.makedirs(FACE_DB_DIR, exist_ok=True)
-os.makedirs(TEMP_DIR, exist_ok=True)
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+logger = logging.getLogger("verification-service")
 
 # Initialize FastAPI app
 app = FastAPI(
-    title="Heirloom Face Verification API",
-    description="API for face verification and identity management",
-    version="1.0.0"
+    title="Face Verification Service",
+    description="API for facial verification and authentication",
+    version="1.0.0",
 )
 
-# Add CORS middleware to allow cross-origin requests
+# Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with specific origins
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Pydantic models for request/response validation
-class VerificationRequest(BaseModel):
-    image: str
-    user_id: Optional[int] = None
-    save_to_db: bool = False
-    request_id: Optional[str] = None
-    check_db_only: bool = False
-    use_basic_detection: bool = False
+# Create face database directory if it doesn't exist
+os.makedirs("face_db", exist_ok=True)
 
-class VerificationResponse(BaseModel):
-    success: bool
-    confidence: float
-    message: str
-    matched: bool = False
-    face_id: Optional[str] = None
-    debug_session: Optional[str] = None
-    results: Optional[Dict[str, Any]] = None
-    details: Optional[str] = None
-    error: Optional[str] = None
+# Global flag for DeepFace availability
+DEEPFACE_AVAILABLE = False
 
-class VideoVerificationRequest(BaseModel):
-    user_id: Optional[int] = None
-    save_to_db: bool = False
-    request_id: Optional[str] = None
+# Try to import DeepFace, fall back to basic OpenCV if not available
+try:
+    from deepface import DeepFace
+    DEEPFACE_AVAILABLE = True
+    logger.info("DeepFace loaded successfully!")
+except ImportError:
+    logger.warning("DeepFace not available, using basic OpenCV detection instead")
+    DEEPFACE_AVAILABLE = False
 
-# Helper Functions
-def decode_base64_image(base64_data: str):
+def decode_base64_image(base64_data: str) -> np.ndarray:
     """Decode a base64 image to a numpy array."""
     try:
-        # If the image is a file path rather than base64 data, just return the path
-        if os.path.isfile(base64_data):
-            return base64_data
-            
         # Remove data URL prefix if present
-        if ',' in base64_data:
-            _, base64_data = base64_data.split(',', 1)
-            
+        if "base64," in base64_data:
+            base64_data = base64_data.split("base64,")[1]
+        
         # Decode base64 to bytes
         image_bytes = base64.b64decode(base64_data)
         
-        # Convert to numpy array
+        # Convert bytes to numpy array
         np_arr = np.frombuffer(image_bytes, np.uint8)
         
-        # Decode to image
+        # Decode image
         image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
         
         if image is None:
             raise ValueError("Failed to decode image")
-            
+        
         return image
     except Exception as e:
-        raise ValueError(f"Error decoding image: {str(e)}")
+        logger.error(f"Error decoding base64 image: {str(e)}")
+        raise ValueError(f"Invalid image data: {str(e)}")
 
-def find_matching_face(image_path, user_id=None):
+def detect_faces_basic(image_data: Union[str, np.ndarray]) -> Dict[str, Any]:
     """
-    Find if the face in the image matches any face in the database.
+    Basic face detection using OpenCV's Haar Cascade
     
     Args:
-        image_path: Path to the image to verify
-        user_id: Optional user ID to restrict search to specific user's faces
+        image_data: Image data (base64 string or numpy array)
         
     Returns:
-        Tuple (matched, confidence, user_id, face_id)
+        dict with detection results
     """
     try:
-        if not DEEPFACE_AVAILABLE:
-            return False, 0, None, None
+        # Convert to numpy array if string
+        if isinstance(image_data, str):
+            image = decode_base64_image(image_data)
+        else:
+            image = image_data
             
-        # Define the search path based on user_id
-        db_path = os.path.join(FACE_DB_DIR, str(user_id)) if user_id else FACE_DB_DIR
+        # Convert to grayscale for face detection
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         
-        # If the directory doesn't exist, no matches possible
-        if not os.path.exists(db_path) or not os.listdir(db_path):
-            return False, 0, None, None
+        # Load the face detector
+        face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+        
+        # Detect faces
+        faces = face_cascade.detectMultiScale(gray, 1.1, 4)
+        
+        # Calculate confidence based on number of faces detected
+        face_detected = len(faces) > 0
+        confidence = 0.85 if face_detected else 0.0
+        
+        face_data = {}
+        if face_detected:
+            # Get the largest face
+            largest_face = max(faces, key=lambda rect: rect[2] * rect[3])
+            x, y, w, h = largest_face
             
-        # Search for matching faces
-        dfs = DeepFace.find(
-            img_path=image_path,
-            db_path=db_path,
-            enforce_detection=False,
-            detector_backend='opencv',
-            distance_metric='cosine'
-        )
-        
-        # Check if any faces were found
-        if not dfs or len(dfs) == 0 or dfs[0].empty:
-            return False, 0, None, None
+            # Save face coordinates
+            face_data = {
+                "x": int(x),
+                "y": int(y),
+                "width": int(w),
+                "height": int(h),
+                "area": int(w * h)
+            }
             
-        # Get best match from first dataframe
-        best_match = dfs[0].iloc[0]
-        
-        # Extract identity and distance
-        identity = best_match['identity']
-        distance = best_match['distance']
-        
-        # Convert distance to confidence (cosine distance is between 0-1, lower is better)
-        # Threshold for good match is typically around 0.4
-        if distance > 0.4:  # Too different
-            return False, 0, None, None
+            # Extract ROI for the face
+            face_roi = gray[y:y+h, x:x+w]
             
-        # Convert distance to confidence percentage (0-100)
-        confidence = int((1 - distance) * 100)
+            # Simple fake liveness check (variance in pixel values)
+            variance = np.var(face_roi)
+            # Low variance might indicate a flat image (like a photograph)
+            if variance < 200:
+                confidence = max(0.5, confidence - 0.3)
+                
+        result = {
+            "success": face_detected,
+            "confidence": float(confidence),
+            "face_count": len(faces),
+            "face_data": face_data
+        }
         
-        # Extract user_id and face_id from identity path
-        # Path format: face_db/user_id/face_id.jpg
-        parts = identity.split(os.sep)
-        if len(parts) >= 3:
-            matched_user_id = parts[-2]
-            face_id = os.path.splitext(parts[-1])[0]
-            return True, confidence, matched_user_id, face_id
-        
-        return False, confidence, None, None
+        return result
         
     except Exception as e:
-        print(f"Error in face matching: {str(e)}")
-        return False, 0, None, None
+        logger.error(f"Error in basic face detection: {str(e)}")
+        return {
+            "success": False,
+            "confidence": 0.0,
+            "message": f"Face detection error: {str(e)}"
+        }
 
-def save_face_to_db(image_data, user_id):
+def verify_with_deepface(image_data: Union[str, np.ndarray]) -> Dict[str, Any]:
     """
-    Save a face to the database for future matching.
+    Verify face using DeepFace library
     
     Args:
-        image_data: Image data (path or array)
+        image_data: Image data (base64 string or numpy array)
+        
+    Returns:
+        dict with verification results
+    """
+    if not DEEPFACE_AVAILABLE:
+        return detect_faces_basic(image_data)
+    
+    try:
+        # Convert to numpy array if string
+        if isinstance(image_data, str):
+            image = decode_base64_image(image_data)
+        else:
+            image = image_data
+            
+        # Save image to temp file for DeepFace
+        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".jpg")
+        temp_path = temp_file.name
+        temp_file.close()
+        
+        cv2.imwrite(temp_path, image)
+        
+        # Analyze face using DeepFace
+        analysis = DeepFace.analyze(
+            img_path=temp_path,
+            actions=['age', 'gender', 'race', 'emotion'],
+            enforce_detection=True
+        )
+        
+        # DeepFace returns a list for analysis
+        if isinstance(analysis, list):
+            analysis = analysis[0]
+            
+        os.unlink(temp_path)
+        
+        # Process results
+        result = {
+            "success": True,
+            "confidence": 0.95,  # DeepFace detection is usually high confidence
+            "results": {
+                "age": analysis.get("age", 0),
+                "gender": analysis.get("gender", ""),
+                "dominant_race": analysis.get("dominant_race", ""),
+                "dominant_emotion": analysis.get("dominant_emotion", "")
+            }
+        }
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error in DeepFace verification: {str(e)}")
+        # Fall back to basic detection
+        logger.info("Falling back to basic face detection")
+        return detect_faces_basic(image_data)
+
+def save_face_to_db(image_data: Union[str, np.ndarray], user_id: str) -> str:
+    """
+    Save a face to the database for future matching
+    
+    Args:
+        image_data: Image data (base64 string or numpy array)
         user_id: User ID to associate with this face
         
     Returns:
         face_id: ID of the saved face
     """
     try:
-        # Make sure we have the user directory
-        user_dir = os.path.join(FACE_DB_DIR, str(user_id))
+        # Convert to numpy array if string
+        if isinstance(image_data, str):
+            image = decode_base64_image(image_data)
+        else:
+            image = image_data
+            
+        # Create unique ID for this face
+        face_id = str(uuid.uuid4())
+        
+        # Create directory structure for user if it doesn't exist
+        user_dir = os.path.join("face_db", user_id)
         os.makedirs(user_dir, exist_ok=True)
         
-        # Generate unique ID for this face
-        face_id = str(uuid.uuid4())
+        # Save face image
         face_path = os.path.join(user_dir, f"{face_id}.jpg")
+        cv2.imwrite(face_path, image)
         
-        # Save the image
-        if isinstance(image_data, str) and os.path.isfile(image_data):
-            # Copy the file
-            shutil.copy(image_data, face_path)
-        else:
-            # Save the numpy array
-            if isinstance(image_data, str):
-                # Decode base64 data
-                image = decode_base64_image(image_data)
-            else:
-                # Use the image as is
-                image = image_data
-                
-            # Save to file
-            cv2.imwrite(face_path, image)
+        # Save metadata
+        metadata = {
+            "face_id": face_id,
+            "user_id": user_id,
+            "timestamp": datetime.now().isoformat(),
+            "filename": f"{face_id}.jpg"
+        }
+        
+        metadata_path = os.path.join(user_dir, f"{face_id}.json")
+        with open(metadata_path, "w") as f:
+            json.dump(metadata, f)
             
         return face_id
-    except Exception as e:
-        print(f"Error saving face to database: {str(e)}")
-        return None
-
-def analyze_face_with_deepface(image_path):
-    """Analyze face using DeepFace if available."""
-    if not DEEPFACE_AVAILABLE:
-        return None
-        
-    try:
-        results = DeepFace.analyze(
-            img_path=image_path,
-            actions=['age', 'gender', 'race', 'emotion'],
-            enforce_detection=False,
-            detector_backend='opencv'
-        )
-        
-        if results and len(results) > 0:
-            result = results[0]
-            # Extract dominant values
-            dominant_emotion = max(result.get('emotion', {}).items(), key=lambda item: item[1])[0]
-            dominant_race = max(result.get('race', {}).items(), key=lambda item: item[1])[0]
-            
-            return {
-                "age": result.get('age'),
-                "gender": result.get('gender'),
-                "dominant_race": dominant_race,
-                "dominant_emotion": dominant_emotion
-            }
-    except Exception as e:
-        print(f"DeepFace analysis error: {str(e)}")
     
-    return None
-
-def detect_face_with_opencv(image_path):
-    """Basic face detection with OpenCV."""
-    try:
-        # Load face cascade
-        face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
-        
-        # Load and convert image
-        if isinstance(image_path, str):
-            img = cv2.imread(image_path)
-            if img is None:
-                return False, 0
-            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        else:
-            if len(image_path.shape) == 3 and image_path.shape[2] == 3:
-                gray = cv2.cvtColor(image_path, cv2.COLOR_BGR2GRAY)
-            else:
-                gray = image_path
-        
-        # Detect faces
-        faces = face_cascade.detectMultiScale(
-            gray,
-            scaleFactor=1.1,
-            minNeighbors=5,
-            minSize=(30, 30)
-        )
-        
-        if len(faces) > 0:
-            # Get the largest face
-            largest_face = max(faces, key=lambda rect: rect[2] * rect[3])
-            
-            # Calculate confidence based on face size and image size
-            face_area = largest_face[2] * largest_face[3]
-            image_area = gray.shape[0] * gray.shape[1]
-            size_factor = min(1.0, face_area / (image_area * 0.1))  # Face takes up at least 10% of image
-            
-            # Final confidence score (between 40 and 70 percent)
-            confidence = 40 + (size_factor * 30)
-            return True, confidence
-            
-        return False, 0
     except Exception as e:
-        print(f"OpenCV detection error: {str(e)}")
-        return False, 0
+        logger.error(f"Error saving face to DB: {str(e)}")
+        raise ValueError(f"Failed to save face: {str(e)}")
+
+def process_video_frames(video_path: str, user_id: Optional[str] = None, 
+                        save_to_db: bool = False) -> Dict[str, Any]:
+    """
+    Process video for face verification by extracting and analyzing frames
+    
+    Args:
+        video_path: Path to the video file
+        user_id: Optional user ID to associate with this face
+        save_to_db: Whether to save the detected face to the database
+        
+    Returns:
+        dict with verification results
+    """
+    try:
+        # Open the video file
+        cap = cv2.VideoCapture(video_path)
+        
+        if not cap.isOpened():
+            raise ValueError("Could not open video file")
+        
+        # Get video properties
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        
+        # Extract frames at regular intervals
+        frame_count = 0
+        frame_interval = max(1, int(fps / 4))  # Extract about 4 frames per second
+        
+        results = []
+        best_frame = None
+        best_confidence = 0
+        face_id = None
+        
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
+                
+            # Process every Nth frame
+            if frame_count % frame_interval == 0:
+                # Perform face verification on this frame
+                if DEEPFACE_AVAILABLE:
+                    result = verify_with_deepface(frame)
+                else:
+                    result = detect_faces_basic(frame)
+                
+                results.append(result)
+                
+                # Keep track of the best frame
+                if result["success"] and result.get("confidence", 0) > best_confidence:
+                    best_confidence = result["confidence"]
+                    best_frame = frame.copy()
+            
+            frame_count += 1
+            
+            # Don't process too many frames
+            if frame_count > 100:
+                break
+        
+        cap.release()
+        
+        # Calculate overall result
+        successes = [r["success"] for r in results]
+        confidence_values = [r.get("confidence", 0) for r in results if r["success"]]
+        
+        success_rate = sum(successes) / len(results) if results else 0
+        avg_confidence = sum(confidence_values) / len(confidence_values) if confidence_values else 0
+        
+        # Overall success is true if more than 70% of frames had faces detected
+        # with an average confidence of at least 0.7
+        overall_success = success_rate > 0.7 and avg_confidence > 0.7
+        
+        # Save the best frame to the database if requested
+        if overall_success and save_to_db and user_id and best_frame is not None:
+            face_id = save_face_to_db(best_frame, user_id)
+        
+        return {
+            "success": overall_success,
+            "confidence": float(avg_confidence),
+            "frames_processed": len(results),
+            "success_rate": float(success_rate),
+            "face_id": face_id,
+            "message": "Video analysis complete"
+        }
+    
+    except Exception as e:
+        logger.error(f"Error processing video: {str(e)}")
+        return {
+            "success": False,
+            "confidence": 0.0,
+            "message": f"Video processing error: {str(e)}"
+        }
 
 # API Endpoints
 @app.get("/")
-async def root():
-    """Root endpoint to verify the API is running."""
+def read_root():
     return {
-        "message": "Heirloom Face Verification API is running",
-        "version": "1.0.0",
-        "status": "active",
+        "service": "Face Verification API",
+        "status": "running",
         "deepface_available": DEEPFACE_AVAILABLE
     }
 
-@app.post("/api/verification/face", response_model=VerificationResponse)
-async def verify_face(request: VerificationRequest):
+@app.get("/api/verification/status")
+def verification_status():
+    return {
+        "status": "online",
+        "deepface_available": DEEPFACE_AVAILABLE,
+        "version": "1.0.0",
+        "timestamp": datetime.now().isoformat()
+    }
+
+@app.post("/api/verification/face")
+async def verify_face_image(
+    request: Dict[str, Any]
+):
     """
-    Verify a face from an image.
-    The image should be provided as a base64-encoded string.
+    Verify a face from a base64 encoded image
     """
-    # Create a debugging session ID
-    debug_session = request.request_id or f"face-verify-{uuid.uuid4()}"
-    
     try:
-        # Process the image
-        image = decode_base64_image(request.image)
+        image_data = request.get("image")
+        user_id = request.get("userId")
+        save_to_db = request.get("saveToDb", False)
+        use_basic = request.get("useBasicDetection", False)
+        request_id = request.get("requestId")
         
-        # Save to temporary file for processing
-        temp_file = os.path.join(TEMP_DIR, f"temp_verify_{debug_session}.jpg")
-        cv2.imwrite(temp_file, image)
+        if not image_data:
+            raise HTTPException(status_code=400, detail="No image data provided")
         
-        # Initialize result variables
-        matched = False
-        matched_confidence = 0
-        face_id = None
+        # Log request with ID for debugging
+        log_prefix = f"[{request_id}] " if request_id else ""
+        logger.info(f"{log_prefix}Face verification request received")
         
-        # Check for match if user_id provided
-        if request.user_id:
-            matched, matched_confidence, _, face_id = find_matching_face(temp_file, request.user_id)
+        if use_basic or not DEEPFACE_AVAILABLE:
+            logger.info(f"{log_prefix}Using basic face detection")
+            result = detect_faces_basic(image_data)
+        else:
+            logger.info(f"{log_prefix}Using DeepFace for verification")
+            result = verify_with_deepface(image_data)
+        
+        # Save face to database if requested and verification successful
+        if result["success"] and save_to_db and user_id:
+            face_id = save_face_to_db(image_data, user_id)
+            result["face_id"] = face_id
+            logger.info(f"{log_prefix}Face saved to database with ID: {face_id}")
+        
+        # Add request ID to response if provided
+        if request_id:
+            result["request_id"] = request_id
             
-            # If we have a strong match and only checking DB, return immediately
-            if matched and matched_confidence >= 90 and request.check_db_only:
-                os.remove(temp_file)
-                return VerificationResponse(
-                    success=True,
-                    confidence=matched_confidence,
-                    message="Face verification successful (matched existing face)",
-                    matched=True,
-                    face_id=face_id,
-                    debug_session=debug_session
-                )
-        
-        # If DeepFace is available and not using basic detection, use it
-        face_results = None
-        if DEEPFACE_AVAILABLE and not request.use_basic_detection:
-            face_results = analyze_face_with_deepface(temp_file)
-        
-        # If DeepFace failed or we're using basic detection, fall back to OpenCV
-        if not face_results:
-            face_detected, confidence = detect_face_with_opencv(temp_file)
-            
-            if not face_detected:
-                os.remove(temp_file)
-                return VerificationResponse(
-                    success=False,
-                    confidence=0,
-                    message="No face detected in image",
-                    debug_session=debug_session
-                )
-                
-            # Determine final confidence (prefer matched confidence if available)
-            final_confidence = matched_confidence if matched else confidence
-            
-            # Save to DB if requested
-            if request.save_to_db and request.user_id and not matched:
-                face_id = save_face_to_db(temp_file, request.user_id)
-                
-            # Clean up
-            os.remove(temp_file)
-            
-            return VerificationResponse(
-                success=True,
-                confidence=final_confidence,
-                message="Face detected with basic verification",
-                matched=matched,
-                face_id=face_id,
-                debug_session=debug_session
-            )
-        
-        # Using DeepFace results
-        # Determine final confidence (prefer matched confidence if available)
-        final_confidence = matched_confidence if matched else 85
-        
-        # Save to DB if requested
-        if request.save_to_db and request.user_id and not matched:
-            face_id = save_face_to_db(temp_file, request.user_id)
-            
-        # Clean up
-        os.remove(temp_file)
-        
-        return VerificationResponse(
-            success=True,
-            confidence=final_confidence,
-            message="Face verification successful",
-            matched=matched,
-            face_id=face_id,
-            results=face_results,
-            debug_session=debug_session
-        )
-        
+        return JSONResponse(content=result)
+    
     except Exception as e:
-        # Clean up temp file if it exists
-        if 'temp_file' in locals() and os.path.exists(temp_file):
-            os.remove(temp_file)
-            
-        # Return error response
-        return VerificationResponse(
-            success=False,
-            confidence=0,
-            message=f"Error during verification: {str(e)}",
-            debug_session=debug_session,
-            error=str(e)
+        logger.error(f"Error in face verification: {str(e)}")
+        logger.error(traceback.format_exc())
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "message": f"Server error: {str(e)}",
+                "request_id": request.get("requestId")
+            }
         )
 
 @app.post("/api/verification/video")
-async def verify_video(
-    file: UploadFile = File(...),
-    user_id: Optional[int] = Form(None),
+async def verify_face_video(
+    video_file: UploadFile = File(...),
+    user_id: Optional[str] = Form(None),
     save_to_db: bool = Form(False),
-    request_id: Optional[str] = Form(None)
+    request_id: Optional[str] = Form(None),
+    background_tasks: BackgroundTasks = None
 ):
     """
-    Verify identity from a video.
-    More robust than single image verification.
+    Verify a face from a video file
     """
-    debug_session = request_id or f"video-verify-{uuid.uuid4()}"
-    
     try:
-        # Save uploaded video
-        video_path = os.path.join(TEMP_DIR, f"temp_video_{debug_session}.mp4")
-        frames_dir = os.path.join(TEMP_DIR, f"frames_{debug_session}")
-        os.makedirs(frames_dir, exist_ok=True)
+        # Log request with ID for debugging
+        log_prefix = f"[{request_id}] " if request_id else ""
+        logger.info(f"{log_prefix}Video verification request received")
         
-        # Save the uploaded file
-        with open(video_path, "wb") as buffer:
-            buffer.write(await file.read())
+        # Save uploaded file to a temporary location
+        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4")
+        temp_path = temp_file.name
+        temp_file.close()
         
-        # Extract frames using OpenCV
-        try:
-            cap = cv2.VideoCapture(video_path)
-            frame_count = 0
-            max_frames = 10  # Maximum frames to extract
-            frame_results = []
+        with open(temp_path, "wb") as buffer:
+            buffer.write(await video_file.read())
+        
+        # Process video frames
+        result = process_video_frames(
+            video_path=temp_path,
+            user_id=user_id,
+            save_to_db=save_to_db
+        )
+        
+        # Clean up the temporary file
+        if background_tasks:
+            background_tasks.add_task(os.unlink, temp_path)
+        else:
+            os.unlink(temp_path)
+        
+        # Add request ID to response if provided
+        if request_id:
+            result["request_id"] = request_id
             
-            while cap.isOpened() and frame_count < max_frames:
-                ret, frame = cap.read()
-                if not ret:
-                    break
-                    
-                # Save every 5th frame
-                if frame_count % 5 == 0:
-                    frame_path = os.path.join(frames_dir, f"frame_{frame_count:03d}.jpg")
-                    cv2.imwrite(frame_path, frame)
-                    frame_results.append(frame_path)
-                    
-                frame_count += 1
-                
-            cap.release()
-            
-            # If no frames were extracted, return error
-            if not frame_results:
-                return {
-                    "success": False,
-                    "message": "Could not extract frames from video",
-                    "debug_session": debug_session
-                }
-                
-            # Process each frame
-            best_frame = None
-            best_confidence = 0
-            best_results = None
-            matched = False
-            face_id = None
-            
-            for frame_path in frame_results:
-                # Try to detect face in this frame
-                if DEEPFACE_AVAILABLE:
-                    try:
-                        # Check for match
-                        if user_id:
-                            frame_matched, confidence, _, frame_face_id = find_matching_face(frame_path, user_id)
-                            
-                            # If matched with high confidence, use this frame
-                            if frame_matched and confidence > best_confidence:
-                                matched = True
-                                best_confidence = confidence
-                                best_frame = frame_path
-                                face_id = frame_face_id
-                                
-                        # Analyze face attributes
-                        face_results = analyze_face_with_deepface(frame_path)
-                        
-                        if face_results and (best_results is None or best_confidence < 85):
-                            best_results = face_results
-                            if not matched:
-                                best_frame = frame_path
-                                best_confidence = 85  # Default confidence for detected face
-                                
-                    except Exception:
-                        # Skip errors in individual frames
-                        continue
-                else:
-                    # Use OpenCV for basic detection
-                    face_detected, confidence = detect_face_with_opencv(frame_path)
-                    if face_detected and confidence > best_confidence:
-                        best_frame = frame_path
-                        best_confidence = confidence
-            
-            # Save best frame to DB if requested
-            if save_to_db and user_id and best_frame and not matched:
-                face_id = save_face_to_db(best_frame, user_id)
-            
-            # Clean up
-            import shutil
-            shutil.rmtree(frames_dir, ignore_errors=True)
-            os.remove(video_path)
-            
-            return {
-                "success": best_frame is not None,
-                "confidence": best_confidence,
-                "message": "Video verification successful" if best_frame else "No face detected in video",
-                "matched": matched,
-                "face_id": face_id,
-                "results": best_results,
-                "debug_session": debug_session
-            }
-            
-        except Exception as e:
-            # Clean up
-            shutil.rmtree(frames_dir, ignore_errors=True)
-            os.remove(video_path)
-            
-            raise e
-            
+        logger.info(f"{log_prefix}Video verification completed: {result['success']}")
+        return JSONResponse(content=result)
+    
     except Exception as e:
-        return {
-            "success": False,
-            "confidence": 0,
-            "message": f"Error during video verification: {str(e)}",
-            "debug_session": debug_session,
-            "error": str(e)
-        }
+        logger.error(f"Error in video verification: {str(e)}")
+        logger.error(traceback.format_exc())
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "message": f"Server error: {str(e)}",
+                "request_id": request_id
+            }
+        )
 
-@app.get("/api/verification/status")
-async def service_status():
-    """Check the status of the verification service."""
-    return {
-        "status": "operational",
-        "deepface_available": DEEPFACE_AVAILABLE,
-        "opencv_available": True,
-        "timestamp": datetime.now().isoformat(),
-        "face_db_path": FACE_DB_DIR,
-        "face_records": sum(len(files) for _, _, files in os.walk(FACE_DB_DIR))
-    }
+@app.get("/api/faces/{user_id}")
+async def list_user_faces(user_id: str):
+    """
+    List all faces stored for a user
+    """
+    try:
+        user_dir = os.path.join("face_db", user_id)
+        
+        if not os.path.exists(user_dir):
+            return {"faces": []}
+        
+        faces = []
+        for filename in os.listdir(user_dir):
+            if filename.endswith(".json"):
+                with open(os.path.join(user_dir, filename), "r") as f:
+                    metadata = json.load(f)
+                    faces.append(metadata)
+        
+        return {"faces": faces}
+    
+    except Exception as e:
+        logger.error(f"Error listing user faces: {str(e)}")
+        return JSONResponse(
+            status_code=500,
+            content={"message": f"Server error: {str(e)}"}
+        )
 
-# Main function to run the API server
+@app.delete("/api/faces/{user_id}/{face_id}")
+async def delete_face(user_id: str, face_id: str):
+    """
+    Delete a face from the database
+    """
+    try:
+        user_dir = os.path.join("face_db", user_id)
+        
+        if not os.path.exists(user_dir):
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Check for metadata file
+        metadata_path = os.path.join(user_dir, f"{face_id}.json")
+        if not os.path.exists(metadata_path):
+            raise HTTPException(status_code=404, detail="Face not found")
+        
+        # Delete metadata and image files
+        os.unlink(metadata_path)
+        
+        image_path = os.path.join(user_dir, f"{face_id}.jpg")
+        if os.path.exists(image_path):
+            os.unlink(image_path)
+        
+        return {"status": "success", "message": "Face deleted"}
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting face: {str(e)}")
+        return JSONResponse(
+            status_code=500,
+            content={"message": f"Server error: {str(e)}"}
+        )
+
+# For testing/development only
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8000))
-    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
