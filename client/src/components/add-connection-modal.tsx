@@ -37,42 +37,42 @@ const aiServices = [
     id: "claude",
     name: "Claude AI",
     description: "Anthropic's Claude assistant",
-    icon: "/images/claude-logo.svg",
+    icon: "/images/ai-services/claude-color.png",
     color: "#5738ca"
   },
   {
     id: "gemini",
     name: "Google Gemini",
     description: "Google's advanced AI assistant",
-    icon: "/images/gemini-logo.svg",
+    icon: "/images/ai-services/gemini-color.png",
     color: "#1e88e5"
   },
   {
     id: "gpt",
     name: "ChatGPT",
     description: "OpenAI's powerful assistant",
-    icon: "/images/openai-logo.svg",
+    icon: "/images/ai-services/openai-logo.png",
     color: "#10a37f"
   },
   {
     id: "perplexity",
     name: "Perplexity AI",
     description: "AI-powered answer engine",
-    icon: "/images/perplexity-logo.svg",
+    icon: "/images/ai-services/perplexity-logo.svg",
     color: "#f97316"
   },
   {
     id: "mcp",
     name: "MCP Assistant", 
     description: "Managed credential provider",
-    icon: "/images/mcp-logo.svg",
+    icon: "/images/ai-services/mcp.png",
     color: "#283142"
   },
   {
     id: "bing",
     name: "Microsoft Copilot",
     description: "Microsoft's AI companion",
-    icon: "/images/copilot-logo.svg",
+    icon: "/images/ai-services/copilot-logo.svg",
     color: "#0078d4"
   }
 ];
