@@ -71,39 +71,51 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  const clientBuildDir = path.resolve(__dirname, '..', 'dist', 'client');
+  // Check all possible build directories in production
+  const possiblePaths = [
+    path.resolve(__dirname, '..', 'dist', 'client'),
+    path.resolve(__dirname, '..', 'dist', 'public'),
+    path.resolve(__dirname, '..', 'public'),
+    path.resolve(__dirname, 'public')
+  ];
   
-  if (!fs.existsSync(clientBuildDir)) {
-    log(`Warning: Client build directory ${clientBuildDir} not found, looking for alternative paths...`);
+  // Log all possible paths for debugging
+  possiblePaths.forEach(p => {
+    log(`Checking static path: ${p} - Exists: ${fs.existsSync(p)}`);
+  });
+  
+  const existingPath = possiblePaths.find(p => fs.existsSync(p));
+  
+  if (existingPath) {
+    log(`Serving static files from: ${existingPath}`);
     
-    // Try alternate paths that might exist in production
-    const alternativePaths = [
-      path.resolve(__dirname, '..', 'public'),
-      path.resolve(__dirname, 'public'),
-      path.resolve(__dirname, '..', 'dist', 'public')
-    ];
+    // Serve static files
+    app.use(express.static(existingPath));
     
-    const existingPath = alternativePaths.find(p => fs.existsSync(p));
-    
-    if (existingPath) {
-      log(`Found alternative static files path: ${existingPath}`);
-      app.use(express.static(existingPath));
+    // Check if index.html exists in the static directory
+    const indexPath = path.resolve(existingPath, "index.html");
+    if (fs.existsSync(indexPath)) {
+      log(`Found index.html at: ${indexPath}`);
       
-      // Serve index.html for any route not matched
-      app.use("*", (_req, res) => {
-        res.sendFile(path.resolve(existingPath, "index.html"));
+      // Serve index.html for any route not matched by other routes or static files
+      app.use("*", (req, res) => {
+        if (req.originalUrl.startsWith('/api')) {
+          return res.status(404).json({ error: 'API endpoint not found' });
+        }
+        log(`Serving index.html for: ${req.originalUrl}`);
+        res.sendFile(indexPath);
       });
-      
-      return;
     } else {
-      log('Warning: Could not find any static files directory. Static content may not be served correctly.');
+      log(`WARNING: index.html not found in ${existingPath}`);
     }
   } else {
-    app.use(express.static(clientBuildDir));
-    
-    // Serve index.html for any route not matched
-    app.use("*", (_req, res) => {
-      res.sendFile(path.resolve(clientBuildDir, "index.html"));
+    log('ERROR: Could not find any static files directory. Static content cannot be served.');
+    // Return a helpful message for any non-API route
+    app.use("*", (req, res) => {
+      if (req.originalUrl.startsWith('/api')) {
+        return res.status(404).json({ error: 'API endpoint not found' });
+      }
+      res.status(500).send('Server configuration error: Static files not found. Please check build configuration.');
     });
   }
 }
