@@ -16,9 +16,17 @@ export default defineConfig({
     ...(process.env.NODE_ENV !== "production" &&
     process.env.REPL_ID !== undefined
       ? [
-          await import("@replit/vite-plugin-cartographer").then((m) =>
-            m.cartographer(),
-          ),
+          // Conditionally import cartographer in a way that doesn't use top-level await
+          // This will be processed at runtime rather than at module load time
+          {
+            name: 'conditional-cartographer',
+            async configResolved() {
+              if (process.env.NODE_ENV !== "production" && process.env.REPL_ID) {
+                const cartographer = await import("@replit/vite-plugin-cartographer");
+                return cartographer.cartographer();
+              }
+            }
+          }
         ]
       : []),
   ],

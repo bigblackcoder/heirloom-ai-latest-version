@@ -202,8 +202,9 @@ export async function verifyFace(request: FaceVerificationRequest): Promise<Face
  */
 async function fallbackVerification(request: FaceVerificationRequest): Promise<FaceVerificationResult> {
   try {
-    // Import the local verification module
-    const { detectFaceBasic } = require('./deepface');
+    // Import the local verification module using dynamic import
+    const deepfaceModule = await import('./deepface.js');
+    const { detectFaceBasic } = deepfaceModule;
     
     // Use the basic detection method
     const result = await detectFaceBasic(

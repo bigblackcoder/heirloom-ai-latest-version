@@ -81,4 +81,13 @@ app.use((req, res, next) => {
   }, () => {
     log(`serving on port ${port}`);
   });
+  
+  // Start the verification service on port 8000
+  try {
+    const { startVerificationService } = await import('./verification_proxy.js');
+    await startVerificationService();
+    log('Verification service started successfully');
+  } catch (error) {
+    log(`Failed to start verification service: ${error}`);
+  }
 })();

@@ -1,7 +1,18 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
-import { log } from './vite';
+
+// Local implementation of log function to avoid dependency on vite.ts
+function log(message: string, source = "deepface") {
+  const formattedTime = new Date().toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  });
+
+  console.log(`${formattedTime} [${source}] ${message}`);
+}
 
 /**
  * Result of face verification process
