@@ -1,5 +1,8 @@
 import React from "react";
 import { useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { User } from "@/lib/types";
 
 interface NavigationBarProps {
   currentPath: string;
@@ -7,6 +10,12 @@ interface NavigationBarProps {
 
 export default function NavigationBar({ currentPath }: NavigationBarProps) {
   const [, navigate] = useLocation();
+  
+  // Fetch user data for avatar
+  const { data: user } = useQuery<User>({ 
+    queryKey: ['/api/auth/me'],
+    enabled: true
+  });
   
   const isActive = (path: string) => {
     return currentPath === path ? "text-primary border-primary" : "text-gray-500 border-transparent";
@@ -103,20 +112,29 @@ export default function NavigationBar({ currentPath }: NavigationBarProps) {
           onClick={() => navigate("/profile")}
           className={`flex flex-col items-center justify-center space-y-1 ${isActive("/profile")}`}
         >
-          <svg
-            className="w-6 h-6"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-            />
-          </svg>
+          {user && user.avatar ? (
+            <Avatar className="w-6 h-6">
+              <AvatarImage src={user.avatar} alt={user.username} />
+              <AvatarFallback className="text-xs">
+                {user.firstName?.[0] || user.username?.[0] || 'U'}
+              </AvatarFallback>
+            </Avatar>
+          ) : (
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+              />
+            </svg>
+          )}
           <span className="text-xs">Profile</span>
         </button>
       </div>

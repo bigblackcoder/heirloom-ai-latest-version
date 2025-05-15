@@ -1,12 +1,13 @@
 export interface User {
   id: number;
-  firstName: string;
-  lastName: string;
   username: string;
-  email: string;
-  memberSince: string;
-  isVerified: boolean;
+  email?: string;
+  firstName?: string;
+  lastName?: string;
   avatar?: string;
+  isVerified: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Connection {

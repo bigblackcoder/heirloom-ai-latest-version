@@ -134,6 +134,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Update user's profile picture
+  app.post("/api/user/profile-picture", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { avatarData } = req.body;
+      
+      if (!avatarData) {
+        return res.status(400).json({ message: "No avatar data provided" });
+      }
+      
+      // Create a data URL from the base64 data
+      const avatar = `data:image/jpeg;base64,${avatarData}`;
+      
+      // Update the user's avatar
+      const updatedUser = await storage.updateUser(req.session.userId!, { avatar });
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Don't return the password
+      const { password, ...userResponse } = updatedUser;
+      
+      // Log the activity
+      await storage.createActivity({
+        userId: req.session.userId!,
+        type: "profile-updated",
+        description: "Profile picture updated",
+        metadata: { updatedAt: new Date().toISOString() }
+      });
+      
+      res.status(200).json({
+        message: "Profile picture updated successfully",
+        user: userResponse
+      });
+    } catch (error) {
+      console.error("Error updating profile picture:", error);
+      res.status(500).json({ message: "Error updating profile picture" });
+    }
+  });
+  
   // Face verification routes
   // Video verification endpoint - more robust and accurate
   app.post("/api/verification/video", async (req: Request, res: Response) => {
