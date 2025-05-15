@@ -75,10 +75,10 @@ export function AuthStatus() {
   // User is not authenticated, show login/signup buttons
   return (
     <div className="flex items-center gap-2">
-      <Button variant="outline" asChild>
+      <Button variant="outline" className="text-gray-800 bg-gray-100 border-gray-300 hover:bg-gray-200 hover:text-gray-900" asChild>
         <Link href="/login">Login</Link>
       </Button>
-      <Button asChild>
+      <Button className="bg-[#273414] text-white hover:bg-[#1e2610]" asChild>
         <Link href="/signup">Sign up</Link>
       </Button>
     </div>
