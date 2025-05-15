@@ -8,6 +8,7 @@ import Home from "@/pages/home";
 import Signup from "@/pages/signup";
 import Login from "@/pages/login";
 import Verification from "@/pages/verification";
+import { VerificationOptions } from "@/pages/verification-options";
 import Dashboard from "@/pages/dashboard";
 import Capsule from "@/pages/capsule";
 import Notifications from "@/pages/notifications";
@@ -23,6 +24,7 @@ function Router() {
       <Route path="/signup" component={Signup} />
       <Route path="/login" component={Login} />
       <Route path="/verification" component={Verification} />
+      <Route path="/verification-options" component={VerificationOptions} />
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/capsule" component={Capsule} />
       <Route path="/notifications" component={Notifications} />

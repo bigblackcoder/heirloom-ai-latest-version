@@ -135,6 +135,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Face verification routes
+  // Video verification endpoint - more robust and accurate
+  app.post("/api/verification/video", async (req: Request, res: Response) => {
+    // Create a debugging session ID
+    const debugSessionId = req.body.debug_session || `video-verify-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    
+    try {
+      // Check if there's an authenticated user from the session or request body
+      let userId = req.session?.userId;
+      
+      const { 
+        userId: requestUserId, 
+        user_id: altUserId,
+        saveToDb = false,
+        videoFile
+      } = req.body;
+      
+      // If userId was provided in the request body, use that instead
+      if (requestUserId || altUserId) {
+        userId = requestUserId || altUserId;
+      }
+      
+      log(`[DEBUG:${debugSessionId}] Video verification attempt started. User ID: ${userId || 'guest'}`, "face-verify");
+      
+      if (!videoFile) {
+        log(`[DEBUG:${debugSessionId}] No video file provided`, "face-verify");
+        return res.status(400).json({ 
+          success: false,
+          message: "Video file is required",
+          debugSession: debugSessionId
+        });
+      }
+      
+      try {
+        // Send to FastAPI service for verification
+        log(`[DEBUG:${debugSessionId}] Processing video verification...`, "face-verify");
+        
+        // Call the video verification API
+        const verificationResult = await verifyVideo(videoFile, userId, saveToDb);
+        
+        // If verification successful, update user verified status
+        if (verificationResult.success && verificationResult.confidence > 70 && userId) {
+          try {
+            const updatedUser = await storage.updateUser(userId, { isVerified: true });
+            if (updatedUser) {
+              log(`[DEBUG:${debugSessionId}] Successfully updated user verified status`, "face-verify");
+            }
+          } catch (error) {
+            log(`[DEBUG:${debugSessionId}] Error updating user verification status: ${error.message}`, "face-verify");
+          }
+          
+          // Log activity
+          await storage.createActivity({
+            userId: userId,
+            type: "identity-verified",
+            description: "Identity verified through video verification",
+            metadata: { 
+              method: "video",
+              confidence: verificationResult.confidence,
+              matched: verificationResult.matched || false,
+              face_id: verificationResult.face_id
+            }
+          });
+        }
+        
+        // Return result
+        res.status(200).json({
+          ...verificationResult,
+          debugSession: debugSessionId
+        });
+        
+      } catch (error) {
+        log(`[DEBUG:${debugSessionId}] Video verification error: ${error.message}`, "face-verify");
+        res.status(200).json({ 
+          success: false, 
+          message: "Error during video verification", 
+          error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+          debugSession: debugSessionId
+        });
+      }
+    } catch (error) {
+      console.error("Error during video verification:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Server error during video verification",
+        debugSession: debugSessionId
+      });
+    }
+  });
+  
+  // Image-based face verification
   app.post("/api/verification/face", async (req: Request, res: Response) => {
     // Create a debugging session ID first - accessible throughout the entire route handler
     // Use client provided debug session ID if available, otherwise generate a new one
