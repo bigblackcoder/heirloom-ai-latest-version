@@ -88,6 +88,20 @@ app.use((req, res, next) => {
     await startVerificationService();
     log('Verification service started successfully');
   } catch (error) {
-    log(`Failed to start verification service: ${error}`);
+    log(`Failed to start verification service: ${error.message}`);
+    
+    // In production, retry after a short delay
+    if (process.env.NODE_ENV === 'production') {
+      log('Will retry starting verification service in 5 seconds...');
+      setTimeout(async () => {
+        try {
+          const { startVerificationService } = await import('./verification_proxy.js');
+          await startVerificationService();
+          log('Verification service started successfully on retry');
+        } catch (retryError) {
+          log(`Failed to start verification service on retry: ${retryError.message}`);
+        }
+      }, 5000);
+    }
   }
 })();

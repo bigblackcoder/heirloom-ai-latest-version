@@ -91,12 +91,14 @@ export async function startVerificationService(): Promise<void> {
     
     // Wait for the service to start
     let retries = 0;
-    const maxRetries = 10;
-    const checkInterval = 1000; // 1 second
+    const maxRetries = process.env.NODE_ENV === 'production' ? 30 : 10; // More retries in production
+    const checkInterval = process.env.NODE_ENV === 'production' ? 2000 : 1000; // Longer interval in production
     
     const checkServiceStatus = async () => {
       try {
-        const response = await axios.get(`${VERIFICATION_SERVICE_URL}/api/verification/status`);
+        const response = await axios.get(`${VERIFICATION_SERVICE_URL}/api/verification/status`, {
+          timeout: 5000 // 5 second timeout for the request
+        });
         if (response.status === 200) {
           console.log('Verification service started successfully');
           resolve();
@@ -106,11 +108,19 @@ export async function startVerificationService(): Promise<void> {
         // Service not ready yet
         if (retries < maxRetries) {
           retries++;
+          console.log(`Verification service not ready yet, retrying (${retries}/${maxRetries})...`);
           setTimeout(checkServiceStatus, checkInterval);
         } else {
-          const err = new Error('Verification service failed to start within timeout period');
+          const err = new Error(`Verification service failed to start within timeout period after ${maxRetries} attempts`);
           console.error(err);
-          reject(err);
+          
+          // In production, resolve anyway to prevent blocking app startup
+          if (process.env.NODE_ENV === 'production') {
+            console.warn('Continuing application startup without verification service in production');
+            resolve();
+          } else {
+            reject(err);
+          }
         }
       }
     };
