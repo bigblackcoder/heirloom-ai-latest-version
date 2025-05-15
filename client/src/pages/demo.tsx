@@ -388,7 +388,7 @@ export default function DemoPage() {
                           "px-2 h-8 text-xs",
                           showVoiceAgent 
                             ? "bg-[#D4A166]/20 text-[#D4A166] border-[#D4A166]/30" 
-                            : "text-white/70 border-white/20"
+                            : "bg-white text-black hover:bg-white/90 border-white/20"
                         )}
                         onClick={() => setShowVoiceAgent(!showVoiceAgent && !muteVoice)}
                         disabled={muteVoice}
@@ -690,7 +690,7 @@ export default function DemoPage() {
                   "px-2 h-8 text-xs",
                   showVoiceAgent 
                     ? "bg-[#D4A166]/20 text-[#D4A166] border-[#D4A166]/30" 
-                    : "text-white/70 border-white/20"
+                    : "bg-white text-black hover:bg-white/90 border-white/20"
                 )}
                 onClick={() => setShowVoiceAgent(!showVoiceAgent && !muteVoice)}
                 disabled={muteVoice}
