@@ -176,7 +176,7 @@ export default function AddConnectionModal({ isOpen, onClose }: AddConnectionMod
                 <FormItem>
                   <FormLabel>Select AI Service</FormLabel>
                   <FormControl>
-                    <div className="grid grid-cols-2 gap-3 mt-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
                       {aiServices.map((service) => (
                         <div
                           key={service.id}
@@ -188,7 +188,8 @@ export default function AddConnectionModal({ isOpen, onClose }: AddConnectionMod
                           `}
                           style={{
                             borderColor: selectedService === service.id ? service.color : undefined,
-                            backgroundColor: selectedService === service.id ? `${service.color}10` : undefined
+                            backgroundColor: selectedService === service.id ? `${service.color}10` : undefined,
+                            transform: selectedService === service.id ? 'scale(1.02)' : undefined
                           }}
                           onClick={() => handleServiceSelect(service.id)}
                         >

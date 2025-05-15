@@ -52,12 +52,13 @@ export default function AddConnectionSlideModal({
   // Mutation to add a new connection
   const addConnectionMutation = useMutation({
     mutationFn: (data: ConnectionFormValues) => {
-      return apiRequest("/api/connections", {
+      return apiRequest({
+        url: "/api/connections",
         method: "POST",
-        body: JSON.stringify({
+        body: {
           aiServiceName: data.serviceName,
           connectionCode: data.connectionId,
-        }),
+        }
       });
     },
     onSuccess: () => {
@@ -95,12 +96,48 @@ export default function AddConnectionSlideModal({
   
   // AI service list with updated colors
   const aiServices = [
-    { id: "claude", name: "Claude", color: "#D97757" },
-    { id: "gpt4", name: "ChatGPT", color: "#000000" },
-    { id: "gemini", name: "Google Gemini", color: "#1C69FF" },
-    { id: "perplexity", name: "Perplexity", color: "#22B8CD" },
-    { id: "copilot", name: "Microsoft Copilot", color: "#FFFFFF", darkMode: true },
-    { id: "mcp", name: "MCP Assistant", color: "#FFFFFF", darkMode: true },
+    { 
+      id: "claude", 
+      name: "Claude AI", 
+      description: "Anthropic's Claude assistant",
+      icon: "/images/ai-services/claude-color.png", 
+      color: "#5738ca" 
+    },
+    { 
+      id: "gpt", 
+      name: "ChatGPT", 
+      description: "OpenAI's powerful assistant",
+      icon: "/images/ai-services/openai-logo.png", 
+      color: "#10a37f" 
+    },
+    { 
+      id: "gemini", 
+      name: "Google Gemini", 
+      description: "Google's advanced AI assistant",
+      icon: "/images/ai-services/gemini-color.png", 
+      color: "#1e88e5" 
+    },
+    { 
+      id: "perplexity", 
+      name: "Perplexity AI", 
+      description: "AI-powered answer engine",
+      icon: "/images/ai-services/perplexity-logo.png", 
+      color: "#f97316" 
+    },
+    { 
+      id: "bing", 
+      name: "Microsoft Copilot", 
+      description: "Microsoft's AI companion",
+      icon: "/images/ai-services/copilot-logo.png", 
+      color: "#0078d4" 
+    },
+    { 
+      id: "mcp", 
+      name: "MCP Assistant", 
+      description: "Managed credential provider",
+      icon: "/images/ai-services/mcp.png", 
+      color: "#283142" 
+    },
   ];
   
   // Handle AI service selection
@@ -112,16 +149,12 @@ export default function AddConnectionSlideModal({
     }
   };
   
-  // Get service background color
+  // Get service background color - simplified version
   const getServiceBackground = (serviceId: string) => {
     const service = aiServices.find(s => s.id === serviceId);
     if (!service) return "#f1f1f1";
     
-    if (service.darkMode) {
-      return "#1e1e1e"; // Dark background for light logos
-    }
-    
-    // For colored logos, return a light tint of their color
+    // Return a light tint of the service color
     return `${service.color}15`;
   };
   
@@ -153,40 +186,43 @@ export default function AddConnectionSlideModal({
                 <FormItem>
                   <FormLabel>Select AI Service</FormLabel>
                   <FormControl>
-                    <div className="grid grid-cols-2 gap-3 mt-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
                       {aiServices.map((service) => (
                         <div
                           key={service.id}
-                          className={`p-3 border rounded-lg cursor-pointer transition-all ${
-                            selectedService === service.id
-                              ? "border-[#1e3c0d] bg-[#f0f5eb]"
-                              : "border-gray-200 hover:border-gray-300"
-                          }`}
+                          className={`
+                            border rounded-xl p-3 cursor-pointer transition-all duration-200
+                            ${selectedService === service.id 
+                              ? `border-2 shadow-md` 
+                              : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'}
+                          `}
+                          style={{
+                            borderColor: selectedService === service.id ? service.color : undefined,
+                            backgroundColor: selectedService === service.id ? `${service.color}10` : undefined,
+                            transform: selectedService === service.id ? 'scale(1.02)' : undefined
+                          }}
                           onClick={() => handleServiceSelect(service.id)}
                         >
-                          <div className="flex items-center">
-                            <div 
-                              className="w-8 h-8 rounded-full mr-2 flex items-center justify-center overflow-hidden"
-                              style={{ backgroundColor: getServiceBackground(service.id) }}
+                          <div className="flex items-center mb-2">
+                            <div
+                              className="w-10 h-10 rounded-full flex items-center justify-center mr-2 overflow-hidden bg-white"
+                              style={{ 
+                                boxShadow: `0 0 0 2px ${service.color}25`
+                              }}
                             >
                               <img 
-                                src={`/images/${service.id}-logo.svg`} 
-                                alt={service.name}
-                                className="w-5 h-5"
-                                style={{ filter: service.darkMode ? 'brightness(10)' : 'none' }}
-                                onError={(e) => {
-                                  // Fallback if image doesn't load
-                                  const target = e.target as HTMLImageElement;
-                                  target.onerror = null;
-                                  target.style.display = 'none';
-                                }}
+                                src={service.icon}
+                                alt={service.name} 
+                                className="w-8 h-8 object-contain"
                               />
                             </div>
-                            <span className="font-medium">{service.name}</span>
+                            <div>
+                              <div className="font-medium text-sm">{service.name}</div>
+                            </div>
                           </div>
-                          {selectedService === service.id && (
-                            <Badge className="mt-2 bg-[#1e3c0d]">Selected</Badge>
-                          )}
+                          <div className="text-xs text-gray-600">
+                            {service.description}
+                          </div>
                         </div>
                       ))}
                     </div>
