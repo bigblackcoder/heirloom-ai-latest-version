@@ -68,7 +68,7 @@ export async function startVerificationService(): Promise<void> {
     // Start the service
     verificationProcess = spawn(scriptPath, [], {
       stdio: 'inherit',
-      shell: true,
+      shell: false,
       env: { ...process.env },
     });
     
