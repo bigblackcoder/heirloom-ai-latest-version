@@ -39,7 +39,11 @@ export function VerificationOptions() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <AppleFaceScanner />
+              <AppleFaceScanner 
+                onProgress={(progress) => console.log('Verification progress:', progress)}
+                onComplete={(imageData) => console.log('Verification complete:', imageData ? 'Image captured' : 'No image')}
+                isComplete={false}
+              />
             </CardContent>
           </Card>
         </TabsContent>
