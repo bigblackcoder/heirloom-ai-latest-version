@@ -189,10 +189,7 @@ export default function DemoPage() {
                   <Button 
                     size="lg"
                     className="bg-[#D4A166] hover:bg-[#A67D4F] text-black transition-all duration-300 transform hover:translate-y-[-2px]"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      startDemo(true);
-                    }}
+                    onClick={startDemo}
                   >
                     <Play className="mr-2 h-5 w-5" />
                     Interactive Demo
