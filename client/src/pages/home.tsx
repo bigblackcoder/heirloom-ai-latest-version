@@ -142,7 +142,7 @@ export default function Home() {
           {isAuthenticated ? (
             <>
               <Button 
-                className="w-full py-7 bg-[#7c9861] hover:bg-[#273414] text-white font-medium text-lg rounded-full shadow-lg"
+                className="w-full py-7 bg-[#273414] text-white hover:bg-[#1e2610] font-medium text-lg rounded-full shadow-lg"
                 onClick={() => navigate("/dashboard")}
               >
                 Go to Dashboard
@@ -161,7 +161,7 @@ export default function Home() {
           ) : (
             <>
               <Button 
-                className="w-full py-7 bg-[#7c9861] hover:bg-[#273414] text-white font-medium text-lg rounded-full shadow-lg"
+                className="w-full py-7 bg-[#273414] text-white hover:bg-[#1e2610] font-medium text-lg rounded-full shadow-lg"
                 onClick={() => navigate("/verification")}
               >
                 Verify My Identity
@@ -170,8 +170,8 @@ export default function Home() {
               <div className="mt-4 text-center flex flex-col items-center">
                 <div className="flex flex-col items-center">
                   <Button 
-                    variant="outline" 
-                    className="text-sm text-white border-white/30 hover:bg-white/10 hover:text-white w-48 rounded-full"
+                    variant="outline"
+                    className="text-sm text-gray-800 bg-gray-100 border-gray-300 hover:bg-gray-200 hover:text-gray-900 w-48 rounded-full"
                     onClick={() => navigate("/signup")}
                   >
                     Create Account
