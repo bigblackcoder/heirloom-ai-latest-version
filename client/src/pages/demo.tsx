@@ -1,28 +1,75 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { VoiceAgent } from '@/components/voice-agent';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Play, ChevronRight, Shield, Fingerprint, Award, LockKeyhole } from 'lucide-react';
+import { 
+  Play, ChevronRight, Shield, Fingerprint, Award, LockKeyhole, 
+  Volume, VolumeX, Check, Info, ArrowRight, Sparkles, Users, Bell
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export default function DemoPage() {
   const [location, navigate] = useLocation();
   const [showVoiceAgent, setShowVoiceAgent] = useState(false);
   const [startedDemo, setStartedDemo] = useState(false);
+  const [preferVoiceDemo, setPreferVoiceDemo] = useState(false);
+  const [muteVoice, setMuteVoice] = useState(false);
   
   // Check URL parameters for voice demo flag
-  React.useEffect(() => {
+  useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('voice') === 'true') {
       setShowVoiceAgent(true);
       setStartedDemo(true);
     }
+    
+    // Check if user previously set a preference
+    const voicePreference = localStorage.getItem('prefer-voice-demo');
+    if (voicePreference === 'true') {
+      setPreferVoiceDemo(true);
+    }
   }, []);
   
-  const startDemo = () => {
-    setShowVoiceAgent(true);
+  const startDemo = (withVoice = true) => {
+    setShowVoiceAgent(withVoice && !muteVoice);
     setStartedDemo(true);
+    
+    // Save preference if user explicitly chose voice demo
+    if (withVoice) {
+      setPreferVoiceDemo(true);
+      localStorage.setItem('prefer-voice-demo', 'true');
+    }
+  };
+  
+  const toggleVoicePreference = () => {
+    const newPreference = !preferVoiceDemo;
+    setPreferVoiceDemo(newPreference);
+    localStorage.setItem('prefer-voice-demo', newPreference.toString());
+    
+    // Update voice agent visibility based on new preference
+    if (startedDemo) {
+      setShowVoiceAgent(newPreference && !muteVoice);
+    }
+  };
+  
+  const toggleMute = () => {
+    const newMuteState = !muteVoice;
+    setMuteVoice(newMuteState);
+    
+    // Hide voice agent if muted
+    if (newMuteState && showVoiceAgent) {
+      setShowVoiceAgent(false);
+    } else if (!newMuteState && startedDemo && preferVoiceDemo) {
+      setShowVoiceAgent(true);
+    }
   };
   
   const completeDemo = () => {
@@ -30,63 +77,113 @@ export default function DemoPage() {
   };
   
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#1E3C0D] to-[#0A1908] text-white">
-      {/* Header */}
-      <header className="pt-10 pb-6 px-5">
-        <div className="container mx-auto max-w-6xl">
+    <div className="min-h-screen bg-gradient-to-br from-[#1E3C0D] via-[#152A0A] to-[#0A1908] text-white">
+      {/* Modern Header with glassmorphism */}
+      <header className="sticky top-0 z-20 backdrop-blur-md bg-[#1E3C0D]/80 border-b border-[#D4A166]/20">
+        <div className="container mx-auto max-w-6xl py-4 px-5">
           <div className="flex justify-between items-center">
             <div className="flex items-center">
               <img 
                 src="/images/logo-heirloom.png" 
                 alt="Heirloom Logo" 
-                className="h-10 mr-3"
+                className="h-12 mr-3"
               />
-              <h1 className="text-2xl font-semibold">Heirloom</h1>
+              <h1 className="text-2xl font-semibold bg-gradient-to-r from-white to-[#D4A166] bg-clip-text text-transparent">Heirloom</h1>
             </div>
-            <nav className="hidden md:flex space-x-6">
-              <a href="#features" className="hover:text-[#D4A166] transition-colors">Features</a>
-              <a href="#security" className="hover:text-[#D4A166] transition-colors">Security</a>
-              <a href="#about" className="hover:text-[#D4A166] transition-colors">About</a>
+            
+            <nav className="hidden md:flex space-x-1">
+              {['Features', 'Security', 'Privacy', 'About'].map((item) => (
+                <TooltipProvider key={item}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <a 
+                        href={`#${item.toLowerCase()}`}
+                        className="px-4 py-2 rounded-md hover:bg-white/10 transition-colors"
+                      >
+                        {item}
+                      </a>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>View {item} Section</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              ))}
             </nav>
-            {!startedDemo && (
-              <Button 
-                className="bg-[#D4A166] hover:bg-[#A67D4F] text-black font-medium"
-                onClick={() => navigate('/verification')}
-              >
-                Try Verification
-              </Button>
-            )}
+            
+            <div className="flex items-center space-x-2">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={toggleMute}
+                      className={cn(
+                        "rounded-full w-10 h-10",
+                        muteVoice ? "bg-[#D4A166]/20 text-[#D4A166]" : "text-white/80"
+                      )}
+                    >
+                      {muteVoice ? <VolumeMute className="h-5 w-5" /> : <Bell className="h-5 w-5" />}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{muteVoice ? "Enable Voice Guide" : "Mute Voice Guide"}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              
+              {!startedDemo && (
+                <Button 
+                  className="bg-[#D4A166] hover:bg-[#A67D4F] text-black font-medium"
+                  onClick={() => navigate('/verification')}
+                >
+                  Try Verification
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </header>
       
-      {/* Hero Section */}
-      <section className="py-10 md:py-16 px-5">
-        <div className="container mx-auto max-w-6xl">
-          <div className="grid md:grid-cols-2 gap-10 items-center">
-            <div>
-              <h1 className="text-4xl md:text-5xl font-bold leading-tight mb-6">
-                The Future of <span className="text-[#D4A166]">Digital Identity</span> Verification
+      {/* Hero Section with modern design elements */}
+      <section className="relative py-20 px-5 overflow-hidden">
+        {/* Background decoration elements */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-[#D4A166]/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#1E3C0D]/30 rounded-full blur-3xl translate-y-1/3 -translate-x-1/4"></div>
+        
+        <div className="container mx-auto max-w-6xl relative">
+          <div className="grid md:grid-cols-2 gap-16 items-center">
+            <div className="relative z-10">
+              <div className="inline-block mb-3 px-4 py-1.5 rounded-full bg-[#D4A166]/20 text-[#D4A166] text-sm font-medium">
+                Next Generation Identity Platform
+              </div>
+              
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6">
+                Your <span className="text-[#D4A166]">Digital Identity</span>, Reinvented
               </h1>
-              <p className="text-lg text-white/80 mb-8">
-                Secure, private, and blockchain-powered identity verification
-                that puts you in control of your digital presence.
+              
+              <p className="text-lg text-white/80 mb-8 leading-relaxed">
+                Simple biometric verification combined with enterprise-grade 
+                blockchain security — putting you in complete control 
+                of your digital presence.
               </p>
               
               {!startedDemo ? (
                 <div className="flex flex-col sm:flex-row gap-4">
                   <Button 
                     size="lg"
-                    className="bg-[#D4A166] hover:bg-[#A67D4F] text-black"
-                    onClick={startDemo}
+                    className="bg-[#D4A166] hover:bg-[#A67D4F] text-black transition-all duration-300 transform hover:translate-y-[-2px]"
+                    onClick={() => startDemo(true)}
                   >
                     <Play className="mr-2 h-5 w-5" />
-                    Start Voice Demo
+                    Interactive Demo
                   </Button>
                   <Button 
                     variant="outline"
                     size="lg"
-                    className="border-white/30 text-white hover:bg-white/10"
+                    className="border-white/30 text-white hover:bg-white/10 transition-all duration-300"
                     onClick={() => navigate('/dashboard')}
                   >
                     Explore Dashboard
@@ -94,68 +191,164 @@ export default function DemoPage() {
                   </Button>
                 </div>
               ) : (
-                <Card className="bg-white/10 border-white/20">
-                  <CardHeader>
-                    <CardTitle>Voice Demo Active</CardTitle>
-                    <CardDescription className="text-white/70">
-                      Our virtual assistant is explaining Heirloom's features
+                <Card className="bg-[#0F1D04]/80 border-[#D4A166]/20 backdrop-blur-sm">
+                  <CardHeader className="pb-2">
+                    <div className="flex justify-between items-center">
+                      <CardTitle className="text-[#D4A166]">
+                        <div className="flex items-center">
+                          <div className="w-2 h-2 rounded-full bg-[#D4A166] mr-2 animate-pulse"></div>
+                          Interactive Demo
+                        </div>
+                      </CardTitle>
+                      {showVoiceAgent ? (
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          className="text-[#D4A166] hover:bg-[#D4A166]/10"
+                          onClick={() => setShowVoiceAgent(false)}
+                        >
+                          <VolumeMute className="mr-1 h-4 w-4" />
+                          Mute Guide
+                        </Button>
+                      ) : (
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          className="text-[#D4A166] hover:bg-[#D4A166]/10"
+                          onClick={() => !muteVoice && setShowVoiceAgent(true)}
+                          disabled={muteVoice}
+                        >
+                          <Bell className="mr-1 h-4 w-4" />
+                          Enable Guide
+                        </Button>
+                      )}
+                    </div>
+                    <CardDescription className="text-white/80">
+                      {showVoiceAgent 
+                        ? "Our voice guide is explaining Heirloom's features" 
+                        : "Follow the visual guide or enable voice assistance"}
                     </CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <p className="text-white/80">
-                      The demo will guide you through key features and navigate through the application.
-                      Follow along or use the controls to explore at your own pace.
-                    </p>
+                  <CardContent className="pt-2">
+                    <div className="flex items-center py-2 px-4 bg-[#D4A166]/10 rounded-md mb-4">
+                      <Info className="h-4 w-4 text-[#D4A166] flex-shrink-0 mr-3" />
+                      <p className="text-sm text-white/90">
+                        {showVoiceAgent 
+                          ? "The demo will guide you through key features and navigate through the app automatically"
+                          : "You can explore at your own pace or enable the voice guide for a guided tour"}
+                      </p>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-2 mb-2">
+                      <Button
+                        variant="outline" 
+                        size="sm"
+                        className="text-white/80 border-white/20 hover:bg-white/10"
+                        onClick={() => navigate('/verification')}
+                      >
+                        <Fingerprint className="mr-2 h-4 w-4 text-[#D4A166]" />
+                        Try Verification
+                      </Button>
+                      <Button
+                        variant="outline" 
+                        size="sm"
+                        className="text-white/80 border-white/20 hover:bg-white/10"
+                        onClick={() => navigate('/dashboard')}
+                      >
+                        <Shield className="mr-2 h-4 w-4 text-[#D4A166]" />
+                        View Dashboard
+                      </Button>
+                    </div>
                   </CardContent>
-                  <CardFooter>
-                    <Button 
-                      variant="outline"
-                      className="border-white/30 text-white hover:bg-white/10"
-                      onClick={() => setShowVoiceAgent(false)}
-                    >
-                      Hide Voice Controls
-                    </Button>
+                  <CardFooter className="pt-0">
+                    <div className="flex items-center w-full justify-between">
+                      <div className="flex items-center space-x-2">
+                        <div className={cn(
+                          "w-3 h-3 rounded-full",
+                          showVoiceAgent ? "bg-[#D4A166] animate-pulse" : "bg-white/30"
+                        )}></div>
+                        <span className="text-xs text-white/60">
+                          {showVoiceAgent ? "Voice guide active" : "Voice guide inactive"}
+                        </span>
+                      </div>
+                      <Button 
+                        variant="default"
+                        size="sm"
+                        className="bg-[#D4A166]/90 hover:bg-[#D4A166] text-black"
+                        onClick={() => navigate('/achievements')}
+                      >
+                        <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+                        Explore Achievements
+                      </Button>
+                    </div>
                   </CardFooter>
                 </Card>
               )}
+              
+              {/* Voice preference toggle */}
+              <div className="mt-6 flex items-center">
+                <button
+                  onClick={toggleVoicePreference}
+                  className="flex items-center text-sm text-white/60 hover:text-white/90 focus:outline-none"
+                >
+                  <div className={cn(
+                    "w-4 h-4 rounded-sm border mr-2 flex items-center justify-center transition-colors",
+                    preferVoiceDemo 
+                      ? "bg-[#D4A166] border-[#D4A166]" 
+                      : "border-white/30 bg-transparent"
+                  )}>
+                    {preferVoiceDemo && <Check className="h-3 w-3 text-black" />}
+                  </div>
+                  Enable voice guide by default
+                </button>
+              </div>
             </div>
             
+            {/* Updated dashboard preview with modern design */}
             <div className="relative">
-              <div className="bg-[#1A3006] rounded-2xl p-5 md:p-8 shadow-xl">
+              <div className="bg-[#0F1D04]/80 rounded-2xl p-6 backdrop-blur-sm border border-white/10 shadow-[0_0_25px_rgba(212,161,102,0.1)]">
+                <div className="absolute -top-2 -left-2 bg-[#D4A166]/10 backdrop-blur-sm rounded-lg px-3 py-1.5 border border-[#D4A166]/30 shadow-lg">
+                  <div className="flex items-center">
+                    <Users className="h-4 w-4 text-[#D4A166] mr-2" />
+                    <span className="text-sm font-medium">Identity Platform</span>
+                  </div>
+                </div>
+                
                 <img 
                   src="/images/dashboard.png" 
                   alt="Heirloom Dashboard" 
-                  className="rounded-lg shadow-lg"
+                  className="rounded-lg shadow-xl border border-white/5"
                 />
+                
                 <div className="mt-6 grid grid-cols-3 gap-3">
-                  <div className="bg-[#0F1D04] p-4 rounded-lg">
+                  <div className="bg-[#1E3C0D]/50 backdrop-blur-sm p-4 rounded-lg border border-white/5 transform transition-transform hover:scale-105">
                     <div className="flex justify-center mb-2">
-                      <Shield className="h-8 w-8 text-[#D4A166]" />
+                      <Shield className="h-7 w-7 text-[#D4A166]" />
                     </div>
                     <p className="text-center text-sm">Secure Identity</p>
                   </div>
-                  <div className="bg-[#0F1D04] p-4 rounded-lg">
+                  <div className="bg-[#1E3C0D]/50 backdrop-blur-sm p-4 rounded-lg border border-white/5 transform transition-transform hover:scale-105">
                     <div className="flex justify-center mb-2">
-                      <Fingerprint className="h-8 w-8 text-[#D4A166]" />
+                      <Fingerprint className="h-7 w-7 text-[#D4A166]" />
                     </div>
-                    <p className="text-center text-sm">Biometric Verification</p>
+                    <p className="text-center text-sm">Face Verification</p>
                   </div>
-                  <div className="bg-[#0F1D04] p-4 rounded-lg">
+                  <div className="bg-[#1E3C0D]/50 backdrop-blur-sm p-4 rounded-lg border border-white/5 transform transition-transform hover:scale-105">
                     <div className="flex justify-center mb-2">
-                      <LockKeyhole className="h-8 w-8 text-[#D4A166]" />
+                      <LockKeyhole className="h-7 w-7 text-[#D4A166]" />
                     </div>
                     <p className="text-center text-sm">Privacy Control</p>
                   </div>
                 </div>
               </div>
               
-              {/* Floating elements */}
-              <div className="absolute top-0 right-0 translate-x-1/4 -translate-y-1/4 bg-[#D4A166] rounded-full p-4 shadow-lg">
-                <Award className="h-8 w-8 text-[#1E3C0D]" />
+              {/* Modern floating elements */}
+              <div className="absolute top-1/4 -right-4 transform translate-x-1/2 bg-[#D4A166] rounded-full p-3 shadow-lg border-2 border-[#1E3C0D]">
+                <Award className="h-6 w-6 text-[#1E3C0D]" />
               </div>
-              <div className="absolute -bottom-5 -left-5 bg-[#0F1D04] rounded-xl p-3 shadow-lg border border-white/10">
+              <div className="absolute -bottom-5 left-1/3 bg-[#1E3C0D] rounded-xl p-3 shadow-lg border border-[#D4A166]/30 backdrop-blur-sm">
                 <div className="flex items-center">
-                  <Shield className="h-6 w-6 text-[#D4A166] mr-2" />
+                  <Check className="h-5 w-5 text-[#D4A166] mr-2" />
                   <span className="text-sm font-medium">Identity Verified</span>
                 </div>
               </div>
