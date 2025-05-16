@@ -34,5 +34,5 @@ app.get('/', (req, res) => {
 
 // Start the server
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Simple server running on http://localhost:${PORT}`);
+  console.log(`Heirloom Identity Platform server running on http://0.0.0.0:${PORT}`);
 });
