@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="290"
+   height="326"
+   viewBox="0 0 290 326"
+   fill="none"
+   version="1.1"
+   id="secure-svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <rect
+     width="290"
+     height="326"
+     fill="#F0F4F8"
+     id="background" />
+  <path
+     d="M 145,60 C 128.431,60 115,73.4315 115,90 v 40 h 60 V 90 C 175,73.4315 161.569,60 145,60 Z"
+     fill="#4A90E2"
+     id="lock-top" />
+  <rect
+     x="85"
+     y="130"
+     width="120"
+     height="140"
+     rx="10"
+     fill="#2E5AAC"
+     id="lock-body" />
+  <circle
+     cx="145"
+     cy="180"
+     r="25"
+     fill="#FFFFFF"
+     id="keyhole" />
+  <text
+     xml:space="preserve"
+     style="font-size:24px;line-height:1.25;font-family:sans-serif;fill:#ffffff"
+     x="145"
+     y="270"
+     id="secure-text"
+     text-anchor="middle"><tspan
+       x="145"
+       y="270"
+       id="tspan1">SECURE</tspan></text>
+</svg>
