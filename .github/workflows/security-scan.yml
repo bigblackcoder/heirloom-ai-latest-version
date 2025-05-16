@@ -1,0 +1,62 @@
+name: Security Credential Scan
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+  # Run weekly to check for any new issues
+  schedule:
+    - cron: '0 0 * * 0'  # Every Sunday at midnight
+
+jobs:
+  scan-credentials:
+    name: Scan for Credentials
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Fetch all history for proper scanning
+
+      - name: Set up environment
+        run: |
+          chmod +x ./scripts/scan-credentials.sh
+
+      - name: Run credential scanning script
+        id: scan
+        run: ./scripts/scan-credentials.sh
+        continue-on-error: true  # Continue workflow even if credentials are found
+
+      - name: Check scan results
+        run: |
+          if [ ${{ steps.scan.outcome }} == 'failure' ]; then
+            echo "::error::Potential credentials found in the codebase. See logs for details."
+            echo "Please review the output of the credential scan and remove any identified credentials."
+          else
+            echo "No credentials found in the codebase."
+          fi
+
+      # Optional: Notify security team if credentials are found
+      - name: Send notification
+        if: ${{ steps.scan.outcome == 'failure' }}
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          fields: repo,message,commit,author
+          custom_payload: |
+            {
+              "text": "⚠️ Potential credentials found in repository ${{ github.repository }}",
+              "attachments": [{
+                "color": "danger",
+                "fields": [
+                  { "title": "Repository", "value": "${{ github.repository }}", "short": true },
+                  { "title": "Branch/PR", "value": "${{ github.ref }}", "short": true },
+                  { "title": "Action", "value": "Review logs at ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}", "short": false }
+                ]
+              }]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        continue-on-error: true  # Don't fail if notification fails

@@ -12,6 +12,20 @@ This document outlines the security best practices for the Heirloom Identity Pla
 - SVG or image files (via embedded metadata)
 - HTML files
 - JSON files
+- Base64 encoded content
+
+### Special Care for SVG and Image Files
+
+SVG files can inadvertently contain credentials in several ways:
+- Screenshots that capture credentials on screen
+- Base64-encoded images embedded within SVGs
+- Metadata that includes system information
+
+To avoid these issues:
+1. Never include base64-encoded data directly in SVG files
+2. Use external image references instead of embedding them
+3. Always scan SVG files for sensitive data before committing
+4. See `docs/SECURE_SVG_GUIDE.md` for complete guidelines
 
 ### Using Environment Variables
 
@@ -57,6 +71,16 @@ This will:
 - Check all files for common credential patterns
 - Report any potential credentials found
 - Look for specific patterns identified in security scans
+- Scan SVG and image files for embedded credential patterns
+- Decode and analyze base64-encoded content for sensitive information
+
+### Enhanced SVG and Image Scanning
+
+The updated scanning script now specifically checks for:
+- SVG files with embedded base64 image data
+- The specific pattern identified in the security scan (`image0_1097_3250`)
+- Attempts to decode base64 content to find hidden credentials
+- AWS credential patterns within image and binary files
 
 ## Rotating Credentials
 
