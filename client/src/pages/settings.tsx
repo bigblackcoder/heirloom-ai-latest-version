@@ -263,6 +263,24 @@ export default function Settings() {
                 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
+                    <Label htmlFor="prefer-native" className="text-sm">Prefer Native Biometrics</Label>
+                    <p className="text-xs text-gray-500">Use device biometrics (Face ID, Touch ID) when available</p>
+                  </div>
+                  <Switch
+                    id="prefer-native"
+                    checked={biometricSettings.preferNativeBiometrics !== false}
+                    onCheckedChange={(checked) => {
+                      setBiometricSettings({
+                        ...biometricSettings,
+                        preferNativeBiometrics: checked
+                      });
+                      localStorage.setItem('preferNativeBiometrics', checked ? 'true' : 'false');
+                    }}
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
                     <Label htmlFor="save-scans" className="text-sm">Save Verified Scans</Label>
                     <p className="text-xs text-gray-500">Store successful verifications to improve future accuracy</p>
                   </div>
