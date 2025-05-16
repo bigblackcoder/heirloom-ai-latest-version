@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Heirloom Identity Platform</title>
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #273414;
+      color: white;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .container {
+      max-width: 600px;
+      padding: 20px;
+      text-align: center;
+    }
+    h1 {
+      color: #91c35c;
+      font-size: 32px;
+      margin-bottom: 16px;
+    }
+    p {
+      font-size: 18px;
+      line-height: 1.6;
+      opacity: 0.9;
+      margin-bottom: 24px;
+    }
+    .buttons {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .button {
+      background-color: #91c35c;
+      border: none;
+      color: #273414;
+      padding: 12px 24px;
+      font-size: 16px;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform 0.2s, background-color 0.2s;
+      text-decoration: none;
+      display: inline-block;
+    }
+    .button:hover {
+      transform: translateY(-2px);
+      background-color: #a1d36c;
+    }
+    .button.secondary {
+      background-color: transparent;
+      border: 2px solid #91c35c;
+      color: #91c35c;
+    }
+    .button.secondary:hover {
+      background-color: rgba(145, 195, 92, 0.1);
+    }
+    .logo {
+      margin-bottom: 32px;
+      font-size: 48px;
+    }
+    .status {
+      margin-top: 40px;
+      padding: 16px;
+      background-color: rgba(0, 0, 0, 0.2);
+      border-radius: 8px;
+    }
+    .status.success {
+      border-left: 4px solid #91c35c;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">🔐</div>
+    <h1>Heirloom Identity Platform</h1>
+    <p>Advanced identity verification using AI-powered biometric security and blockchain verification.</p>
+    
+    <div class="buttons">
+      <a href="/client/" class="button">Launch App</a>
+      <button onclick="checkApi()" class="button secondary">Check API Status</button>
+    </div>
+    
+    <div id="status" class="status" style="display: none;"></div>
+  </div>
+
+  <script>
+    async function checkApi() {
+      const statusDiv = document.getElementById('status');
+      statusDiv.style.display = 'block';
+      statusDiv.innerHTML = 'Checking API status...';
+      
+      try {
+        const response = await fetch('/api/health');
+        const data = await response.json();
+        
+        if (data.status === 'healthy') {
+          statusDiv.className = 'status success';
+          statusDiv.innerHTML = `
+            <p><strong>API Status:</strong> ${data.status}</p>
+            <p><strong>Version:</strong> ${data.version}</p>
+            <p><strong>Environment:</strong> ${data.environment}</p>
+            <p>The API is working correctly. Try launching the app!</p>
+          `;
+        } else {
+          statusDiv.className = 'status';
+          statusDiv.innerHTML = `API returned unexpected status: ${data.status}`;
+        }
+      } catch (error) {
+        statusDiv.className = 'status';
+        statusDiv.innerHTML = `Error checking API: ${error.message}`;
+      }
+    }
+  </script>
+</body>
+</html>
