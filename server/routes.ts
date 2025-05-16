@@ -24,6 +24,38 @@ import { blockchainService } from "./blockchain/service";
 import { requireAuth, requireVerified } from "./middleware/auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // API root endpoint
+  app.get("/api", (_req: Request, res: Response) => {
+    res.json({
+      status: "healthy",
+      name: "Heirloom Identity Platform API"
+    });
+  });
+  
+  // Verification service status endpoint
+  app.get("/api/verification/status", async (_req: Request, res: Response) => {
+    try {
+      // Try to connect to the verification service
+      const axios = await import("axios");
+      const response = await axios.default.get("http://localhost:8000/api/verification/status", {
+        timeout: 3000
+      });
+      
+      res.json({
+        status: "online",
+        serviceStatus: response.data,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      // If we can't connect, return offline status
+      res.json({
+        status: "offline",
+        error: error.message,
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+  
   // User routes
   app.post("/api/auth/register", async (req: Request, res: Response) => {
     try {
