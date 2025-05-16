@@ -6,120 +6,323 @@
   <title>Heirloom Identity Platform</title>
   <style>
     body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: #f8f9fa;
+      color: #333;
       margin: 0;
       padding: 0;
-      background-color: #273414;
-      color: white;
       height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
     }
-    .container {
-      max-width: 600px;
-      padding: 20px;
+    
+    header {
+      background-color: #273414;
+      color: #fff;
+      width: 100%;
+      padding: 1.5rem 0;
       text-align: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
-    h1 {
+    
+    .logo {
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin: 0;
       color: #91c35c;
-      font-size: 32px;
-      margin-bottom: 16px;
     }
-    p {
-      font-size: 18px;
-      line-height: 1.6;
-      opacity: 0.9;
-      margin-bottom: 24px;
+    
+    .subtitle {
+      opacity: 0.8;
+      margin-top: 0.5rem;
+      font-weight: 400;
     }
+    
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      max-width: 800px;
+      width: 100%;
+      padding: 2rem;
+    }
+    
+    .card {
+      background-color: white;
+      border-radius: 0.5rem;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      padding: 2rem;
+      margin-bottom: 2rem;
+      width: 100%;
+    }
+    
+    h2 {
+      color: #273414;
+      margin-top: 0;
+      border-bottom: 2px solid #91c35c;
+      padding-bottom: 0.5rem;
+    }
+    
+    .status-display {
+      display: flex;
+      margin: 1rem 0;
+      align-items: center;
+    }
+    
+    .status-indicator {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 10px;
+    }
+    
+    .status-indicator.online {
+      background-color: #4CAF50;
+    }
+    
+    .status-indicator.offline {
+      background-color: #F44336;
+    }
+    
+    .status-text {
+      font-weight: 500;
+    }
+    
     .buttons {
       display: flex;
-      gap: 12px;
-      justify-content: center;
       flex-wrap: wrap;
+      gap: 1rem;
+      margin-top: 1.5rem;
     }
+    
     .button {
-      background-color: #91c35c;
+      padding: 0.75rem 1.25rem;
+      border-radius: 0.375rem;
       border: none;
-      color: #273414;
-      padding: 12px 24px;
-      font-size: 16px;
       font-weight: 600;
-      border-radius: 8px;
       cursor: pointer;
-      transition: transform 0.2s, background-color 0.2s;
+      transition: all 0.2s ease;
       text-decoration: none;
-      display: inline-block;
+      text-align: center;
+      min-width: 150px;
     }
-    .button:hover {
+    
+    .button.primary {
+      background-color: #91c35c;
+      color: #273414;
+    }
+    
+    .button.primary:hover {
+      background-color: #7fb144;
       transform: translateY(-2px);
-      background-color: #a1d36c;
     }
+    
     .button.secondary {
-      background-color: transparent;
-      border: 2px solid #91c35c;
-      color: #91c35c;
+      background-color: #273414;
+      color: white;
     }
+    
     .button.secondary:hover {
-      background-color: rgba(145, 195, 92, 0.1);
+      background-color: #1e280f;
+      transform: translateY(-2px);
     }
-    .logo {
-      margin-bottom: 32px;
-      font-size: 48px;
+    
+    pre {
+      background-color: #f5f5f5;
+      padding: 1rem;
+      border-radius: 0.25rem;
+      overflow: auto;
+      font-family: monospace;
+      max-height: 200px;
     }
-    .status {
-      margin-top: 40px;
-      padding: 16px;
-      background-color: rgba(0, 0, 0, 0.2);
-      border-radius: 8px;
+    
+    #apiStatus, #verificationStatus {
+      display: none;
     }
-    .status.success {
+    
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+    
+    .feature {
+      background-color: #f5f7fa;
       border-left: 4px solid #91c35c;
+      padding: 1rem;
+      border-radius: 0.25rem;
+    }
+    
+    .feature-title {
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: #273414;
+    }
+    
+    footer {
+      margin-top: 2rem;
+      padding: 1rem;
+      text-align: center;
+      font-size: 0.875rem;
+      color: #6c757d;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="logo">🔐</div>
-    <h1>Heirloom Identity Platform</h1>
-    <p>Advanced identity verification using AI-powered biometric security and blockchain verification.</p>
-    
-    <div class="buttons">
-      <a href="/client/" class="button">Launch App</a>
-      <button onclick="checkApi()" class="button secondary">Check API Status</button>
+  <header>
+    <h1 class="logo">Heirloom Identity Platform</h1>
+    <p class="subtitle">Advanced biometric verification and digital identity management</p>
+  </header>
+  
+  <main>
+    <div class="card">
+      <h2>Platform Status</h2>
+      
+      <div class="status-display">
+        <div id="apiIndicator" class="status-indicator"></div>
+        <div id="apiStatusText" class="status-text">Checking API status...</div>
+      </div>
+      
+      <div class="status-display">
+        <div id="verificationIndicator" class="status-indicator"></div>
+        <div id="verificationStatusText" class="status-text">Checking verification service...</div>
+      </div>
+      
+      <div class="buttons">
+        <button class="button primary" id="checkStatusBtn">Check Status</button>
+        <a href="/client/" class="button secondary">Launch Full Application</a>
+      </div>
+      
+      <pre id="apiStatus"></pre>
+      <pre id="verificationStatus"></pre>
     </div>
     
-    <div id="status" class="status" style="display: none;"></div>
-  </div>
-
-  <script>
-    async function checkApi() {
-      const statusDiv = document.getElementById('status');
-      statusDiv.style.display = 'block';
-      statusDiv.innerHTML = 'Checking API status...';
+    <div class="card">
+      <h2>Core Features</h2>
       
-      try {
-        const response = await fetch('/api/health');
-        const data = await response.json();
+      <div class="features">
+        <div class="feature">
+          <div class="feature-title">Face Verification</div>
+          <p>Secure biometric identity verification using advanced AI</p>
+        </div>
         
-        if (data.status === 'healthy') {
-          statusDiv.className = 'status success';
-          statusDiv.innerHTML = `
-            <p><strong>API Status:</strong> ${data.status}</p>
-            <p><strong>Version:</strong> ${data.version}</p>
-            <p><strong>Environment:</strong> ${data.environment}</p>
-            <p>The API is working correctly. Try launching the app!</p>
-          `;
-        } else {
-          statusDiv.className = 'status';
-          statusDiv.innerHTML = `API returned unexpected status: ${data.status}`;
+        <div class="feature">
+          <div class="feature-title">Blockchain Security</div>
+          <p>Enterprise-grade security with blockchain technology</p>
+        </div>
+        
+        <div class="feature">
+          <div class="feature-title">Data Control</div>
+          <p>Complete control over your personal data and privacy</p>
+        </div>
+        
+        <div class="feature">
+          <div class="feature-title">AI Integration</div>
+          <p>Seamless integration with AI systems and applications</p>
+        </div>
+      </div>
+    </div>
+  </main>
+  
+  <footer>
+    &copy; 2025 Heirloom Identity Platform
+  </footer>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const apiIndicator = document.getElementById('apiIndicator');
+      const apiStatusText = document.getElementById('apiStatusText');
+      const apiStatusPre = document.getElementById('apiStatus');
+      
+      const verificationIndicator = document.getElementById('verificationIndicator');
+      const verificationStatusText = document.getElementById('verificationStatusText');
+      const verificationStatusPre = document.getElementById('verificationStatus');
+      
+      const checkStatusBtn = document.getElementById('checkStatusBtn');
+      
+      // Function to check API status
+      async function checkApiStatus() {
+        try {
+          apiStatusText.textContent = 'Checking API status...';
+          apiIndicator.className = 'status-indicator';
+          
+          const response = await fetch('/api');
+          const data = await response.json();
+          
+          apiIndicator.className = 'status-indicator online';
+          apiStatusText.textContent = 'API: Online';
+          apiStatusPre.textContent = JSON.stringify(data, null, 2);
+          apiStatusPre.style.display = 'block';
+          
+          return true;
+        } catch (error) {
+          apiIndicator.className = 'status-indicator offline';
+          apiStatusText.textContent = 'API: Offline';
+          apiStatusPre.textContent = `Error: ${error.message}`;
+          apiStatusPre.style.display = 'block';
+          
+          return false;
         }
-      } catch (error) {
-        statusDiv.className = 'status';
-        statusDiv.innerHTML = `Error checking API: ${error.message}`;
       }
-    }
+      
+      // Function to check verification service status
+      async function checkVerificationStatus() {
+        try {
+          verificationStatusText.textContent = 'Checking verification service...';
+          verificationIndicator.className = 'status-indicator';
+          
+          const response = await fetch('/api/verification/status');
+          const data = await response.json();
+          
+          verificationIndicator.className = 'status-indicator online';
+          verificationStatusText.textContent = 'Verification Service: Online';
+          verificationStatusPre.textContent = JSON.stringify(data, null, 2);
+          verificationStatusPre.style.display = 'block';
+          
+          return true;
+        } catch (error) {
+          // Try direct access to the verification service
+          try {
+            const directResponse = await fetch('http://localhost:8000/api/verification/status');
+            const directData = await directResponse.json();
+            
+            verificationIndicator.className = 'status-indicator online';
+            verificationStatusText.textContent = 'Verification Service: Online (Direct)';
+            verificationStatusPre.textContent = JSON.stringify(directData, null, 2);
+            verificationStatusPre.style.display = 'block';
+            
+            return true;
+          } catch (directError) {
+            verificationIndicator.className = 'status-indicator offline';
+            verificationStatusText.textContent = 'Verification Service: Offline';
+            verificationStatusPre.textContent = `Error: ${error.message}`;
+            verificationStatusPre.style.display = 'block';
+            
+            return false;
+          }
+        }
+      }
+      
+      // Check status when button is clicked
+      checkStatusBtn.addEventListener('click', async () => {
+        await Promise.all([
+          checkApiStatus(),
+          checkVerificationStatus()
+        ]);
+      });
+      
+      // Initial status check
+      setTimeout(async () => {
+        await Promise.all([
+          checkApiStatus(),
+          checkVerificationStatus()
+        ]);
+      }, 1000);
+    });
   </script>
 </body>
 </html>
