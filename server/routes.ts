@@ -352,11 +352,11 @@ export async function registerRoutes(app: express.Application): Promise<Server> 
         userId,
         type: "biometric_registered",
         description: `${biometricType} biometric registered`,
-        metadata: { 
+        metadata: JSON.stringify({ 
           credentialId: id,
           deviceType,
           blockchainTxId
-        }
+        })
       });
       
       // Return success with credential
