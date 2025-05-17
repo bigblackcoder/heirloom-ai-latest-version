@@ -1,131 +1,108 @@
 /**
- * WebAuthn Type Definitions
- * 
- * This file contains shared type definitions for WebAuthn (FIDO2) biometric authentication
- * used by both the client and server components.
+ * Shared WebAuthn type definitions used by both client and server
  */
 
 /**
- * WebAuthn Registration Options
- * These options are sent from the server to the client to initiate registration
+ * WebAuthn registration options to be sent to the client
  */
 export interface WebAuthnRegistrationOptions {
-  challenge: string | ArrayBuffer;
+  challenge: {
+    data: number[];
+  };
   rp: {
     name: string;
     id?: string;
   };
   user: {
-    id: string | ArrayBuffer;
+    id: {
+      data: number[];
+    };
     name: string;
     displayName: string;
   };
-  pubKeyCredParams: {
+  pubKeyCredParams: Array<{
     type: string;
     alg: number;
-  }[];
-  timeout?: number;
-  excludeCredentials?: {
-    id: string | ArrayBuffer;
-    type: string;
-    transports?: string[];
-  }[];
+  }>;
   authenticatorSelection?: {
-    authenticatorAttachment?: string;
+    authenticatorAttachment?: 'platform' | 'cross-platform';
     requireResidentKey?: boolean;
-    residentKey?: string;
-    userVerification?: string;
+    residentKey?: 'required' | 'preferred' | 'discouraged';
+    userVerification?: 'required' | 'preferred' | 'discouraged';
   };
-  attestation?: string;
-  extensions?: {
-    credProps?: boolean;
-  };
-}
-
-/**
- * WebAuthn Authentication Options
- * These options are sent from the server to the client to initiate authentication
- */
-export interface WebAuthnAuthenticationOptions {
-  challenge: string | ArrayBuffer;
   timeout?: number;
-  rpId?: string;
-  allowCredentials?: {
-    id: string | ArrayBuffer;
+  excludeCredentials?: Array<{
     type: string;
+    id: {
+      data: number[];
+    };
     transports?: string[];
-  }[];
-  userVerification?: string;
+  }>;
+  attestation?: 'none' | 'indirect' | 'direct';
   extensions?: Record<string, any>;
 }
 
 /**
- * WebAuthn Attestation Response
- * The client sends this response to the server after registration
+ * Registration response from the client to be verified by the server
  */
-export interface WebAuthnAttestationResponse {
+export interface WebAuthnRegistrationResponse {
   id: string;
-  rawId: string;
-  type: string;
+  rawId: number[];
   response: {
+    attestationObject: number[];
     clientDataJSON: string;
-    attestationObject: string;
   };
-  authenticatorAttachment?: string;
-  clientExtensionResults?: Record<string, any>;
+  type: string;
+  clientExtensionResults: Record<string, any>;
+  authenticatorAttachment?: 'platform' | 'cross-platform';
 }
 
 /**
- * WebAuthn Authentication Response
- * The client sends this response to the server after authentication
+ * WebAuthn authentication options to be sent to the client
+ */
+export interface WebAuthnAuthenticationOptions {
+  challenge: {
+    data: number[];
+  };
+  timeout?: number;
+  rpId?: string;
+  allowCredentials?: Array<{
+    type: string;
+    id: {
+      data: number[];
+    };
+    transports?: string[];
+  }>;
+  userVerification?: 'required' | 'preferred' | 'discouraged';
+  extensions?: Record<string, any>;
+}
+
+/**
+ * Authentication response from the client to be verified by the server
  */
 export interface WebAuthnAuthenticationResponse {
   id: string;
-  rawId: string;
-  type: string;
+  rawId: number[];
   response: {
-    authenticatorData: string;
+    authenticatorData: number[];
     clientDataJSON: string;
-    signature: string;
-    userHandle?: string;
+    signature: number[];
+    userHandle?: number[] | null;
   };
-  clientExtensionResults?: Record<string, any>;
+  type: string;
+  clientExtensionResults: Record<string, any>;
 }
 
 /**
- * WebAuthn User
- * This represents a user in the WebAuthn system
- */
-export interface WebAuthnUser {
-  id: string | ArrayBuffer;
-  name: string;
-  displayName: string;
-}
-
-/**
- * WebAuthn Credential
- * This represents a credential stored by an authenticator
+ * WebAuthn credential stored in the database
  */
 export interface WebAuthnCredential {
   id: string;
+  userId: number;
   publicKey: string;
-  algorithm: string | number;
   counter: number;
-  userId: string;
   transports?: string[];
-  created?: Date;
-  lastUsed?: Date;
-}
-
-/**
- * Face Verification Response
- * This represents the response from a face verification operation
- */
-export interface FaceVerificationResponse {
-  verified: boolean;
-  confidence?: number;
-  faceId?: string;
-  userId?: string;
-  timestamp?: Date | string;
-  metadata?: Record<string, any>;
+  createdAt: Date;
+  lastUsed?: Date | null;
+  deviceInfo?: string | null;
 }

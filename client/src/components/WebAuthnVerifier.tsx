@@ -1,457 +1,308 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  Card, 
-  CardHeader, 
-  CardTitle, 
-  CardDescription, 
-  CardContent, 
-  CardFooter 
-} from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
-import { useToast } from '@/hooks/use-toast';
-import { 
-  WebAuthnRegistrationOptions, 
-  WebAuthnAuthenticationOptions,
-  WebAuthnAttestationResponse,
-  WebAuthnAuthenticationResponse
-} from '../../shared/webauthn';
+import { WebAuthnAuthenticationResponse, WebAuthnRegistrationResponse } from '@shared/webauthn';
 
-/**
- * WebAuthn registration methods available in modern browsers
- */
-declare global {
-  interface Navigator {
-    credentials: {
-      create(options: any): Promise<any>;
-      get(options: any): Promise<any>;
-    };
-  }
-}
+// Icons for different states
+const AuthenticateIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 mr-2">
+    <path d="M12 2a10 10 0 0 0-9.95 9h11.64L9.74 7.05a1 1 0 0 1 1.41-1.41l5.66 5.65a1 1 0 0 1 0 1.42l-5.66 5.65a1 1 0 0 1-1.41-1.41L13.69 13H2.05A10 10 0 1 0 12 2z" />
+  </svg>
+);
 
-/**
- * Platform detection for better UX messaging
- */
-function getPlatformSpecificName() {
-  const userAgent = navigator.userAgent.toLowerCase();
-  if (userAgent.includes('iphone') || userAgent.includes('ipad') || userAgent.includes('mac')) {
-    return 'Face ID / Touch ID';
-  } else if (userAgent.includes('android')) {
-    return 'Android biometrics';
-  }
-  return 'device biometrics';
-}
+const RegisterIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 mr-2">
+    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+    <circle cx="9" cy="7" r="4" />
+    <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+  </svg>
+);
 
-/**
- * Props for the WebAuthnVerifier component
- */
 export interface WebAuthnVerifierProps {
-  mode: 'register' | 'authenticate';
-  userId?: string;
-  username?: string;
-  displayName?: string;
-  onSuccess?: (response: any) => void;
-  onError?: (error: Error) => void;
-  autoInitiate?: boolean;
-  serverUrl?: string;
+  userId: number | string;
+  onSuccess?: (response: WebAuthnAuthenticationResponse | WebAuthnRegistrationResponse) => void;
+  onError?: (error: any) => void;
+  includeRegistration?: boolean;
+  autoTrigger?: boolean;
+  showCard?: boolean;
 }
 
-/**
- * WebAuthnVerifier Component
- * Provides a UI for WebAuthn (FIDO2) device biometric registration and authentication
- */
-export function WebAuthnVerifier({
-  mode,
+export const WebAuthnVerifier: React.FC<WebAuthnVerifierProps> = ({
   userId,
-  username,
-  displayName,
   onSuccess,
   onError,
-  autoInitiate = false,
-  serverUrl = '/api/webauthn'
-}: WebAuthnVerifierProps) {
-  // State
-  const [status, setStatus] = useState<'idle' | 'processing' | 'success' | 'error'>('idle');
+  includeRegistration = true,
+  autoTrigger = false,
+  showCard = true
+}) => {
+  const [status, setStatus] = useState<'idle' | 'authenticating' | 'registering' | 'success' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
-  const { toast } = useToast();
-  const platformName = getPlatformSpecificName();
+  const [message, setMessage] = useState<string>('Ready for biometric authentication');
 
-  /**
-   * Start the WebAuthn registration process
-   */
-  const startRegistration = useCallback(async () => {
-    if (!userId || !username) {
-      setError('User ID and username are required for registration');
-      setStatus('error');
-      toast({
-        title: 'Missing Information',
-        description: 'User ID and username are required for registration',
-        variant: 'destructive'
-      });
-      return;
-    }
+  // Convert userId to number if it's a string
+  const numericUserId = typeof userId === 'string' ? parseInt(userId, 10) : userId;
 
-    try {
-      setStatus('processing');
-      setProgress(10);
-      
-      // Get registration options from server
-      const optionsResponse = await fetch(`${serverUrl}/register/options`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, username, displayName }),
-        credentials: 'include'
-      });
-      
-      if (!optionsResponse.ok) {
-        throw new Error('Failed to get registration options from server');
-      }
-      
-      const options: WebAuthnRegistrationOptions = await optionsResponse.json();
-      setProgress(30);
-      
-      // Convert base64url strings to ArrayBuffer as required by the WebAuthn API
-      options.challenge = Uint8Array.from(
-        atob(options.challenge), c => c.charCodeAt(0)
-      ).buffer;
-      
-      options.user.id = Uint8Array.from(
-        atob(options.user.id), c => c.charCodeAt(0)
-      ).buffer;
-      
-      if (options.excludeCredentials) {
-        options.excludeCredentials = options.excludeCredentials.map(cred => ({
-          ...cred,
-          id: Uint8Array.from(atob(cred.id), c => c.charCodeAt(0)).buffer
-        }));
-      }
-
-      setProgress(50);
-      
-      // Create credentials using WebAuthn API
-      const credential = await navigator.credentials.create({
-        publicKey: options as any
-      });
-      
-      setProgress(70);
-      
-      if (!credential) {
-        throw new Error('No credentials returned from authenticator');
-      }
-
-      // Prepare the attestation response for the server
-      const attestation = credential as any;
-      const clientData = attestation.response.clientDataJSON;
-      const attestationObject = attestation.response.attestationObject;
-      
-      // Convert ArrayBuffer to base64url string for sending to server
-      const attestationResponse: WebAuthnAttestationResponse = {
-        id: attestation.id,
-        rawId: arrayBufferToBase64url(attestation.rawId),
-        type: attestation.type,
-        response: {
-          clientDataJSON: arrayBufferToBase64url(clientData),
-          attestationObject: arrayBufferToBase64url(attestationObject)
-        },
-        authenticatorAttachment: attestation.authenticatorAttachment
-      };
-      
-      setProgress(80);
-      
-      // Send attestation to server for verification
-      const verificationResponse = await fetch(`${serverUrl}/register/verify`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(attestationResponse),
-        credentials: 'include'
-      });
-      
-      if (!verificationResponse.ok) {
-        const errorData = await verificationResponse.json();
-        throw new Error(errorData.error || 'Failed to verify registration');
-      }
-      
-      const verificationResult = await verificationResponse.json();
-      setProgress(100);
-      
-      // Success!
-      setStatus('success');
-      toast({
-        title: 'Registration Successful',
-        description: `Your ${platformName} has been successfully registered`,
-        variant: 'default'
-      });
-      
-      if (onSuccess) {
-        onSuccess(verificationResult);
-      }
-      
-    } catch (err: any) {
-      console.error('WebAuthn Registration Error:', err);
-      setStatus('error');
-      setError(err.message || 'Failed to register device');
-      
-      toast({
-        title: 'Registration Failed',
-        description: err.message || 'Failed to register device',
-        variant: 'destructive'
-      });
-      
-      if (onError) {
-        onError(err);
-      }
-    }
-  }, [userId, username, displayName, serverUrl, toast, onSuccess, onError, platformName]);
-
-  /**
-   * Start the WebAuthn authentication process
-   */
-  const startAuthentication = useCallback(async () => {
-    try {
-      setStatus('processing');
-      setProgress(10);
-      
-      // Get authentication options from server
-      const optionsResponse = await fetch(`${serverUrl}/authenticate/options`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId }),
-        credentials: 'include'
-      });
-      
-      if (!optionsResponse.ok) {
-        throw new Error('Failed to get authentication options from server');
-      }
-      
-      const options: WebAuthnAuthenticationOptions = await optionsResponse.json();
-      setProgress(30);
-      
-      // Convert base64url strings to ArrayBuffer as required by the WebAuthn API
-      options.challenge = Uint8Array.from(
-        atob(options.challenge), c => c.charCodeAt(0)
-      ).buffer;
-      
-      if (options.allowCredentials) {
-        options.allowCredentials = options.allowCredentials.map(cred => ({
-          ...cred,
-          id: Uint8Array.from(atob(cred.id), c => c.charCodeAt(0)).buffer
-        }));
-      }
-
-      setProgress(50);
-      
-      // Get credentials using WebAuthn API
-      const credential = await navigator.credentials.get({
-        publicKey: options as any
-      });
-      
-      setProgress(70);
-      
-      if (!credential) {
-        throw new Error('No credentials returned from authenticator');
-      }
-
-      // Prepare the assertion response for the server
-      const assertion = credential as any;
-      const authenticatorData = assertion.response.authenticatorData;
-      const clientDataJSON = assertion.response.clientDataJSON;
-      const signature = assertion.response.signature;
-      const userHandle = assertion.response.userHandle;
-      
-      // Convert ArrayBuffer to base64url string for sending to server
-      const authenticationResponse: WebAuthnAuthenticationResponse = {
-        id: assertion.id,
-        rawId: arrayBufferToBase64url(assertion.rawId),
-        type: assertion.type,
-        response: {
-          authenticatorData: arrayBufferToBase64url(authenticatorData),
-          clientDataJSON: arrayBufferToBase64url(clientDataJSON),
-          signature: arrayBufferToBase64url(signature),
-          userHandle: userHandle ? arrayBufferToBase64url(userHandle) : undefined
-        }
-      };
-      
-      setProgress(80);
-      
-      // Send assertion to server for verification
-      const verificationResponse = await fetch(`${serverUrl}/authenticate/verify`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(authenticationResponse),
-        credentials: 'include'
-      });
-      
-      if (!verificationResponse.ok) {
-        const errorData = await verificationResponse.json();
-        throw new Error(errorData.error || 'Failed to verify authentication');
-      }
-      
-      const verificationResult = await verificationResponse.json();
-      setProgress(100);
-      
-      // Success!
-      setStatus('success');
-      toast({
-        title: 'Authentication Successful',
-        description: `You've been successfully authenticated using ${platformName}`,
-        variant: 'default'
-      });
-      
-      if (onSuccess) {
-        onSuccess(verificationResult);
-      }
-      
-    } catch (err: any) {
-      console.error('WebAuthn Authentication Error:', err);
-      setStatus('error');
-      setError(err.message || 'Failed to authenticate');
-      
-      toast({
-        title: 'Authentication Failed',
-        description: err.message || 'Failed to authenticate using device biometrics',
-        variant: 'destructive'
-      });
-      
-      if (onError) {
-        onError(err);
-      }
-    }
-  }, [userId, serverUrl, toast, onSuccess, onError, platformName]);
-
-  // Auto-initiate the WebAuthn flow if requested
-  useEffect(() => {
-    if (autoInitiate && status === 'idle') {
-      if (mode === 'register') {
-        startRegistration();
-      } else {
-        startAuthentication();
-      }
-    }
-  }, [autoInitiate, mode, status, startRegistration, startAuthentication]);
-
-  // Reset component if key props change
-  useEffect(() => {
-    setStatus('idle');
-    setError(null);
+  const simulateProgress = useCallback(() => {
     setProgress(0);
-  }, [mode, userId, username]);
-
-  // Determine button text based on mode and status
-  const getButtonText = () => {
-    if (status === 'processing') {
-      return mode === 'register' 
-        ? `Registering with ${platformName}...` 
-        : `Authenticating with ${platformName}...`;
-    }
+    const interval = setInterval(() => {
+      setProgress(prev => {
+        if (prev >= 90) {
+          clearInterval(interval);
+          return prev;
+        }
+        return prev + 10;
+      });
+    }, 300);
     
-    if (status === 'error') {
-      return 'Try Again';
+    return () => clearInterval(interval);
+  }, []);
+
+  // Handle WebAuthn authentication
+  const handleAuthenticate = useCallback(async () => {
+    try {
+      setStatus('authenticating');
+      setMessage('Preparing authentication challenge...');
+      setError(null);
+      const cleanup = simulateProgress();
+
+      // Get authentication options from server
+      const optionsResponse = await fetch('/api/webauthn/generate-authentication-options', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: numericUserId })
+      });
+
+      if (!optionsResponse.ok) {
+        const errorData = await optionsResponse.json();
+        throw new Error(errorData.message || 'Failed to get authentication options');
+      }
+
+      const options = await optionsResponse.json();
+      setMessage('Please complete the biometric verification on your device...');
+
+      // Get credentials from browser
+      const credential = await navigator.credentials.get({
+        publicKey: {
+          ...options,
+          challenge: new Uint8Array(options.challenge.data),
+          allowCredentials: options.allowCredentials?.map((cred: any) => ({
+            ...cred,
+            id: new Uint8Array(cred.id.data),
+          })) || [],
+        }
+      }) as PublicKeyCredential;
+
+      // Prepare response for verification
+      const authenticatorData = credential.response as AuthenticatorAssertionResponse;
+      const clientDataJSON = new TextDecoder().decode(authenticatorData.clientDataJSON);
+      
+      setMessage('Verifying authentication...');
+
+      // Verify with server
+      const verifyResponse = await fetch('/api/webauthn/verify-authentication', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: credential.id,
+          rawId: Array.from(new Uint8Array(credential.rawId)),
+          response: {
+            authenticatorData: Array.from(new Uint8Array(authenticatorData.authenticatorData)),
+            clientDataJSON,
+            signature: Array.from(new Uint8Array(authenticatorData.signature)),
+            userHandle: authenticatorData.userHandle ? Array.from(new Uint8Array(authenticatorData.userHandle)) : null
+          },
+          type: credential.type,
+          clientExtensionResults: credential.getClientExtensionResults()
+        })
+      });
+
+      if (!verifyResponse.ok) {
+        const errorData = await verifyResponse.json();
+        throw new Error(errorData.message || 'Authentication verification failed');
+      }
+
+      const result = await verifyResponse.json();
+      setProgress(100);
+      setStatus('success');
+      setMessage('Authentication successful');
+      
+      if (onSuccess) {
+        onSuccess(result);
+      }
+      
+      cleanup();
+    } catch (err: any) {
+      setStatus('error');
+      setError(err.message || 'Authentication failed. Try again.');
+      if (onError) {
+        onError(err);
+      }
     }
-    
-    return mode === 'register' 
-      ? `Register with ${platformName}` 
-      : `Authenticate with ${platformName}`;
-  };
+  }, [numericUserId, onSuccess, onError, simulateProgress]);
 
-  // Determine card title based on mode
-  const getCardTitle = () => {
-    return mode === 'register' 
-      ? `Register ${platformName}` 
-      : `Authenticate with ${platformName}`;
-  };
+  // Handle WebAuthn registration
+  const handleRegister = useCallback(async () => {
+    try {
+      setStatus('registering');
+      setMessage('Preparing registration...');
+      setError(null);
+      const cleanup = simulateProgress();
 
-  // Determine card description based on mode
-  const getCardDescription = () => {
-    return mode === 'register'
-      ? `Add your ${platformName} to your account for secure biometric authentication.`
-      : `Use your ${platformName} to securely authenticate to your account.`;
-  };
+      // Get registration options from server
+      const optionsResponse = await fetch('/api/webauthn/generate-registration-options', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: numericUserId,
+          username: `user-${numericUserId}`,
+          displayName: `User ${numericUserId}`
+        })
+      });
 
-  // Handle button click based on status
-  const handleButtonClick = () => {
-    if (status === 'processing') return;
-    
-    setError(null);
-    
-    if (mode === 'register') {
-      startRegistration();
-    } else {
-      startAuthentication();
+      if (!optionsResponse.ok) {
+        const errorData = await optionsResponse.json();
+        throw new Error(errorData.message || 'Failed to get registration options');
+      }
+
+      const options = await optionsResponse.json();
+      setMessage('Please complete the biometric registration on your device...');
+      
+      // Create credentials with browser WebAuthn API
+      const credential = await navigator.credentials.create({
+        publicKey: {
+          ...options,
+          challenge: new Uint8Array(options.challenge.data),
+          user: {
+            ...options.user,
+            id: new Uint8Array(options.user.id.data),
+          },
+          excludeCredentials: options.excludeCredentials?.map((cred: any) => ({
+            ...cred,
+            id: new Uint8Array(cred.id.data),
+          })) || [],
+        }
+      }) as PublicKeyCredential;
+
+      // Prepare response for verification
+      const attestationResponse = credential.response as AuthenticatorAttestationResponse;
+      const clientDataJSON = new TextDecoder().decode(attestationResponse.clientDataJSON);
+      
+      setMessage('Verifying registration...');
+      
+      // Verify with server
+      const verifyResponse = await fetch('/api/webauthn/verify-registration', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: credential.id,
+          rawId: Array.from(new Uint8Array(credential.rawId)),
+          response: {
+            attestationObject: Array.from(new Uint8Array(attestationResponse.attestationObject)),
+            clientDataJSON
+          },
+          type: credential.type,
+          clientExtensionResults: credential.getClientExtensionResults()
+        })
+      });
+
+      if (!verifyResponse.ok) {
+        const errorData = await verifyResponse.json();
+        throw new Error(errorData.message || 'Registration verification failed');
+      }
+
+      const result = await verifyResponse.json();
+      setProgress(100);
+      setStatus('success');
+      setMessage('Registration successful');
+      
+      if (onSuccess) {
+        onSuccess(result);
+      }
+      
+      cleanup();
+    } catch (err: any) {
+      setStatus('error');
+      setError(err.message || 'Registration failed. Try again.');
+      if (onError) {
+        onError(err);
+      }
     }
-  };
+  }, [numericUserId, onSuccess, onError, simulateProgress]);
 
-  // Helper function to convert ArrayBuffer to base64url string
-  function arrayBufferToBase64url(buffer: ArrayBuffer): string {
-    const bytes = new Uint8Array(buffer);
-    let str = '';
-    for (let i = 0; i < bytes.byteLength; i++) {
-      str += String.fromCharCode(bytes[i]);
+  // Auto-trigger authentication if enabled
+  useEffect(() => {
+    if (autoTrigger && status === 'idle') {
+      handleAuthenticate();
     }
-    return btoa(str)
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=+$/, '');
+  }, [autoTrigger, status, handleAuthenticate]);
+
+  // Render the WebAuthn component with or without card wrapper
+  const content = (
+    <>
+      {status !== 'idle' && (
+        <div className="mb-4">
+          <Progress value={progress} className="h-2" />
+        </div>
+      )}
+      
+      {error && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      
+      {status === 'success' && (
+        <Alert variant="success" className="mb-4">
+          <AlertTitle>Success</AlertTitle>
+          <AlertDescription>{message}</AlertDescription>
+        </Alert>
+      )}
+      
+      <div className="flex flex-col gap-2 mt-4">
+        {status !== 'authenticating' && (
+          <Button
+            onClick={handleAuthenticate}
+            disabled={status === 'registering' || status === 'authenticating'}
+          >
+            <AuthenticateIcon />
+            Authenticate with Biometrics
+          </Button>
+        )}
+
+        {includeRegistration && status !== 'registering' && (
+          <Button
+            variant="outline"
+            onClick={handleRegister}
+            disabled={status === 'registering' || status === 'authenticating'}
+          >
+            <RegisterIcon />
+            Register New Device
+          </Button>
+        )}
+      </div>
+    </>
+  );
+
+  if (!showCard) {
+    return <div>{content}</div>;
   }
 
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
-        <CardTitle>{getCardTitle()}</CardTitle>
-        <CardDescription>{getCardDescription()}</CardDescription>
+        <CardTitle>Biometric Authentication</CardTitle>
+        <CardDescription>
+          Verify your identity using your device's biometric authentication
+        </CardDescription>
       </CardHeader>
-      
-      <CardContent className="space-y-4">
-        {status === 'processing' && (
-          <div className="space-y-2">
-            <Progress value={progress} />
-            <p className="text-sm text-center text-muted-foreground">
-              {progress < 30 && 'Preparing verification options...'}
-              {progress >= 30 && progress < 60 && `Waiting for ${platformName} response...`}
-              {progress >= 60 && progress < 90 && 'Verifying with server...'}
-              {progress >= 90 && 'Completing verification...'}
-            </p>
-          </div>
-        )}
-        
-        {status === 'success' && (
-          <Alert variant="success">
-            <AlertTitle>Success!</AlertTitle>
-            <AlertDescription>
-              {mode === 'register' 
-                ? `Your ${platformName} has been successfully registered.` 
-                : `You've been successfully authenticated using ${platformName}.`}
-            </AlertDescription>
-          </Alert>
-        )}
-        
-        {status === 'error' && error && (
-          <Alert variant="destructive">
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-        
-        {!navigator.credentials && (
-          <Alert variant="destructive">
-            <AlertTitle>Browser Not Supported</AlertTitle>
-            <AlertDescription>
-              Your browser doesn't support WebAuthn. Please use a modern browser like Chrome, Firefox, Safari, or Edge.
-            </AlertDescription>
-          </Alert>
-        )}
+      <CardContent>
+        {content}
       </CardContent>
-      
-      <CardFooter>
-        <Button 
-          className="w-full" 
-          onClick={handleButtonClick}
-          disabled={status === 'processing' || !navigator.credentials}
-        >
-          {getButtonText()}
-        </Button>
-      </CardFooter>
     </Card>
   );
-}
+};

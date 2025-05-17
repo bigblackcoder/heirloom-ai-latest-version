@@ -1,19 +1,22 @@
-import { Router } from 'express';
-import { 
+import express, { Router } from 'express';
+import {
   generateRegistrationOptions,
   verifyRegistration,
   generateAuthenticationOptions,
   verifyAuthentication
 } from '../webauthn-controller';
 
-const router = Router();
+/**
+ * Router for WebAuthn-related endpoints
+ */
+const webauthnRouter = Router();
 
 // WebAuthn registration endpoints
-router.post('/register/options', generateRegistrationOptions);
-router.post('/register/verify', verifyRegistration);
+webauthnRouter.post('/generate-registration-options', generateRegistrationOptions);
+webauthnRouter.post('/verify-registration', verifyRegistration);
 
 // WebAuthn authentication endpoints
-router.post('/authenticate/options', generateAuthenticationOptions);
-router.post('/authenticate/verify', verifyAuthentication);
+webauthnRouter.post('/generate-authentication-options', generateAuthenticationOptions);
+webauthnRouter.post('/verify-authentication', verifyAuthentication);
 
-export default router;
+export default webauthnRouter;

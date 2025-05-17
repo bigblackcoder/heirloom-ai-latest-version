@@ -4,7 +4,7 @@ import fileUpload from "express-fileupload";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { sessionMiddleware } from "./session";
-import { registerRoutes as registerAPIRoutes } from "./routes/index";
+import apiRouter from "./routes/index";
 
 const app = express();
 app.use(express.json({ limit: '50mb' }));
