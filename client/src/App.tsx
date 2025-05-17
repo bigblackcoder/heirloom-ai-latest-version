@@ -383,56 +383,62 @@ const Dashboard = () => {
   );
 };
 
+import { useBiometricAuth } from './hooks/useBiometricAuth';
+
 const BiometricAuth = () => {
   const [step, setStep] = useState(1);
-  const [error, setError] = useState('');
-  const [biometricType, setBiometricType] = useState('fingerprint'); // can be 'fingerprint', 'faceId', or 'other'
+  const [customError, setCustomError] = useState('');
   const [, setLocation] = useLocation();
   
-  useEffect(() => {
-    // Detect the device's likely biometric method
-    const detectBiometricType = () => {
-      const userAgent = navigator.userAgent.toLowerCase();
-      
-      if (userAgent.indexOf('iphone') !== -1 || userAgent.indexOf('ipad') !== -1) {
-        // iOS devices typically use Face ID on newer models
-        setBiometricType('faceId');
-      } else if (userAgent.indexOf('android') !== -1) {
-        // Android devices typically use fingerprint
-        setBiometricType('fingerprint');
-      } else {
-        // Default for other devices
-        setBiometricType('other');
-      }
-    };
-    
-    detectBiometricType();
-  }, []);
+  const { 
+    isSupported, 
+    isAvailable, 
+    biometricType, 
+    isLoading, 
+    error: authError, 
+    authenticate 
+  } = useBiometricAuth();
   
-  const simulateBiometricAuth = () => {
-    setStep(2);
-    
-    // Simulate biometric verification with enhanced security
-    // This would call our secure API endpoint in a real implementation
-    setTimeout(() => {
-      // 80% success rate for demo
-      const success = Math.random() > 0.2;
+  // Combine errors from hook and component
+  const error = authError || customError;
+  
+  useEffect(() => {
+    // Check if biometric authentication is available
+    if (!isSupported) {
+      setCustomError('Biometric authentication is not supported on this browser.');
+    } else if (!isAvailable) {
+      setCustomError('No biometric authenticator available on this device.');
+    }
+  }, [isSupported, isAvailable]);
+  
+  // Handle starting the real biometric authentication process
+  const startBiometricAuth = async () => {
+    try {
+      setCustomError('');
+      setStep(2);
+      
+      // Attempt to authenticate using device biometrics
+      const success = await authenticate();
       
       if (success) {
         setStep(3);
-        // Simulate session security enhancement and verification tracking
+        // Redirect to dashboard after successful authentication
         setTimeout(() => {
           setLocation('/dashboard');
         }, 1500);
       } else {
-        if (Math.random() > 0.5) {
-          setError('Biometric verification failed. Please try again.');
-        } else {
-          setError('Verification timeout. Please ensure your biometric sensor is clean and try again.');
+        // If authentication was not successful but no specific error was set
+        // (this should rarely happen as errors are handled in the hook)
+        if (!authError) {
+          setCustomError('Authentication failed. Please try again.');
         }
         setStep(1);
       }
-    }, 2000);
+    } catch (err) {
+      console.error('Biometric authentication error:', err);
+      setCustomError(err.message || 'Authentication failed. Please try again.');
+      setStep(1);
+    }
   };
   
   // Icons for different biometric types
@@ -510,11 +516,28 @@ const BiometricAuth = () => {
                   </div>
                 </div>
                 <button 
-                  onClick={simulateBiometricAuth}
-                  className="w-full bg-indigo-600 text-white py-3 px-6 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 flex items-center justify-center"
+                  onClick={startBiometricAuth}
+                  disabled={isLoading || !isSupported || !isAvailable}
+                  className={`w-full py-3 px-6 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 flex items-center justify-center ${
+                    isLoading || !isSupported || !isAvailable 
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                      : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                  }`}
                 >
-                  <BiometricIcon />
-                  <span className="ml-2">Authenticate with {getBiometricText()}</span>
+                  {isLoading ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <BiometricIcon />
+                      <span className="ml-2">Authenticate with {getBiometricText()}</span>
+                    </>
+                  )}
                 </button>
               </div>
             )}
