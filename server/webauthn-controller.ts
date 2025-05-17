@@ -26,11 +26,12 @@ const CHALLENGE_TIMEOUT = 5 * 60 * 1000;
 // Clean up expired challenges periodically
 setInterval(() => {
   const now = Date.now();
-  for (const [key, value] of challengeStore.entries()) {
+  // Convert to array before iterating to avoid MapIterator typing issues
+  Array.from(challengeStore.entries()).forEach(([key, value]) => {
     if (now - value.timestamp > CHALLENGE_TIMEOUT) {
       challengeStore.delete(key);
     }
-  }
+  });
 }, 60000); // Run cleanup every minute
 
 // Helper functions
@@ -60,6 +61,14 @@ function getRelyingPartyId(req: Request): string {
   const hostname = req.hostname || 'localhost';
   // Return just the domain without port for security reasons
   return hostname.split(':')[0];
+}
+
+// Helper to ensure userId is always a string
+function ensureStringUserId(userId: string | number | undefined): string | undefined {
+  if (userId === undefined) {
+    return undefined;
+  }
+  return String(userId);
 }
 
 /**
@@ -268,7 +277,7 @@ export async function verifyAuthentication(req: Request, res: Response) {
       req.session.isVerified = true;
       if (!req.session.userId) {
         // Ensure userId is stored as a string in the session
-        req.session.userId = String(userCredential[0].userId);
+        req.session.userId = userCredential[0].userId;  // Already a string from the schema
       }
     }
 
@@ -416,8 +425,8 @@ export async function verifyHybridAuthentication(req: Request, res: Response) {
       // Only mark as verified if both checks pass for hybrid auth
       req.session.isVerified = !isHybridAuth || (isHybridAuth && faceVerified);
       if (!req.session.userId) {
-        // Ensure userId is stored as a string in the session
-        req.session.userId = String(userCredential[0].userId);
+        // userId is already a string from the schema
+        req.session.userId = userCredential[0].userId;
       }
     }
 
