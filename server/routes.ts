@@ -403,7 +403,7 @@ export async function registerRoutes(app: express.Application): Promise<Server> 
         const credentials = await storage.getBiometricCredentialsByUserId(userId);
         allowCredentials = credentials.map(cred => ({
           id: cred.credentialId,
-          type: "public-key"
+          type: "public-key" as const
         }));
       }
       
@@ -498,11 +498,11 @@ export async function registerRoutes(app: express.Application): Promise<Server> 
         userId,
         type: "identity_verified",
         description: `Identity verified with ${credential.biometricType}`,
-        metadata: { 
+        metadata: JSON.stringify({ 
           credentialId: id,
           deviceType: credential.deviceType,
           blockchainTxId: credential.blockchainTxId
-        }
+        })
       });
       
       // Return success
