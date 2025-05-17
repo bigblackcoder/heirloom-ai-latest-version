@@ -533,7 +533,7 @@ export async function registerRoutes(app: express.Application): Promise<Server> 
       // Log activity with properly formatted metadata
       await storage.createActivity({
         userId: Number(userId),
-        activityType: "identity_verified",
+        type: "identity_verified",
         description: `Identity verified with ${credential.biometricType}`,
         metadata: { 
           credentialId: id,
@@ -550,23 +550,26 @@ export async function registerRoutes(app: express.Application): Promise<Server> 
         verified: true,
         message: "Identity verified successfully"
       });
-    } catch (error) {
-      console.error("Error verifying identity:", error);
+    } catch (error: any) {
+      console.error("Error verifying identity:", error?.message || error);
       return res.status(500).json({ 
         success: false, 
         verified: false,
-        message: "Failed to verify identity" 
+        message: "Failed to verify identity",
+        error: "verification_error"
       });
     }
   });
 
   app.delete("/api/biometrics/credentials/:credentialId", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const userId = req.session!.userId as number;
+      const userId = req.session?.userId;
       if (!userId) {
+        console.error("Credential deletion failed: User ID not found in session");
         return res.status(401).json({
           success: false,
-          message: "User ID not found in session"
+          message: "User ID not found in session",
+          error: "missing_user_id"
         });
       }
       
@@ -576,17 +579,21 @@ export async function registerRoutes(app: express.Application): Promise<Server> 
       const credential = await storage.getBiometricCredentialByCredentialId(credentialId);
       
       if (!credential) {
+        console.error(`Credential deletion failed: Credential ID ${credentialId} not found`);
         return res.status(404).json({ 
           success: false, 
-          message: "Credential not found" 
+          message: "Credential not found",
+          error: "credential_not_found"
         });
       }
       
       // Verify ownership
-      if (credential.userId !== userId) {
+      if (credential.userId !== Number(userId)) {
+        console.error(`Credential deletion failed: Credential ID ${credentialId} belongs to a different user`);
         return res.status(403).json({ 
           success: false, 
-          message: "You don't have permission to delete this credential" 
+          message: "You don't have permission to delete this credential",
+          error: "invalid_ownership"
         });
       }
       
@@ -612,10 +619,11 @@ export async function registerRoutes(app: express.Application): Promise<Server> 
         success: true, 
         message: "Biometric credential removed successfully" 
       });
-    } catch (error) {
-      console.error("Error removing biometric credential:", error);
+    } catch (error: any) {
+      console.error("Error removing biometric credential:", error?.message || error);
       return res.status(500).json({ 
-        success: false, 
+        success: false,
+        error: "deletion_failed",
         message: "Failed to remove biometric credential" 
       });
     }
