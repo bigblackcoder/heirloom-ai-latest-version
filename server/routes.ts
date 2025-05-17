@@ -89,9 +89,9 @@ export async function registerRoutes(app: express.Application): Promise<Server> 
         userId: newUser.id,
         type: "account_created",
         description: "Account created",
-        metadata: { 
+        metadata: JSON.stringify({ 
           method: "password" 
-        }
+        })
       });
       
       // Return user (without password)
@@ -134,9 +134,9 @@ export async function registerRoutes(app: express.Application): Promise<Server> 
         userId: user.id,
         type: "login",
         description: "User logged in",
-        metadata: { 
+        metadata: JSON.stringify({ 
           method: "password" 
-        }
+        })
       });
       
       // Return user (without password)
@@ -168,8 +168,8 @@ export async function registerRoutes(app: express.Application): Promise<Server> 
     try {
       const userId = req.session!.userId;
       
-      // Get user
-      const user = await storage.getUser(userId);
+      // Get user (convert userId to number since our storage expects a number)
+      const user = await storage.getUser(Number(userId));
       if (!user) {
         return res.status(404).json({ success: false, message: "User not found" });
       }
@@ -561,11 +561,11 @@ export async function registerRoutes(app: express.Application): Promise<Server> 
         userId,
         type: "biometric_removed",
         description: `${credential.biometricType} biometric removed`,
-        metadata: { 
+        metadata: JSON.stringify({ 
           credentialId,
           deviceType: credential.deviceType,
           blockchainTxId: credential.blockchainTxId
-        }
+        })
       });
       
       // Return success

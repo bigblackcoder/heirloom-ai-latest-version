@@ -164,7 +164,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createActivity(activity: InsertActivity): Promise<Activity> {
-    const [newActivity] = await db.insert(activities).values(activity).returning();
+    // Metadata is now stored as a string, so ensure it's properly formatted
+    const activityData = {
+      ...activity,
+      // No type conversion needed since we're already using text in the schema
+    };
+    
+    const [newActivity] = await db.insert(activities).values(activityData).returning();
     return newActivity;
   }
 
