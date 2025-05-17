@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Device Biometric Authentication Demo</title>
+  <style>
+    :root {
+      --primary: #273414;
+      --primary-light: #91c35c;
+      --secondary: #d4a166;
+      --background: #f5f5f5;
+      --text: #333;
+      --card-bg: white;
+    }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: var(--background);
+      color: var(--text);
+      margin: 0;
+      padding: 0;
+      line-height: 1.6;
+    }
+    
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    header {
+      background-color: var(--primary);
+      color: white;
+      padding: 20px 0;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    
+    .logo {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--primary-light);
+      margin: 0;
+    }
+    
+    .subtitle {
+      font-size: 16px;
+      opacity: 0.8;
+      margin: 5px 0 0;
+    }
+    
+    .card {
+      background-color: var(--card-bg);
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    
+    h2 {
+      color: var(--primary);
+      font-size: 20px;
+      margin-top: 0;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--primary-light);
+    }
+    
+    .form-group {
+      margin-bottom: 15px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 500;
+    }
+    
+    input, select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    
+    button {
+      background-color: var(--primary-light);
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    
+    button:hover {
+      background-color: #7eaf4a;
+    }
+    
+    button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+    
+    .button-secondary {
+      background-color: var(--primary);
+    }
+    
+    .button-secondary:hover {
+      background-color: #1e280f;
+    }
+    
+    .status {
+      padding: 15px;
+      margin-top: 15px;
+      border-radius: 4px;
+      display: none;
+    }
+    
+    .status.success {
+      background-color: rgba(145, 195, 92, 0.2);
+      border-left: 4px solid var(--primary-light);
+      display: block;
+    }
+    
+    .status.error {
+      background-color: rgba(255, 99, 71, 0.2);
+      border-left: 4px solid #ff6347;
+      display: block;
+    }
+    
+    .biometric-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 30px 20px;
+      background-color: #f5f7fa;
+      border-radius: 8px;
+      margin: 20px 0;
+      text-align: center;
+    }
+    
+    .biometric-icon {
+      width: 80px;
+      height: 80px;
+      margin-bottom: 15px;
+    }
+    
+    .biometric-type {
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+    
+    .biometric-description {
+      font-size: 14px;
+      color: #666;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+    
+    .loader {
+      border: 5px solid #f3f3f3;
+      border-top: 5px solid var(--primary-light);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 2s linear infinite;
+      margin: 20px auto;
+      display: none;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .result-container {
+      margin-top: 15px;
+      font-family: monospace;
+      background-color: #f5f5f5;
+      padding: 15px;
+      border-radius: 4px;
+      max-height: 200px;
+      overflow: auto;
+      white-space: pre-wrap;
+    }
+    
+    .tabs {
+      display: flex;
+      margin-bottom: 15px;
+      border-bottom: 1px solid #ddd;
+    }
+    
+    .tab {
+      padding: 10px 15px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      border-bottom: none;
+      margin-right: 5px;
+      border-radius: 4px 4px 0 0;
+      background-color: #f5f5f5;
+    }
+    
+    .tab.active {
+      background-color: white;
+      border-color: #ddd;
+      margin-bottom: -1px;
+    }
+    
+    .tab-content {
+      display: none;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+    
+    .api-result {
+      margin-top: 20px;
+      padding: 15px;
+      background-color: #f5f5f5;
+      border-radius: 4px;
+      font-family: monospace;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <h1 class="logo">Heirloom Identity Platform</h1>
+      <p class="subtitle">Device-Native Biometric Authentication Demo</p>
+    </div>
+  </header>
+  
+  <div class="container">
+    <div class="card">
+      <h2>Biometric Authentication</h2>
+      
+      <div class="tabs">
+        <div class="tab active" data-tab="web">Web Implementation</div>
+        <div class="tab" data-tab="mobile">Mobile Implementation</div>
+      </div>
+      
+      <div id="web-tab" class="tab-content active">
+        <p>This demo showcases how device biometrics can be used with blockchain for identity verification.</p>
+        
+        <div class="biometric-container">
+          <svg class="biometric-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#273414" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 11c0 3.866-3.134 7-7 7M12 11c0-3.866 3.134-7 7-7M12 11h10M2 11h10"/>
+            <circle cx="12" cy="11" r="2"/>
+            <path d="M12 11c0 7.732-6.268 14-14 14M12 11c0-7.732 6.268-14 14-14M12 11h10M2 11h10"/>
+          </svg>
+          <div class="biometric-type">Face ID / Touch ID</div>
+          <p class="biometric-description">
+            Authentication is performed by your device's secure hardware. 
+            No biometric data leaves your device - only verification metadata is stored on the blockchain.
+          </p>
+        </div>
+        
+        <div class="form-group">
+          <label for="web-user-id">User ID</label>
+          <input type="text" id="web-user-id" value="user-1234" placeholder="Enter user ID">
+        </div>
+        
+        <div class="buttons">
+          <button id="web-register-btn">Register Device Biometric</button>
+          <button id="web-verify-btn" class="button-secondary">Verify Identity</button>
+        </div>
+        
+        <div id="web-loader" class="loader"></div>
+        <div id="web-status" class="status"></div>
+        
+        <div id="web-result" class="result-container"></div>
+      </div>
+      
+      <div id="mobile-tab" class="tab-content">
+        <p>This implementation shows how device biometrics would work in a mobile environment.</p>
+        
+        <div class="biometric-container">
+          <svg class="biometric-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#273414" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M11 4H8a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1h-5z"/>
+            <circle cx="12" cy="16" r="1"/>
+            <path d="M12 10v2"/>
+          </svg>
+          <div class="biometric-type">Face ID / Fingerprint</div>
+          <p class="biometric-description">
+            Authentication uses the device's native biometric APIs with secure storage in the keychain/keystore.
+            All biometric processing happens in the secure hardware.
+          </p>
+        </div>
+        
+        <div class="form-group">
+          <label for="mobile-user-id">User ID</label>
+          <input type="text" id="mobile-user-id" value="mobile-user-5678" placeholder="Enter user ID">
+        </div>
+        
+        <div class="buttons">
+          <button id="mobile-register-btn">Register Device Biometric</button>
+          <button id="mobile-verify-btn" class="button-secondary">Verify Identity</button>
+        </div>
+        
+        <div id="mobile-loader" class="loader"></div>
+        <div id="mobile-status" class="status"></div>
+        
+        <div id="mobile-result" class="result-container"></div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <h2>API Test</h2>
+      
+      <div class="form-group">
+        <label for="api-endpoint">API Endpoint</label>
+        <select id="api-endpoint">
+          <option value="/api">API Status</option>
+          <option value="/api/verification/status">Verification Status</option>
+        </select>
+      </div>
+      
+      <button id="test-api-btn">Test API</button>
+      
+      <div id="api-loader" class="loader"></div>
+      <div id="api-result" class="api-result"></div>
+    </div>
+  </div>
+  
+  <script>
+    // Tab switching functionality
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const tabId = tab.getAttribute('data-tab');
+        
+        // Update active tab
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        
+        // Show active content
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        document.getElementById(`${tabId}-tab`).classList.add('active');
+      });
+    });
+    
+    // Web biometric implementation
+    class WebBiometricAuth {
+      constructor(userId) {
+        this.userId = userId;
+        this.credentialId = null;
+      }
+      
+      async checkAvailability() {
+        try {
+          // Check if WebAuthn is available
+          if (window.PublicKeyCredential) {
+            return await window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+          }
+          return false;
+        } catch (error) {
+          console.error('Error checking biometric availability:', error);
+          return false;
+        }
+      }
+      
+      async simulateRegister() {
+        const statusEl = document.getElementById('web-status');
+        const loaderEl = document.getElementById('web-loader');
+        const resultEl = document.getElementById('web-result');
+        
+        try {
+          loaderEl.style.display = 'block';
+          statusEl.style.display = 'none';
+          
+          // Check availability
+          const isAvailable = await this.checkAvailability();
+          if (!isAvailable) {
+            throw new Error('Device biometrics are not available on this device');
+          }
+          
+          // Simulate biometric authentication
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          
+          // Generate credential ID (this would come from WebAuthn in a real implementation)
+          this.credentialId = `web-bio-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
+          
+          // Simulate blockchain registration
+          const blockchainResult = {
+            contractAddress: '0x' + Math.random().toString(16).substring(2, 42),
+            transactionHash: '0x' + Math.random().toString(16).substring(2, 66)
+          };
+          
+          // Show success
+          statusEl.textContent = 'Biometric registration successful!';
+          statusEl.className = 'status success';
+          
+          // Display result
+          const result = {
+            success: true,
+            credentialId: this.credentialId,
+            deviceBiometricType: 'faceId',
+            registrationTime: new Date().toISOString(),
+            blockchain: blockchainResult
+          };
+          
+          resultEl.textContent = JSON.stringify(result, null, 2);
+          return result;
+        } catch (error) {
+          statusEl.textContent = `Error: ${error.message}`;
+          statusEl.className = 'status error';
+          return { success: false, error: error.message };
+        } finally {
+          loaderEl.style.display = 'none';
+          statusEl.style.display = 'block';
+        }
+      }
+      
+      async simulateVerify() {
+        const statusEl = document.getElementById('web-status');
+        const loaderEl = document.getElementById('web-loader');
+        const resultEl = document.getElementById('web-result');
+        
+        try {
+          loaderEl.style.display = 'block';
+          statusEl.style.display = 'none';
+          
+          // Check if registered
+          if (!this.credentialId) {
+            throw new Error('No registered biometric credential. Please register first.');
+          }
+          
+          // Check availability
+          const isAvailable = await this.checkAvailability();
+          if (!isAvailable) {
+            throw new Error('Device biometrics are not available on this device');
+          }
+          
+          // Simulate biometric verification
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          
+          // Simulate blockchain verification
+          const blockchainResult = {
+            verified: true,
+            transactionHash: '0x' + Math.random().toString(16).substring(2, 66)
+          };
+          
+          // Show success
+          statusEl.textContent = 'Identity verified successfully!';
+          statusEl.className = 'status success';
+          
+          // Display result
+          const result = {
+            success: true,
+            verified: true,
+            credentialId: this.credentialId,
+            verificationTime: new Date().toISOString(),
+            blockchain: blockchainResult
+          };
+          
+          resultEl.textContent = JSON.stringify(result, null, 2);
+          return result;
+        } catch (error) {
+          statusEl.textContent = `Error: ${error.message}`;
+          statusEl.className = 'status error';
+          return { success: false, error: error.message };
+        } finally {
+          loaderEl.style.display = 'none';
+          statusEl.style.display = 'block';
+        }
+      }
+    }
+    
+    // Mobile biometric implementation
+    class MobileBiometricAuth {
+      constructor(userId) {
+        this.userId = userId;
+        this.credentialId = null;
+      }
+      
+      async simulateRegister() {
+        const statusEl = document.getElementById('mobile-status');
+        const loaderEl = document.getElementById('mobile-loader');
+        const resultEl = document.getElementById('mobile-result');
+        
+        try {
+          loaderEl.style.display = 'block';
+          statusEl.style.display = 'none';
+          
+          // Simulate mobile biometric authentication
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          
+          // Generate credential ID (this would come from native APIs in a real implementation)
+          this.credentialId = `mobile-bio-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
+          
+          // Simulate blockchain registration
+          const blockchainResult = {
+            contractAddress: '0x' + Math.random().toString(16).substring(2, 42),
+            transactionHash: '0x' + Math.random().toString(16).substring(2, 66)
+          };
+          
+          // Show success
+          statusEl.textContent = 'Mobile biometric registration successful!';
+          statusEl.className = 'status success';
+          
+          // Display result
+          const result = {
+            success: true,
+            credentialId: this.credentialId,
+            deviceBiometricType: 'faceId',
+            registrationTime: new Date().toISOString(),
+            secureStorage: {
+              // In real implementation, this would be stored in Keychain/Keystore
+              method: 'keychain',
+              securelyStored: true
+            },
+            blockchain: blockchainResult
+          };
+          
+          resultEl.textContent = JSON.stringify(result, null, 2);
+          return result;
+        } catch (error) {
+          statusEl.textContent = `Error: ${error.message}`;
+          statusEl.className = 'status error';
+          return { success: false, error: error.message };
+        } finally {
+          loaderEl.style.display = 'none';
+          statusEl.style.display = 'block';
+        }
+      }
+      
+      async simulateVerify() {
+        const statusEl = document.getElementById('mobile-status');
+        const loaderEl = document.getElementById('mobile-loader');
+        const resultEl = document.getElementById('mobile-result');
+        
+        try {
+          loaderEl.style.display = 'block';
+          statusEl.style.display = 'none';
+          
+          // Check if registered
+          if (!this.credentialId) {
+            throw new Error('No registered biometric credential. Please register first.');
+          }
+          
+          // Simulate mobile biometric verification
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          
+          // Simulate blockchain verification
+          const blockchainResult = {
+            verified: true,
+            transactionHash: '0x' + Math.random().toString(16).substring(2, 66)
+          };
+          
+          // Show success
+          statusEl.textContent = 'Mobile identity verified successfully!';
+          statusEl.className = 'status success';
+          
+          // Display result
+          const result = {
+            success: true,
+            verified: true,
+            credentialId: this.credentialId,
+            verificationTime: new Date().toISOString(),
+            blockchain: blockchainResult
+          };
+          
+          resultEl.textContent = JSON.stringify(result, null, 2);
+          return result;
+        } catch (error) {
+          statusEl.textContent = `Error: ${error.message}`;
+          statusEl.className = 'status error';
+          return { success: false, error: error.message };
+        } finally {
+          loaderEl.style.display = 'none';
+          statusEl.style.display = 'block';
+        }
+      }
+    }
+    
+    // Initialize web biometric auth
+    let webBioAuth;
+    document.getElementById('web-register-btn').addEventListener('click', async () => {
+      const userId = document.getElementById('web-user-id').value;
+      webBioAuth = new WebBiometricAuth(userId);
+      await webBioAuth.simulateRegister();
+    });
+    
+    document.getElementById('web-verify-btn').addEventListener('click', async () => {
+      if (!webBioAuth) {
+        const userId = document.getElementById('web-user-id').value;
+        webBioAuth = new WebBiometricAuth(userId);
+      }
+      await webBioAuth.simulateVerify();
+    });
+    
+    // Initialize mobile biometric auth
+    let mobileBioAuth;
+    document.getElementById('mobile-register-btn').addEventListener('click', async () => {
+      const userId = document.getElementById('mobile-user-id').value;
+      mobileBioAuth = new MobileBiometricAuth(userId);
+      await mobileBioAuth.simulateRegister();
+    });
+    
+    document.getElementById('mobile-verify-btn').addEventListener('click', async () => {
+      if (!mobileBioAuth) {
+        const userId = document.getElementById('mobile-user-id').value;
+        mobileBioAuth = new MobileBiometricAuth(userId);
+      }
+      await mobileBioAuth.simulateVerify();
+    });
+    
+    // API testing
+    document.getElementById('test-api-btn').addEventListener('click', async () => {
+      const endpoint = document.getElementById('api-endpoint').value;
+      const loaderEl = document.getElementById('api-loader');
+      const resultEl = document.getElementById('api-result');
+      
+      loaderEl.style.display = 'block';
+      resultEl.textContent = 'Loading...';
+      
+      try {
+        const response = await fetch(endpoint);
+        const data = await response.json();
+        resultEl.textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        resultEl.textContent = `Error: ${error.message}`;
+      } finally {
+        loaderEl.style.display = 'none';
+      }
+    });
+  </script>
+</body>
+</html>
