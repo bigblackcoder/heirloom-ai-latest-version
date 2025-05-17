@@ -1,13 +1,19 @@
-/**
- * Routes index file to centralize route registration
- */
+import { Express } from 'express';
+import { 
+  handleWebAuthnRegisterOptions,
+  handleWebAuthnRegisterVerify,
+  handleHybridRegistration,
+  handleWebAuthnAuthenticateOptions,
+  handleWebAuthnAuthenticateVerify,
+  handleHybridVerify
+} from './webauthn';
 
-import { Router } from 'express';
-import webauthnRoutes from './webauthn';
-
-const router = Router();
-
-// Mount WebAuthn routes
-router.use('/webauthn', webauthnRoutes);
-
-export default router;
+export function registerWebAuthnRoutes(app: Express) {
+  // WebAuthn routes
+  app.post('/api/webauthn/register/options', handleWebAuthnRegisterOptions);
+  app.post('/api/webauthn/register/verify', handleWebAuthnRegisterVerify);
+  app.post('/api/webauthn/hybrid/register', handleHybridRegistration);
+  app.post('/api/webauthn/authenticate/options', handleWebAuthnAuthenticateOptions);
+  app.post('/api/webauthn/authenticate/verify', handleWebAuthnAuthenticateVerify);
+  app.post('/api/webauthn/hybrid/verify', handleHybridVerify);
+}

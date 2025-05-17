@@ -17,6 +17,7 @@ import Profile from "@/pages/profile";
 import Settings from "@/pages/settings";
 import Achievements from "@/pages/achievements";
 import Demo from "@/pages/demo";
+import WebAuthnTest from "@/pages/WebAuthnTest";
 
 // Beta related imports
 import BetaBadge from "@/components/beta-badge";
@@ -50,6 +51,7 @@ function Router() {
       <Route path="/achievements" component={Achievements} />
       <Route path="/demo" component={Demo} />
       <Route path="/beta-dashboard" component={BetaTesterDashboard} />
+      <Route path="/webauthn-test" component={WebAuthnTest} />
       <Route component={NotFound} />
     </Switch>
   );
