@@ -1,10 +1,26 @@
-import type { Express, Response } from "express";
+import type { Express, Response, NextFunction } from "express";
 import type { Request as ExpressRequest } from "express";
 import type { FileArray, UploadedFile } from "express-fileupload";
 
 // Extend Request type to include files for express-fileupload
 interface Request extends ExpressRequest {
   files?: FileArray;
+}
+
+// Define session types to improve type safety
+declare module 'express-session' {
+  interface SessionData {
+    userId?: string | number;
+    isVerified?: boolean;
+  }
+}
+
+// Helper for consistent user ID handling
+function ensureStringUserId(userId: string | number | undefined): string | undefined {
+  if (userId === undefined) {
+    return undefined;
+  }
+  return String(userId);
 }
 import { createServer, type Server } from "http";
 import fileUpload from "express-fileupload";
@@ -81,8 +97,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Don't return the password
       const { password: _, ...userResponse } = user;
       
-      // Create session
-      req.session.userId = user.id;
+      // Check if session exists before using it
+      if (!req.session) {
+        return res.status(500).json({ message: "Session not configured" });
+      }
+      
+      // Create session with string user ID for consistent typing
+      req.session.userId = String(user.id);
       req.session.isVerified = user.isVerified;
       
       // Log login activity
@@ -101,11 +122,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   app.post("/api/auth/logout", (req: Request, res: Response) => {
+    // Check if session exists
+    if (!req.session) {
+      return res.status(200).json({ message: "No active session" });
+    }
+    
     // Get user ID before destroying session
-    const userId = req.session?.userId;
+    const userId = req.session.userId;
     
     // Destroy session
-    req.session.destroy((err) => {
+    req.session.destroy((err: Error | null) => {
       if (err) {
         console.error("Error destroying session:", err);
         return res.status(500).json({ message: "Error logging out" });
@@ -118,7 +144,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           type: "logout",
           description: "User logged out",
           metadata: { timestamp: new Date().toISOString() }
-        }).catch(err => console.error("Error logging logout activity:", err));
+        }).catch((err: Error) => console.error("Error logging logout activity:", err));
       }
       
       res.status(200).json({ message: "Logged out successfully" });
@@ -127,7 +153,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.get("/api/auth/me", requireAuth, async (req: Request, res: Response) => {
     try {
-      const user = await storage.getUser(req.session.userId!);
+      // Ensure session exists (shouldn't happen due to requireAuth middleware)
+      if (!req.session) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      // Parse userId to handle potential string/number type differences
+      const userId = req.session.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found in session" });
+      }
+      
+      const user = await storage.getUser(userId);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -137,7 +174,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.status(200).json(userResponse);
     } catch (error) {
-      console.error("Error fetching user profile:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      console.error("Error fetching user profile:", errorMessage);
       res.status(500).json({ message: "Error fetching user" });
     }
   });
