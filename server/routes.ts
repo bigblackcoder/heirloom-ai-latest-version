@@ -12,8 +12,13 @@ export async function registerRoutes(app: express.Application): Promise<Server> 
   // Apply session middleware
   app.use(createSessionConfig());
   
-  // No need to handle the root path explicitly
-  // The vite middleware will handle it
+  // Serve our biometric auth demo page directly
+  app.get('/biometric-demo', (req: Request, res: Response) => {
+    res.sendFile(path.resolve(process.cwd(), 'public', 'biometric-auth-demo.html'));
+  });
+  
+  // Serve static files from the public directory
+  app.use(express.static(path.resolve(process.cwd(), 'public')));
   
   // Basic routes
   app.get("/api/health", (_req: Request, res: Response) => {
