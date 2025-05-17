@@ -4,12 +4,36 @@
  */
 
 import { Request, Response } from 'express';
-import * as crypto from 'crypto';
+import crypto from 'crypto';
 import { db } from './db';
-import { schema } from '../shared/schema';
+import { credentials } from '../shared/schema';
+import { v4 as uuidv4 } from 'uuid';
 import { eq } from 'drizzle-orm';
+import { verifyFace } from './deepface';
+import { FaceVerificationResult } from './deepface';
 
-// Utility functions for WebAuthn operations
+// In-memory challenge storage - will be lost on server restart
+// In production, this should be stored in a database or Redis
+const challengeStore = new Map<string, { 
+  challenge: string, 
+  userId?: string | number,
+  timestamp: number 
+}>();
+
+// Timeout for challenges in milliseconds (5 minutes)
+const CHALLENGE_TIMEOUT = 5 * 60 * 1000;
+
+// Clean up expired challenges periodically
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, value] of challengeStore.entries()) {
+    if (now - value.timestamp > CHALLENGE_TIMEOUT) {
+      challengeStore.delete(key);
+    }
+  }
+}, 60000); // Run cleanup every minute
+
+// Helper functions
 function generateChallenge(): Buffer {
   return crypto.randomBytes(32);
 }
@@ -18,39 +42,24 @@ function bufferToBase64URLString(buffer: Buffer): string {
   return buffer.toString('base64')
     .replace(/\+/g, '-')
     .replace(/\//g, '_')
-    .replace(/=+$/, '');
+    .replace(/=/g, '');
 }
 
 function base64URLStringToBuffer(base64URLString: string): Buffer {
-  const base64 = base64URLString.replace(/-/g, '+').replace(/_/g, '/');
-  const padLength = (4 - (base64.length % 4)) % 4;
-  const padded = base64.padEnd(base64.length + padLength, '=');
-  return Buffer.from(padded, 'base64');
+  // Add padding if needed
+  let base64 = base64URLString.replace(/-/g, '+').replace(/_/g, '/');
+  const pad = base64.length % 4;
+  if (pad) {
+    base64 += '='.repeat(4 - pad);
+  }
+  return Buffer.from(base64, 'base64');
 }
 
-// Store challenges temporarily for verification
-const pendingChallenges = new Map<string, {
-  challenge: string;
-  userId?: string | number;
-  timestamp: number;
-}>();
-
-// Periodically clean up expired challenges (5 minutes expiry)
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, value] of pendingChallenges.entries()) {
-    if (now - value.timestamp > 5 * 60 * 1000) {
-      pendingChallenges.delete(key);
-    }
-  }
-}, 60 * 1000);
-
-// Get the application's domain for the Relying Party ID
 function getRelyingPartyId(req: Request): string {
-  // Use the hostname from the request or a default for local development
-  const host = req.get('host') || 'localhost';
-  // Extract the domain part (without port) for RP ID
-  return host.split(':')[0];
+  // Get the hostname from the request
+  const hostname = req.hostname || 'localhost';
+  // Return just the domain without port for security reasons
+  return hostname.split(':')[0];
 }
 
 /**
@@ -58,63 +67,56 @@ function getRelyingPartyId(req: Request): string {
  */
 export async function generateRegistrationOptions(req: Request, res: Response) {
   try {
-    const { username, userId, displayName } = req.body;
-    
-    if (!username || !userId || !displayName) {
-      return res.status(400).json({
-        success: false,
-        message: 'Missing required parameters: username, userId, and displayName'
-      });
+    const { userId, username, displayName } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID is required' });
     }
-    
+
     // Generate a new challenge
     const challenge = generateChallenge();
-    const challengeId = crypto.randomUUID();
+    const challengeId = uuidv4();
     
-    // Store the challenge temporarily
-    pendingChallenges.set(challengeId, {
+    // Store the challenge for later verification
+    challengeStore.set(challengeId, {
       challenge: bufferToBase64URLString(challenge),
       userId,
       timestamp: Date.now()
     });
+
+    // Determine the relying party ID (domain)
+    const rpId = getRelyingPartyId(req);
     
-    // Create WebAuthn credential creation options
-    const options = {
+    // Create registration options
+    const registrationOptions = {
       challenge: bufferToBase64URLString(challenge),
       rp: {
         name: 'Heirloom Identity Platform',
-        id: getRelyingPartyId(req)
+        id: rpId
       },
       user: {
-        id: bufferToBase64URLString(Buffer.from(userId.toString())),
-        name: username,
-        displayName: displayName
+        id: userId.toString(),
+        name: username || userId.toString(),
+        displayName: displayName || username || userId.toString()
       },
       pubKeyCredParams: [
         { type: 'public-key', alg: -7 }, // ES256
         { type: 'public-key', alg: -257 } // RS256
       ],
-      timeout: 60000, // 1 minute
-      attestation: 'none',
       authenticatorSelection: {
-        authenticatorAttachment: 'platform',
-        userVerification: 'required',
+        authenticatorAttachment: 'platform', // Use platform authenticator (like FaceID, TouchID)
+        userVerification: 'required', // Require user verification (biometric)
         requireResidentKey: false
-      }
+      },
+      attestation: 'none', // Don't request attestation
+      timeout: 60000, // 1 minute timeout
+      challengeId // Include the challenge ID for later lookup
     };
-    
-    return res.status(200).json({
-      success: true,
-      options,
-      challengeId
-    });
-  } catch (error: any) {
-    console.error('Error generating registration options:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Error generating registration options',
-      error: error?.message
-    });
+
+    return res.status(200).json(registrationOptions);
+  } catch (error) {
+    console.error('WebAuthn registration options error:', error);
+    return res.status(500).json({ error: 'Failed to generate registration options' });
   }
 }
 
@@ -123,81 +125,46 @@ export async function generateRegistrationOptions(req: Request, res: Response) {
  */
 export async function verifyRegistration(req: Request, res: Response) {
   try {
-    const { credential, challengeId } = req.body;
-    
-    if (!credential || !challengeId) {
-      return res.status(400).json({
-        success: false,
-        message: 'Missing required parameters: credential and challengeId'
-      });
+    const { challengeId, credential, faceId } = req.body;
+
+    if (!challengeId || !credential) {
+      return res.status(400).json({ error: 'Challenge ID and credential are required' });
     }
-    
-    // Retrieve and validate the challenge
-    const storedData = pendingChallenges.get(challengeId);
-    if (!storedData) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid or expired challenge'
-      });
+
+    // Retrieve the challenge
+    const challengeData = challengeStore.get(challengeId);
+    if (!challengeData) {
+      return res.status(400).json({ error: 'Challenge not found or expired' });
     }
-    
-    // Clean up the used challenge
-    pendingChallenges.delete(challengeId);
-    
-    // Extract the credential ID
-    const credentialId = credential.id;
-    
+
+    // Delete the challenge to prevent replay attacks
+    challengeStore.delete(challengeId);
+
+    // Verify the credential format
+    if (!credential.id || !credential.publicKey) {
+      return res.status(400).json({ error: 'Invalid credential format' });
+    }
+
+    // In a real implementation, you would verify the credential against the challenge
+    // For this demo, we'll just store the credential
+
     // Store the credential in the database
-    // Note: In a real implementation, you'd validate the credential more thoroughly
-    try {
-      // Check if we already have a credential for this user
-      const existingCredential = await db.query.credentials.findFirst({
-        where: eq(schema.credentials.userId, storedData.userId!.toString())
-      });
-      
-      if (existingCredential) {
-        // Update the existing credential
-        await db.update(schema.credentials)
-          .set({ 
-            credentialId,
-            publicKey: JSON.stringify(credential.publicKey),
-            counter: 0,
-            lastUsed: new Date()
-          })
-          .where(eq(schema.credentials.userId, storedData.userId!.toString()));
-      } else {
-        // Insert a new credential
-        await db.insert(schema.credentials).values({
-          credentialId,
-          userId: storedData.userId!.toString(),
-          publicKey: JSON.stringify(credential.publicKey),
-          counter: 0,
-          createdAt: new Date(),
-          lastUsed: new Date()
-        });
-      }
-    } catch (dbError: any) {
-      console.error('Database error storing credential:', dbError);
-      return res.status(500).json({
-        success: false,
-        message: 'Error storing credential',
-        error: dbError?.message
-      });
-    }
-    
-    return res.status(200).json({
-      success: true,
-      message: 'Registration successful',
-      userId: storedData.userId,
-      credentialId
+    await db.insert(credentials).values({
+      credentialId: credential.id,
+      userId: challengeData.userId!.toString(),
+      publicKey: credential.publicKey,
+      faceId: faceId || null,
+      metadata: credential.metadata || {}
     });
-  } catch (error: any) {
-    console.error('Error verifying registration:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Error verifying registration',
-      error: error?.message
+
+    return res.status(200).json({ 
+      success: true, 
+      message: 'Device registration successful',
+      userId: challengeData.userId 
     });
+  } catch (error) {
+    console.error('WebAuthn registration verification error:', error);
+    return res.status(500).json({ error: 'Failed to verify registration' });
   }
 }
 
@@ -206,80 +173,52 @@ export async function verifyRegistration(req: Request, res: Response) {
  */
 export async function generateAuthenticationOptions(req: Request, res: Response) {
   try {
-    const { userId, credentialId } = req.body;
-    
-    if ((!userId && !credentialId)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Missing required parameters: either userId or credentialId must be provided'
-      });
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID is required' });
     }
-    
+
+    // Find credentials for this user
+    const userCredentials = await db.select()
+      .from(credentials)
+      .where(eq(credentials.userId, userId.toString()));
+
+    if (!userCredentials || userCredentials.length === 0) {
+      return res.status(404).json({ error: 'No credentials found for this user' });
+    }
+
     // Generate a new challenge
     const challenge = generateChallenge();
-    const challengeId = crypto.randomUUID();
+    const challengeId = uuidv4();
     
-    // Store the challenge temporarily
-    pendingChallenges.set(challengeId, {
+    // Store the challenge for later verification
+    challengeStore.set(challengeId, {
       challenge: bufferToBase64URLString(challenge),
       userId,
       timestamp: Date.now()
     });
+
+    // Determine the relying party ID (domain)
+    const rpId = getRelyingPartyId(req);
     
-    // Find the user's credentials
-    let credentials = [];
-    
-    if (userId) {
-      // Get all credentials for this user
-      credentials = await db.query.credentials.findMany({
-        where: eq(schema.credentials.userId, userId.toString())
-      });
-    } else if (credentialId) {
-      // Get specific credential
-      const credential = await db.query.credentials.findFirst({
-        where: eq(schema.credentials.credentialId, credentialId)
-      });
-      
-      if (credential) {
-        credentials = [credential];
-      }
-    }
-    
-    if (credentials.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'No credentials found for this user'
-      });
-    }
-    
-    // Format the credentials for WebAuthn
-    const allowCredentials = credentials.map(cred => ({
-      id: cred.credentialId,
-      type: 'public-key',
-      transports: ['internal']
-    }));
-    
-    // Create WebAuthn authentication options
-    const options = {
+    // Create authentication options
+    const authenticationOptions = {
       challenge: bufferToBase64URLString(challenge),
-      rpId: getRelyingPartyId(req),
-      allowCredentials,
-      timeout: 60000, // 1 minute
-      userVerification: 'required'
+      rpId,
+      allowCredentials: userCredentials.map(cred => ({
+        id: cred.credentialId,
+        type: 'public-key'
+      })),
+      userVerification: 'required',
+      timeout: 60000, // 1 minute timeout
+      challengeId // Include the challenge ID for later lookup
     };
-    
-    return res.status(200).json({
-      success: true,
-      options,
-      challengeId
-    });
-  } catch (error: any) {
-    console.error('Error generating authentication options:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Error generating authentication options',
-      error: error?.message
-    });
+
+    return res.status(200).json(authenticationOptions);
+  } catch (error) {
+    console.error('WebAuthn authentication options error:', error);
+    return res.status(500).json({ error: 'Failed to generate authentication options' });
   }
 }
 
@@ -288,67 +227,58 @@ export async function generateAuthenticationOptions(req: Request, res: Response)
  */
 export async function verifyAuthentication(req: Request, res: Response) {
   try {
-    const { credential, challengeId } = req.body;
-    
-    if (!credential || !challengeId) {
-      return res.status(400).json({
-        success: false,
-        message: 'Missing required parameters: credential and challengeId'
-      });
+    const { challengeId, credential } = req.body;
+
+    if (!challengeId || !credential) {
+      return res.status(400).json({ error: 'Challenge ID and credential are required' });
     }
-    
-    // Retrieve and validate the challenge
-    const storedData = pendingChallenges.get(challengeId);
-    if (!storedData) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid or expired challenge'
-      });
+
+    // Retrieve the challenge
+    const challengeData = challengeStore.get(challengeId);
+    if (!challengeData) {
+      return res.status(400).json({ error: 'Challenge not found or expired' });
     }
-    
-    // Clean up the used challenge
-    pendingChallenges.delete(challengeId);
-    
+
+    // Delete the challenge to prevent replay attacks
+    challengeStore.delete(challengeId);
+
     // Find the credential in the database
-    const storedCredential = await db.query.credentials.findFirst({
-      where: eq(schema.credentials.credentialId, credential.id)
-    });
-    
-    if (!storedCredential) {
-      return res.status(404).json({
-        success: false,
-        message: 'Credential not found'
-      });
+    const userCredential = await db.select()
+      .from(credentials)
+      .where(eq(credentials.credentialId, credential.id))
+      .limit(1);
+
+    if (!userCredential || userCredential.length === 0) {
+      return res.status(404).json({ error: 'Credential not found' });
     }
-    
-    // In a real implementation, we would validate the signature here
-    // For this demo, we'll simply update the credential's usage data
-    await db.update(schema.credentials)
+
+    // In a real implementation, you would verify the assertion signature
+    // For this demo, we'll just update the counter and last used timestamp
+
+    // Update the credential counter and last used time
+    await db.update(credentials)
       .set({ 
-        counter: storedCredential.counter + 1,
+        counter: userCredential[0].counter + 1,
         lastUsed: new Date()
       })
-      .where(eq(schema.credentials.credentialId, credential.id));
-      
-    // Return authentication result with user data
-    return res.status(200).json({
-      success: true,
-      verified: true,
-      userId: storedCredential.userId,
-      message: 'Authentication successful',
-      timestamp: Date.now(),
-      deviceInfo: {
-        type: 'platform',
-        // Include other relevant device info from the credential
+      .where(eq(credentials.id, userCredential[0].id));
+
+    // If user is in session, mark them as verified
+    if (req.session) {
+      req.session.isVerified = true;
+      if (!req.session.userId) {
+        req.session.userId = userCredential[0].userId;
       }
+    }
+
+    return res.status(200).json({ 
+      success: true, 
+      message: 'Authentication successful',
+      userId: userCredential[0].userId 
     });
-  } catch (error: any) {
-    console.error('Error verifying authentication:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Error verifying authentication',
-      error: error?.message
-    });
+  } catch (error) {
+    console.error('WebAuthn authentication verification error:', error);
+    return res.status(500).json({ error: 'Failed to verify authentication' });
   }
 }
 
@@ -359,113 +289,58 @@ export async function verifyAuthentication(req: Request, res: Response) {
  */
 export async function registerHybridVerification(req: Request, res: Response) {
   try {
-    const { credential, challengeId, imageBase64 } = req.body;
-    
-    if (!credential || !challengeId || !imageBase64) {
-      return res.status(400).json({
-        success: false,
-        message: 'Missing required parameters: credential, challengeId, and imageBase64'
+    const { challengeId, credential, faceImage } = req.body;
+
+    if (!challengeId || !credential || !faceImage) {
+      return res.status(400).json({ 
+        error: 'Challenge ID, credential, and face image are required' 
       });
     }
+
+    // Retrieve the challenge
+    const challengeData = challengeStore.get(challengeId);
+    if (!challengeData) {
+      return res.status(400).json({ error: 'Challenge not found or expired' });
+    }
+
+    // Delete the challenge to prevent replay attacks
+    challengeStore.delete(challengeId);
+
+    // Verify the face using DeepFace
+    const faceResult: FaceVerificationResult = await verifyFace(faceImage, challengeData.userId?.toString(), true);
     
-    // First verify the WebAuthn credential
-    const storedData = pendingChallenges.get(challengeId);
-    if (!storedData) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid or expired challenge'
+    if (!faceResult.success) {
+      return res.status(400).json({ 
+        error: 'Face verification failed', 
+        details: faceResult.message
       });
     }
-    
-    // Clean up the used challenge
-    pendingChallenges.delete(challengeId);
-    
-    // Then use DeepFace to verify and store the face
-    // We'll integrate with our existing verification_proxy.ts
-    try {
-      // Import dynamically to avoid circular dependencies
-      const { verifyFace } = await import('./verification_proxy');
-      
-      const faceResult = await verifyFace({
-        image: imageBase64,
-        userId: storedData.userId,
-        saveToDb: true,
-        requestId: `hybrid-reg-${Date.now()}`
-      });
-      
-      if (!faceResult.success) {
-        return res.status(400).json({
-          success: false,
-          message: 'Face verification failed',
-          error: faceResult.message
-        });
+
+    // Store the credential with the face ID
+    await db.insert(credentials).values({
+      credentialId: credential.id,
+      userId: challengeData.userId!.toString(),
+      publicKey: credential.publicKey,
+      faceId: faceResult.face_id,
+      metadata: {
+        ...credential.metadata || {},
+        hybridAuth: true,
+        faceConfidence: faceResult.confidence
       }
-      
-      // Store the credential with the face_id for linking
-      const credentialId = credential.id;
-      
-      // Store in database
-      try {
-        // Check if we already have a credential for this user
-        const existingCredential = await db.query.credentials.findFirst({
-          where: eq(schema.credentials.userId, storedData.userId!.toString())
-        });
-        
-        if (existingCredential) {
-          // Update the existing credential
-          await db.update(schema.credentials)
-            .set({ 
-              credentialId,
-              publicKey: JSON.stringify(credential.publicKey),
-              counter: 0,
-              lastUsed: new Date(),
-              faceId: faceResult.face_id
-            })
-            .where(eq(schema.credentials.userId, storedData.userId!.toString()));
-        } else {
-          // Insert a new credential
-          await db.insert(schema.credentials).values({
-            credentialId,
-            userId: storedData.userId!.toString(),
-            publicKey: JSON.stringify(credential.publicKey),
-            counter: 0,
-            createdAt: new Date(),
-            lastUsed: new Date(),
-            faceId: faceResult.face_id
-          });
-        }
-      } catch (dbError: any) {
-        console.error('Database error storing hybrid credential:', dbError);
-        return res.status(500).json({
-          success: false,
-          message: 'Error storing hybrid credential',
-          error: dbError?.message
-        });
-      }
-      
-      return res.status(200).json({
-        success: true,
-        message: 'Hybrid registration successful',
-        userId: storedData.userId,
-        credentialId,
-        faceId: faceResult.face_id,
-        confidence: faceResult.confidence
-      });
-    } catch (error: any) {
-      console.error('Error in face verification during hybrid registration:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Face verification error',
-        error: error?.message
-      });
-    }
-  } catch (error: any) {
-    console.error('Error in hybrid registration:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Error in hybrid registration',
-      error: error?.message
     });
+
+    return res.status(200).json({ 
+      success: true, 
+      message: 'Hybrid verification registration successful',
+      userId: challengeData.userId,
+      faceDetails: {
+        face_id: faceResult.face_id,
+        confidence: faceResult.confidence
+      }
+    });
+  } catch (error) {
+    console.error('Hybrid verification registration error:', error);
+    return res.status(500).json({ error: 'Failed to register hybrid verification' });
   }
 }
 
@@ -474,89 +349,91 @@ export async function registerHybridVerification(req: Request, res: Response) {
  */
 export async function verifyHybridAuthentication(req: Request, res: Response) {
   try {
-    const { credential, challengeId, imageBase64 } = req.body;
-    
-    if (!credential || !challengeId || !imageBase64) {
-      return res.status(400).json({
-        success: false,
-        message: 'Missing required parameters: credential, challengeId, and imageBase64'
-      });
+    const { challengeId, credential, faceImage } = req.body;
+
+    if (!challengeId || !credential) {
+      return res.status(400).json({ error: 'Challenge ID and credential are required' });
     }
-    
-    // First verify the WebAuthn credential
-    const storedData = pendingChallenges.get(challengeId);
-    if (!storedData) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid or expired challenge'
-      });
+
+    // Retrieve the challenge
+    const challengeData = challengeStore.get(challengeId);
+    if (!challengeData) {
+      return res.status(400).json({ error: 'Challenge not found or expired' });
     }
-    
-    // Clean up the used challenge
-    pendingChallenges.delete(challengeId);
-    
+
+    // Delete the challenge to prevent replay attacks
+    challengeStore.delete(challengeId);
+
     // Find the credential in the database
-    const storedCredential = await db.query.credentials.findFirst({
-      where: eq(schema.credentials.credentialId, credential.id)
-    });
+    const userCredential = await db.select()
+      .from(credentials)
+      .where(eq(credentials.credentialId, credential.id))
+      .limit(1);
+
+    if (!userCredential || userCredential.length === 0) {
+      return res.status(404).json({ error: 'Credential not found' });
+    }
+
+    // Check if face verification is required (hybrid auth)
+    const isHybridAuth = userCredential[0].metadata?.hybridAuth === true;
     
-    if (!storedCredential) {
-      return res.status(404).json({
-        success: false,
-        message: 'Credential not found'
+    if (isHybridAuth && !faceImage) {
+      return res.status(400).json({ 
+        error: 'Face image is required for hybrid authentication' 
       });
     }
+
+    // If hybrid auth is enabled, verify the face
+    let faceVerified = !isHybridAuth; // Skip if not hybrid auth
+    let faceResult = null;
     
-    // Verify with DeepFace using the stored face ID
-    try {
-      // Import dynamically to avoid circular dependencies
-      const { verifyFace } = await import('./verification_proxy');
+    if (isHybridAuth && faceImage) {
+      faceResult = await verifyFace(
+        faceImage, 
+        userCredential[0].userId, 
+        false
+      );
       
-      const faceResult = await verifyFace({
-        image: imageBase64,
-        userId: storedCredential.userId,
-        saveToDb: false,
-        requestId: `hybrid-verify-${Date.now()}`
-      });
-      
-      // Update the credential usage counter
-      await db.update(schema.credentials)
-        .set({ 
-          counter: storedCredential.counter + 1,
-          lastUsed: new Date()
-        })
-        .where(eq(schema.credentials.credentialId, credential.id));
-      
-      // Determine the final verification result
-      // Both WebAuthn and DeepFace must succeed
-      const verified = faceResult.success && (faceResult.matched || false);
-      
-      return res.status(200).json({
-        success: true,
-        verified,
-        userId: storedCredential.userId,
-        message: verified 
-          ? 'Hybrid authentication successful' 
-          : 'Face verification failed',
-        webauthnVerified: true,
-        faceVerified: faceResult.success && (faceResult.matched || false),
-        confidence: faceResult.confidence,
-        timestamp: Date.now()
-      });
-    } catch (error: any) {
-      console.error('Error in face verification during hybrid authentication:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Face verification error',
-        error: error?.message
+      faceVerified = faceResult.success && 
+                    (faceResult.matched || faceResult.confidence > 80);
+    }
+
+    // Update the credential counter and last used time
+    await db.update(credentials)
+      .set({ 
+        counter: userCredential[0].counter + 1,
+        lastUsed: new Date()
+      })
+      .where(eq(credentials.id, userCredential[0].id));
+
+    // If user is in session, mark them as verified
+    if (req.session) {
+      // Only mark as verified if both checks pass for hybrid auth
+      req.session.isVerified = !isHybridAuth || (isHybridAuth && faceVerified);
+      if (!req.session.userId) {
+        req.session.userId = userCredential[0].userId;
+      }
+    }
+
+    if (isHybridAuth && !faceVerified) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Face verification failed for hybrid authentication',
+        deviceVerified: true,
+        faceVerified: false
       });
     }
-  } catch (error: any) {
-    console.error('Error in hybrid authentication:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Error in hybrid authentication',
-      error: error?.message
+
+    return res.status(200).json({ 
+      success: true, 
+      message: 'Authentication successful',
+      userId: userCredential[0].userId,
+      deviceVerified: true,
+      faceVerified: isHybridAuth ? faceVerified : null,
+      faceDetails: faceResult
     });
+  } catch (error) {
+    console.error('Hybrid verification error:', error);
+    return res.status(500).json({ error: 'Failed to verify hybrid authentication' });
   }
 }
