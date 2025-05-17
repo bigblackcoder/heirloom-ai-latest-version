@@ -4,6 +4,7 @@ import { json } from "express";
 import { registerRoutes } from "./routes";
 import { initializeDb } from "./db"; 
 import path from "path";
+import { setupVite } from "./vite";
 
 async function main() {
   // Create Express application
@@ -18,6 +19,9 @@ async function main() {
   
   // Register API routes
   const server = await registerRoutes(app);
+
+  // Setup Vite middleware to serve the frontend
+  await setupVite(app, server);
 
   // Start server
   const PORT = parseInt(process.env.PORT || "3001", 10);
