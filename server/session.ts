@@ -1,39 +1,65 @@
 import session from 'express-session';
-import connectPgSimple from 'connect-pg-simple';
-import { pool } from './db';
+import MemoryStore from 'memorystore';
+import { Request } from 'express';
 
-// Create a PostgreSQL session store
-const PgStore = connectPgSimple(session);
+// Create a memory store for sessions
+const MemoryStoreSession = MemoryStore(session);
 
-// Generate a random session secret if none is provided
-const SESSION_SECRET = process.env.SESSION_SECRET || Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-
-// Configure session options
-export const sessionConfig = {
-  store: new PgStore({
-    pool,
-    tableName: 'sessions', // Uses the 'sessions' table from our schema
-    createTableIfMissing: false, // Table is already created by our schema
-  }),
-  name: 'heirloom.sid',
-  secret: SESSION_SECRET,
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 1 week
-    httpOnly: true,
-    sameSite: 'lax' as const,
-    secure: false // Allow non-HTTPS for development
+// Enhanced session data interface to support both string and number user IDs
+// This is necessary for WebAuthn which uses string IDs
+declare module 'express-session' {
+  export interface SessionData {
+    userId?: string | number;
+    username?: string;
+    authenticated?: boolean;
+    challenge?: string;
+    registration?: {
+      userId: string | number;
+      username: string;
+      challenge: string;
+    };
   }
+}
+
+// Create and export a persistent session middleware using the memory store
+export const sessionMiddleware = session({
+  secret: process.env.SESSION_SECRET || 'heirloom-identity-secret',
+  resave: false,
+  saveUninitialized: true,
+  store: new MemoryStoreSession({
+    checkPeriod: 86400000 // Cleanup expired sessions every 24h
+  }),
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 86400000, // 24 hours
+    httpOnly: true,
+    sameSite: 'lax'
+  }
+});
+
+// Helper type for request with session
+export type RequestWithSession = Request & {
+  session: session.Session & Partial<session.SessionData>;
 };
 
-// Export session middleware
-export const sessionMiddleware = session(sessionConfig);
+// Utility functions for sessions
+export function getUserIdFromSession(req: RequestWithSession): string | number | undefined {
+  return req.session?.userId;
+}
 
-// Types for session data
-declare module 'express-session' {
-  interface SessionData {
-    userId?: string | number;
-    isVerified?: boolean;
-  }
+export function isAuthenticated(req: RequestWithSession): boolean {
+  return !!req.session?.authenticated && !!req.session?.userId;
+}
+
+export function setAuthenticatedUser(req: RequestWithSession, userId: string | number): void {
+  req.session.userId = userId;
+  req.session.authenticated = true;
+}
+
+export function clearSession(req: RequestWithSession): void {
+  req.session.destroy((err) => {
+    if (err) {
+      console.error('Error destroying session:', err);
+    }
+  });
 }

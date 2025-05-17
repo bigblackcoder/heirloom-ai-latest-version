@@ -4,7 +4,7 @@ import fileUpload from "express-fileupload";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { sessionMiddleware } from "./session";
-import { registerRoutes as registerWebAuthnRoutes } from "./routes/index";
+import { registerRoutes as registerAPIRoutes } from "./routes/index";
 
 const app = express();
 app.use(express.json({ limit: '50mb' }));
@@ -22,8 +22,8 @@ app.use(fileUpload({
 // Add session support
 app.use(sessionMiddleware);
 
-// Register WebAuthn routes
-registerWebAuthnRoutes(app);
+// Register API routes (including WebAuthn)
+registerAPIRoutes(app);
 
 app.use((req, res, next) => {
   const start = Date.now();

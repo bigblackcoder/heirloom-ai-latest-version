@@ -1,108 +1,40 @@
-import { Switch, Route, useLocation } from "wouter";
-import { useEffect } from "react";
+import React from 'react';
+import { Route, Switch } from 'wouter';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
-import { AuthProvider } from "@/hooks/use-auth";
-import { QueryClientProvider } from "@tanstack/react-query";
-import { queryClient } from "@/lib/queryClient";
-import NotFound from "@/pages/not-found";
-import Home from "@/pages/home";
-import Signup from "@/pages/signup";
-import Login from "@/pages/login";
-import Verification from "@/pages/verification";
-import { VerificationOptions } from "@/pages/verification-options";
-import Dashboard from "@/pages/dashboard";
-import Capsule from "@/pages/capsule";
-import Notifications from "@/pages/notifications";
-import Profile from "@/pages/profile";
-import Settings from "@/pages/settings";
-import Achievements from "@/pages/achievements";
-import Demo from "@/pages/demo";
-import WebAuthnTest from "@/pages/WebAuthnTest";
-import FaceIDTest from "@/pages/FaceIDTest";
 
-// Beta related imports
-import BetaBadge from "@/components/beta-badge";
-import BetaFeedbackForm from "@/components/beta-feedback-form";
-import OnboardingTips from "@/components/onboarding-tips";
-import BetaTesterDashboard from "@/components/beta-tester-dashboard";
-import { useAnalytics } from "@/hooks/use-analytics";
-import { initGA, trackEvent } from "@/lib/analytics";
-import { SecurityAlertProvider } from "@/components/security-alert";
-import { useSecurityMonitoring } from "@/hooks/use-security-monitoring";
+// Pages
+import HomePage from './pages/Home';
+import FaceIDTest from './pages/FaceIDTest';
 
-function Router() {
-  // Use analytics to track page views
-  useAnalytics();
-  
-  // Initialize security monitoring
-  useSecurityMonitoring();
-  
-  return (
-    <Switch>
-      <Route path="/" component={Home} />
-      <Route path="/signup" component={Signup} />
-      <Route path="/login" component={Login} />
-      <Route path="/verification" component={Verification} />
-      <Route path="/verification-options" component={VerificationOptions} />
-      <Route path="/dashboard" component={Dashboard} />
-      <Route path="/capsule" component={Capsule} />
-      <Route path="/notifications" component={Notifications} />
-      <Route path="/profile" component={Profile} />
-      <Route path="/settings" component={Settings} />
-      <Route path="/achievements" component={Achievements} />
-      <Route path="/demo" component={Demo} />
-      <Route path="/beta-dashboard" component={BetaTesterDashboard} />
-      <Route path="/webauthn-test" component={WebAuthnTest} />
-      <Route path="/face-id-test" component={FaceIDTest} />
-      <Route component={NotFound} />
-    </Switch>
-  );
-}
+// Create React Query client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: false,
+    },
+  },
+});
 
-function App() {
-  // Get current path for responsive layout
-  const path = window.location.pathname;
-  const isFullWidthPage = path === '/demo' || path === '/beta-dashboard';
-  const [location] = useLocation();
-  
-  // Initialize Google Analytics when app loads
-  useEffect(() => {
-    // Verify required environment variable is present
-    if (!import.meta.env.VITE_GA_MEASUREMENT_ID) {
-      console.warn('Missing required Google Analytics key: VITE_GA_MEASUREMENT_ID');
-    } else {
-      initGA();
-      trackEvent('app_start', 'application', 'initialization');
-    }
-  }, []);
-  
+/**
+ * Main application component
+ */
+const App: React.FC = () => {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <SecurityAlertProvider>
-          <div className={`min-h-screen bg-background ${isFullWidthPage ? 'w-full' : 'max-w-md mx-auto'} overflow-hidden relative`}>
-            {/* Beta badge shown in top-right corner */}
-            <div className="absolute top-2 right-2 z-50">
-              <BetaBadge />
-            </div>
-            
-            {/* Feedback button shown in bottom-right for authenticated pages */}
-            {location !== '/' && location !== '/login' && location !== '/signup' && (
-              <div className="fixed bottom-4 right-4 z-40 feedback-button">
-                <BetaFeedbackForm />
-              </div>
-            )}
-            
-            <Router />
-            <Toaster />
-            
-            {/* Onboarding tips shown when needed */}
-            <OnboardingTips />
-          </div>
-        </SecurityAlertProvider>
-      </AuthProvider>
+      <ThemeProvider defaultTheme="light" storageKey="heirloom-ui-theme">
+        <div className="min-h-screen bg-background">
+          <Switch>
+            <Route path="/" component={HomePage} />
+            <Route path="/webauthn-test" component={FaceIDTest} />
+          </Switch>
+          <Toaster />
+        </div>
+      </ThemeProvider>
     </QueryClientProvider>
   );
-}
+};
 
 export default App;

@@ -1,86 +1,181 @@
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import React, { useState } from 'react';
 import WebAuthnVerifier from '../components/WebAuthnVerifier';
+import { WebAuthnAuthenticationResponse } from '../../shared/webauthn';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { ShieldCheckIcon, LockIcon, FaceIcon, FingerprintIcon } from 'lucide-react';
 
+/**
+ * Test page for WebAuthn and hybrid biometric authentication
+ */
 const FaceIDTest: React.FC = () => {
+  // For testing, we'll use a dummy user
+  const [testUserId] = useState('test-user-123');
+  const [testUsername] = useState('testuser');
+  
+  // States for showing verification results
+  const [verificationResult, setVerificationResult] = useState<WebAuthnAuthenticationResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Handle successful authentication
+  const handleSuccess = (result: WebAuthnAuthenticationResponse) => {
+    setVerificationResult(result);
+    setError(null);
+    console.log('Authentication succeeded:', result);
+  };
+  
+  // Handle authentication error
+  const handleError = (error: Error) => {
+    setError(error.message);
+    setVerificationResult(null);
+    console.error('Authentication failed:', error);
+  };
+  
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="max-w-3xl mx-auto space-y-8">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold mb-2">Biometric Authentication Test</h1>
-          <p className="text-muted-foreground">
-            Securely authenticate using your device's built-in biometric sensors
-          </p>
-        </div>
+    <div className="container max-w-4xl mx-auto py-8 px-4">
+      <h1 className="text-3xl font-bold mb-6 flex items-center">
+        <ShieldCheckIcon className="mr-2 h-8 w-8" />
+        Biometric Authentication Test
+      </h1>
+      
+      <p className="text-muted-foreground mb-8">
+        This page demonstrates different modes of biometric authentication, including device-based
+        verification (like Face ID or Windows Hello) and hybrid approaches that combine device and server verification.
+      </p>
+      
+      <Tabs defaultValue="register" className="mb-8">
+        <TabsList className="grid grid-cols-3">
+          <TabsTrigger value="register">
+            <FingerprintIcon className="mr-2 h-4 w-4" />
+            Register
+          </TabsTrigger>
+          <TabsTrigger value="verify">
+            <LockIcon className="mr-2 h-4 w-4" />
+            Verify
+          </TabsTrigger>
+          <TabsTrigger value="hybrid">
+            <FaceIcon className="mr-2 h-4 w-4" />
+            Hybrid
+          </TabsTrigger>
+        </TabsList>
         
-        <div className="grid grid-cols-1 gap-8">
-          <Card className="shadow-md">
+        <TabsContent value="register" className="mt-6">
+          <Card>
             <CardHeader>
-              <CardTitle>About Device Biometrics</CardTitle>
+              <CardTitle>Device Biometric Registration</CardTitle>
               <CardDescription>
-                Understanding how biometric authentication works
+                Register your device biometrics (like Face ID, Touch ID, or Windows Hello) for secure authentication.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <p>
-                The Heirloom Identity Platform uses a hybrid authentication approach that combines:
-              </p>
-              <ul className="list-disc ml-6 space-y-2">
-                <li>
-                  <strong>Device biometrics</strong> (Face ID, Touch ID, Fingerprint sensors) - 
-                  These verify that the user is physically present and authorized to use the device
-                </li>
-                <li>
-                  <strong>Server-side facial recognition</strong> - 
-                  This ensures the verified person matches the identity on record in our system
-                </li>
-              </ul>
-              <p className="text-sm text-muted-foreground mt-4">
-                This approach offers enhanced security while maintaining privacy, as your actual 
-                biometric data never leaves your device. Only cryptographic credentials are sent 
-                to our servers.
-              </p>
+            <CardContent>
+              <WebAuthnVerifier
+                userId={testUserId}
+                username={testUsername}
+                mode="register"
+                onSuccess={handleSuccess}
+                onError={handleError}
+              />
             </CardContent>
           </Card>
-          
-          <WebAuthnVerifier />
-          
-          <Card className="shadow-md">
+        </TabsContent>
+        
+        <TabsContent value="verify" className="mt-6">
+          <Card>
             <CardHeader>
-              <CardTitle>Privacy and Security</CardTitle>
+              <CardTitle>Device Biometric Verification</CardTitle>
               <CardDescription>
-                How we protect your biometric information
+                Verify your identity using just your device biometrics.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <h3 className="font-semibold">Your biometric data stays on your device</h3>
-                <p className="text-sm">
-                  When using Face ID, Touch ID, or other biometric methods, your actual biometric 
-                  data (facial features, fingerprints) never leaves your device. The WebAuthn 
-                  standard creates a secure credential that proves you've been verified without 
-                  transmitting sensitive data.
-                </p>
-              </div>
+            <CardContent>
+              <WebAuthnVerifier
+                userId={testUserId}
+                username={testUsername}
+                mode="verify"
+                onSuccess={handleSuccess}
+                onError={handleError}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="hybrid" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Hybrid Biometric Verification</CardTitle>
+              <CardDescription>
+                Enhanced security with both device biometrics and server-side facial verification.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <WebAuthnVerifier
+                userId={testUserId}
+                username={testUsername}
+                mode="hybrid"
+                onSuccess={handleSuccess}
+                onError={handleError}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+      
+      {/* Display verification results */}
+      {verificationResult && (
+        <Alert className="mb-6">
+          <AlertTitle className="flex items-center">
+            <ShieldCheckIcon className="mr-2 h-4 w-4" />
+            Authentication Successful
+          </AlertTitle>
+          <AlertDescription>
+            <div className="mt-2">
+              <div><strong>User ID:</strong> {verificationResult.user?.id}</div>
+              <div><strong>Username:</strong> {verificationResult.user?.username}</div>
+              <div><strong>Verified:</strong> {verificationResult.user?.isVerified ? 'Yes' : 'No'}</div>
               
-              <div className="space-y-2">
-                <h3 className="font-semibold">Server-side security</h3>
-                <p className="text-sm">
-                  Our server-side facial recognition component only processes images with your 
-                  explicit permission and stores only the minimal data needed for verification. 
-                  All data is encrypted and protected according to industry best practices.
-                </p>
-              </div>
-            </CardContent>
-            <CardFooter className="border-t pt-4">
-              <p className="text-xs text-muted-foreground">
-                For more information about our security practices, please refer to our Privacy Policy.
-              </p>
-            </CardFooter>
-          </Card>
-        </div>
-      </div>
+              {verificationResult.faceDetails && (
+                <div className="mt-2">
+                  <div><strong>Face Confidence:</strong> {verificationResult.faceDetails.confidence}%</div>
+                  {verificationResult.faceDetails.results && (
+                    <>
+                      {verificationResult.faceDetails.results.age && (
+                        <div><strong>Age Estimate:</strong> {verificationResult.faceDetails.results.age}</div>
+                      )}
+                      {verificationResult.faceDetails.results.dominant_emotion && (
+                        <div><strong>Expression:</strong> {verificationResult.faceDetails.results.dominant_emotion}</div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+      
+      {/* Display error */}
+      {error && (
+        <Alert variant="destructive" className="mb-6">
+          <AlertTitle>Authentication Failed</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>How Hybrid Authentication Works</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ol className="list-decimal pl-5 space-y-2">
+            <li>Your device verifies you are a real person using its built-in biometric system (Face ID, fingerprint, etc.)</li>
+            <li>The system captures a facial image that is sent to the server</li>
+            <li>Server-side facial recognition confirms your identity by matching against stored identity records</li>
+            <li>This provides superior security by combining device validation with server identity verification</li>
+            <li>Your actual biometric data never leaves your device - only the verification result is transmitted</li>
+          </ol>
+        </CardContent>
+      </Card>
     </div>
   );
 };
