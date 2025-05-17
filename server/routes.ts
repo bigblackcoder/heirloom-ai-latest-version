@@ -453,7 +453,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
         
         // Call the FastAPI service
-        verificationResult = await verifyFaceAPI(apiRequest);
+        verificationResult = await verifyFace(image, userId, saveToDb);
         
         log(`[DEBUG:${debugSessionId}] FastAPI verification result: ${verificationResult.success ? 'Success' : 'Failed'}`, "face-verify");
       } catch (apiError) {
