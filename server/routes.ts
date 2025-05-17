@@ -22,6 +22,7 @@ import { verifyFace as verifyFaceAPI, verifyVideo } from "./verification_proxy";
 import { log } from "./vite";
 import { blockchainService } from "./blockchain/service";
 import { requireAuth, requireVerified } from "./middleware/auth";
+import biometricRoutes from "./routes/biometrics";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // API root endpoint
@@ -31,6 +32,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       name: "Heirloom Identity Platform API"
     });
   });
+  
+  // Register biometric authentication routes
+  app.use("/api/biometrics", biometricRoutes);
   
   // Verification service status endpoint
   app.get("/api/verification/status", async (_req: Request, res: Response) => {
