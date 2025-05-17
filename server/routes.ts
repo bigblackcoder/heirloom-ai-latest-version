@@ -496,14 +496,14 @@ export async function registerRoutes(app: express.Application): Promise<Server> 
       
       // Log activity
       await storage.createActivity({
-        userId,
+        userId: Number(userId),
         type: "identity_verified",
         description: `Identity verified with ${credential.biometricType}`,
-        metadata: JSON.stringify({ 
+        metadata: { 
           credentialId: id,
           deviceType: credential.deviceType,
           blockchainTxId: credential.blockchainTxId
-        })
+        }
       });
       
       // Return success
