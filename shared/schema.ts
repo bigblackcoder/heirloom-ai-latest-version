@@ -80,7 +80,8 @@ export const aiConnections = pgTable("ai_connections", {
   userId: integer("user_id").references(() => users.id).notNull(),
   aiServiceName: text("ai_service_name").notNull(),
   aiServiceId: text("ai_service_id"),
-  permissions: json("permissions").$type<string[]>(),
+  // Changed to jsonb for better array storage
+  permissions: jsonb("permissions"),
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
@@ -145,14 +146,17 @@ export const biometricCredentials = pgTable("biometric_credentials", {
   publicKey: text("public_key"),
   biometricType: text("biometric_type").notNull(), // 'face', 'fingerprint', 'iris', 'voice'
   deviceType: text("device_type").notNull(), // 'ios', 'android', 'web'
-  attestation: json("attestation").$type<Record<string, any>>(),
+  // Changed to jsonb for better object storage
+  attestation: jsonb("attestation"),
   counter: integer("counter").default(0).notNull(), // For WebAuthn verification
-  transports: json("transports").$type<string[]>(),
+  // Changed to jsonb for better array storage
+  transports: jsonb("transports"),
   blockchainTxId: text("blockchain_tx_id"), // Blockchain transaction ID for verification
   createdAt: timestamp("created_at").defaultNow().notNull(),
   lastUsedAt: timestamp("last_used_at"),
   isActive: boolean("is_active").default(true).notNull(),
-  metadata: json("metadata").$type<Record<string, any>>()
+  // Changed to jsonb for better metadata storage
+  metadata: jsonb("metadata")
 });
 
 export const insertBiometricCredentialSchema = createInsertSchema(biometricCredentials).omit({ 

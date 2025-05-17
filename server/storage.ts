@@ -126,14 +126,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createAiConnection(connection: InsertAiConnection): Promise<AiConnection> {
-    // Ensure we're passing a single object, not an array
+    // Ensure proper handling of JSON fields to avoid array issues
     const connectionData = {
       userId: connection.userId,
       aiServiceName: connection.aiServiceName,
       aiServiceId: connection.aiServiceId || null,
-      permissions: connection.permissions || null
+      // Handle array correctly by properly stringifying and parsing
+      permissions: connection.permissions ? JSON.parse(JSON.stringify(connection.permissions)) : null
     };
     
+    // Insert as a single record (not as array)
     const [newConnection] = await db.insert(aiConnections).values(connectionData).returning();
     return newConnection;
   }
@@ -223,20 +225,23 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createBiometricCredential(credential: InsertBiometricCredential): Promise<BiometricCredential> {
-    // Ensure we're passing a single object, not an array
+    // Ensure proper handling of JSON fields to avoid array issues
     const credentialData = {
       userId: credential.userId,
       credentialId: credential.credentialId,
       biometricType: credential.biometricType,
       deviceType: credential.deviceType,
       publicKey: credential.publicKey || null,
-      attestation: credential.attestation || null,
-      transports: credential.transports || null,
+      // Convert JSON objects correctly
+      attestation: credential.attestation ? JSON.parse(JSON.stringify(credential.attestation)) : null,
+      // Handle array correctly
+      transports: credential.transports ? JSON.parse(JSON.stringify(credential.transports)) : null,
       blockchainTxId: credential.blockchainTxId || null,
       isActive: credential.isActive !== undefined ? credential.isActive : true,
-      metadata: credential.metadata || null
+      metadata: credential.metadata ? JSON.parse(JSON.stringify(credential.metadata)) : null
     };
     
+    // Insert as a single record (not as array)
     const [newCredential] = await db.insert(biometricCredentials).values(credentialData).returning();
     return newCredential;
   }

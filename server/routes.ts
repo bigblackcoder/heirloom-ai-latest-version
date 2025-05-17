@@ -307,6 +307,20 @@ export async function registerRoutes(app: express.Application): Promise<Server> 
       // Mock blockchain transaction ID (in production, would submit data to blockchain)
       const blockchainTxId = `tx_${crypto.randomBytes(16).toString('hex')}`;
       
+      // Prepare metadata object correctly for JSON storage
+      const metadataObj = {
+        registeredFrom: req.headers["user-agent"] || "unknown device",
+        registrationTime: new Date().toISOString()
+      };
+      
+      // Prepare attestation correctly for JSON storage
+      const processedAttestationObj = {
+        timestamp: new Date().toISOString(),
+        origin: clientDataJSON.origin || "unknown",
+        type: clientDataJSON.type || "webauthn.create",
+        verified: true
+      };
+      
       // Save credential to database
       const credential = await storage.createBiometricCredential({
         userId,
@@ -314,12 +328,10 @@ export async function registerRoutes(app: express.Application): Promise<Server> 
         biometricType,
         deviceType,
         publicKey: rawId,
-        attestation: attestationObj,
+        attestation: processedAttestationObj,
         blockchainTxId,
         isActive: true,
-        metadata: {
-          registeredFrom: req.headers["user-agent"]
-        }
+        metadata: metadataObj
       });
       
       // Log activity
