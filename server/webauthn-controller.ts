@@ -185,13 +185,11 @@ export async function verifyRegistration(
     // Store the credential in the database
     await db.insert(webauthnCredentials).values({
       credentialId: credential.id,
-      credentialPublicKey: credential.publicKey,
+      publicKey: credential.publicKey,
+      algorithm: credential.algorithm.toString(),
       counter: credential.counter,
-      userId: credential.userId,
-      transports: credential.transports ? JSON.stringify(credential.transports) : null,
-      credentialDeviceType: authenticatorAttachment || 'platform',
-      credentialBackedUp: true, // Default to true for simplicity
-      userVerified: true // Default to true since we're requiring verification
+      userId: parseInt(credential.userId),
+      transports: credential.transports ? JSON.stringify(credential.transports) : null
     });
 
     // Remove the used challenge
@@ -307,7 +305,9 @@ export async function verifyAuthentication(
     }
 
     // Verify this credential belongs to the user who initiated the auth
-    if (credential.userId !== challengeRecord.userId) {
+    // Convert user IDs to same type for comparison
+    const challengeUserId = parseInt(challengeRecord.userId);
+    if (credential.userId !== challengeUserId) {
       return res.status(403).json({ error: 'Credential does not belong to this user' });
     }
 
