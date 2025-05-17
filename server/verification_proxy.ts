@@ -7,6 +7,7 @@ import axios, { AxiosResponse } from 'axios';
 import { spawn, ChildProcess } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
+import { Blob } from 'buffer';
 
 // Interface for the verification request
 export interface FaceVerificationRequest {
@@ -173,21 +174,21 @@ export async function verifyFace(request: FaceVerificationRequest): Promise<Face
     } else {
       throw new Error(`Verification service responded with status ${response.status}`);
     }
-  } catch (error) {
+  } catch (error: any) {
     // If service is not available, fall back to local verification
-    if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
+    if (error?.code === 'ECONNREFUSED' || error?.code === 'ETIMEDOUT') {
       console.error('Verification service not available, falling back to local verification');
       // Use fallback method
       return fallbackVerification(request);
     }
     
     // If service returned an error response
-    if (error.response) {
+    if (error?.response) {
       const errorData = error.response.data;
       return {
         success: false,
         confidence: 0,
-        message: errorData.message || 'Verification service error',
+        message: errorData?.message || 'Verification service error',
         error: JSON.stringify(errorData),
         debug_session: request.requestId || `error-${Date.now()}`
       };
@@ -197,8 +198,8 @@ export async function verifyFace(request: FaceVerificationRequest): Promise<Face
     return {
       success: false,
       confidence: 0,
-      message: `Verification error: ${error.message}`,
-      error: error.message,
+      message: `Verification error: ${error?.message || 'Unknown error'}`,
+      error: error?.message || 'Unknown error',
       debug_session: request.requestId || `error-${Date.now()}`
     };
   }
@@ -223,16 +224,17 @@ async function fallbackVerification(request: FaceVerificationRequest): Promise<F
       request.saveToDb
     );
     
+    // Create a properly typed result with debug_session
     return {
       ...result,
-      debug_session: request.requestId || result.debug_session || `fallback-${Date.now()}`
+      debug_session: request.requestId || (result as any).debug_session || `fallback-${Date.now()}`
     };
-  } catch (error) {
+  } catch (error: any) {
     return {
       success: false,
       confidence: 0,
-      message: `Fallback verification error: ${error.message}`,
-      error: error.message,
+      message: `Fallback verification error: ${error?.message || 'Unknown error'}`,
+      error: error?.message || 'Unknown error',
       debug_session: request.requestId || `fallback-error-${Date.now()}`
     };
   }
@@ -253,7 +255,13 @@ export async function verifyVideo(
   try {
     // Create a form with the video file
     const formData = new FormData();
-    formData.append('file', fs.createReadStream(videoFile));
+    
+    // Read the file and convert to Buffer
+    const fileBuffer = fs.readFileSync(videoFile);
+    
+    // Create a Blob from the buffer and append to form
+    const blob = new Blob([fileBuffer]);
+    formData.append('file', blob, path.basename(videoFile));
     
     if (userId) {
       formData.append('user_id', userId.toString());
@@ -275,15 +283,15 @@ export async function verifyVideo(
     } else {
       throw new Error(`Video verification failed with status ${response.status}`);
     }
-  } catch (error) {
+  } catch (error: any) {
     // Handle errors
     console.error('Video verification error:', error);
     
     return {
       success: false,
       confidence: 0,
-      message: `Video verification error: ${error.message}`,
-      error: error.message,
+      message: `Video verification error: ${error?.message || 'Unknown error'}`,
+      error: error?.message || 'Unknown error',
       debug_session: `video-error-${Date.now()}`
     };
   }
