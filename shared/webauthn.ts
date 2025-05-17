@@ -1,9 +1,7 @@
 /**
- * Shared types for WebAuthn implementation
- * These types ensure consistency between client and server components
+ * Shared WebAuthn types for both client and server
  */
 
-// WebAuthn Registration Options
 export interface WebAuthnRegistrationOptions {
   challenge: string;
   rp: {
@@ -28,7 +26,6 @@ export interface WebAuthnRegistrationOptions {
   };
 }
 
-// WebAuthn Authentication Options
 export interface WebAuthnAuthenticationOptions {
   challenge: string;
   timeout: number;
@@ -40,7 +37,6 @@ export interface WebAuthnAuthenticationOptions {
   }>;
 }
 
-// Attestation Response (for registration)
 export interface WebAuthnAttestationResponse {
   id: string;
   rawId: string;
@@ -52,7 +48,6 @@ export interface WebAuthnAttestationResponse {
   };
 }
 
-// Assertion Response (for authentication)
 export interface WebAuthnAssertionResponse {
   id: string;
   rawId: string;
@@ -65,19 +60,16 @@ export interface WebAuthnAssertionResponse {
   };
 }
 
-// Hybrid Registration Request
 export interface HybridRegistrationRequest {
   attestationResponse: WebAuthnAttestationResponse;
   faceImage: string; // Base64 encoded image
 }
 
-// Hybrid Verification Request
 export interface HybridVerificationRequest {
   assertionResponse: WebAuthnAssertionResponse;
   faceImage?: string; // Optional base64 encoded image
 }
 
-// Response from the server after registration
 export interface WebAuthnRegistrationResponse {
   success: boolean;
   message: string;
@@ -85,12 +77,11 @@ export interface WebAuthnRegistrationResponse {
   details?: string;
 }
 
-// Response from the server after authentication
 export interface WebAuthnAuthenticationResponse {
   success: boolean;
   message: string;
   user?: {
-    id: number;
+    id: number | string;
     username: string;
     isVerified: boolean;
   };
@@ -107,7 +98,6 @@ export interface WebAuthnAuthenticationResponse {
   };
 }
 
-// Credential record as stored in the database
 export interface StoredCredential {
   id: number;
   credentialId: string;

@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import WebAuthnVerifier from '../components/WebAuthnVerifier';
-import { WebAuthnAuthenticationResponse } from '../../shared/webauthn';
+import { WebAuthnAuthenticationResponse } from '../../../shared/webauthn';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { ShieldCheckIcon, LockIcon, FaceIcon, FingerprintIcon } from 'lucide-react';
+import { ShieldCheckIcon, LockIcon, Scan, FingerprintIcon } from 'lucide-react';
+
+// Using Scan icon instead of FaceIcon
+const FaceIcon = Scan;
 
 /**
  * Test page for WebAuthn and hybrid biometric authentication

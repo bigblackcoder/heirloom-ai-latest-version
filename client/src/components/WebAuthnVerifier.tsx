@@ -1,9 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { FaceIcon, FingerprintIcon, ShieldCheckIcon, AlertCircleIcon, CheckCircle2Icon } from "lucide-react";
+import { Scan, FingerprintIcon, ShieldCheckIcon, AlertCircleIcon, CheckCircle2Icon } from "lucide-react";
+// Using Scan icon as a replacement for FaceIcon
+const FaceIcon = Scan;
+
+// Import shared types
 import { 
   WebAuthnRegistrationOptions, 
   WebAuthnAttestationResponse,
@@ -11,19 +15,22 @@ import {
   WebAuthnAssertionResponse,
   WebAuthnRegistrationResponse,
   WebAuthnAuthenticationResponse
-} from '../../shared/webauthn';
+} from '../../../shared/webauthn';
 import axios from 'axios';
 
 // Detect device/platform to provide appropriate biometric terminology
 const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-const isApple = /iPhone|iPad|iPod|Mac/i.test(navigator.userAgent);
+const isMac = /Mac/.test(navigator.userAgent);
+const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+const isWindows = /Windows/.test(navigator.userAgent);
 
-// Get biometric method name based on platform
-const getBiometricName = () => {
-  if (isApple) {
-    return isMobile ? 'Face ID' : 'Touch ID';
-  }
-  return isMobile ? 'Biometric Authentication' : 'Windows Hello';
+// Get platform-specific biometric terminology
+const getBiometricTerm = () => {
+  if (isIOS) return "Face ID / Touch ID";
+  if (isMac) return "Touch ID";
+  if (isWindows) return "Windows Hello";
+  if (isMobile) return "Fingerprint / Face recognition";
+  return "Biometric authentication";
 };
 
 interface WebAuthnVerifierProps {
@@ -46,429 +53,516 @@ const WebAuthnVerifier: React.FC<WebAuthnVerifierProps> = ({
   username,
   onSuccess,
   onError,
-  mode = 'verify',
-  showFaceCapture = false,
+  mode = 'hybrid',
+  showFaceCapture = true,
   customTitle,
-  customDescription
+  customDescription,
 }) => {
-  const [status, setStatus] = useState<string>('idle');
-  const [progress, setProgress] = useState(0);
-  const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<WebAuthnAuthenticationResponse | null>(null);
-  const [faceImage, setFaceImage] = useState<string | null>(null);
-  const [webcamActive, setWebcamActive] = useState(false);
-  const biometricName = getBiometricName();
-  const videoRef = React.useRef<HTMLVideoElement>(null);
-
-  // Clean up media stream when component unmounts
-  useEffect(() => {
-    return () => {
-      if (webcamActive && videoRef.current && videoRef.current.srcObject) {
-        const mediaStream = videoRef.current.srcObject as MediaStream;
-        mediaStream.getTracks().forEach(track => track.stop());
-      }
-    };
-  }, [webcamActive]);
-
-  // Start webcam for face capture
-  const startWebcam = async () => {
+  // Component state
+  const [status, setStatus] = useState<'idle' | 'registering' | 'verifying' | 'success' | 'error'>('idle');
+  const [message, setMessage] = useState<string>('');
+  const [errorDetails, setErrorDetails] = useState<string>('');
+  const [progress, setProgress] = useState<number>(0);
+  const [faceCaptured, setFaceCaptured] = useState<boolean>(false);
+  const [faceImageBase64, setFaceImageBase64] = useState<string | null>(null);
+  
+  // Video stream for face capture
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [stream, setStream] = useState<MediaStream | null>(null);
+  
+  // Handle biometric authentication flow based on mode
+  const startAuthentication = async () => {
     try {
-      const constraints = {
-        video: {
-          width: { ideal: 640 },
-          height: { ideal: 480 },
-          facingMode: 'user'
-        }
+      setStatus(mode === 'register' ? 'registering' : 'verifying');
+      setProgress(25);
+      setMessage(`Initializing ${getBiometricTerm()}...`);
+      
+      if (mode === 'register') {
+        await startRegistration();
+      } else {
+        await startVerification();
+      }
+    } catch (err) {
+      const error = err as Error;
+      handleError(error);
+    }
+  };
+  
+  // Register a new credential
+  const startRegistration = async () => {
+    try {
+      // 1. Get registration options from server
+      setMessage("Requesting registration options...");
+      const response = await axios.post('/api/webauthn/register-options', {
+        userId,
+        username,
+      });
+      
+      setProgress(50);
+      setMessage(`Please verify with ${getBiometricTerm()}...`);
+      
+      // 2. Parse the options from the server
+      const options: WebAuthnRegistrationOptions = response.data;
+      
+      // 3. Create credential with device biometrics
+      // @ts-ignore: TypeScript doesn't recognize the WebAuthn API properly
+      const credential = await navigator.credentials.create({
+        publicKey: {
+          ...options,
+          challenge: base64UrlToBuffer(options.challenge),
+          user: {
+            ...options.user,
+            id: typeof options.user.id === 'string' 
+              ? base64UrlToBuffer(options.user.id) 
+              : new TextEncoder().encode(options.user.id.toString()),
+          },
+          excludeCredentials: [],
+        },
+      });
+      
+      if (!credential) {
+        throw new Error("Failed to create credential");
+      }
+      
+      // 4. Format the credential for the server
+      const attestationResponse: WebAuthnAttestationResponse = {
+        id: credential.id,
+        rawId: bufferToBase64Url(new Uint8Array(credential.rawId)),
+        type: credential.type,
+        response: {
+          attestationObject: bufferToBase64Url(new Uint8Array(credential.response.attestationObject)),
+          clientDataJSON: bufferToBase64Url(new Uint8Array(credential.response.clientDataJSON)),
+        },
       };
       
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      setProgress(75);
+      setMessage("Verifying with server...");
+      
+      // 5. Send the credential to the server for verification
+      let verifyResponse;
+      
+      if (mode === 'hybrid' && faceImageBase64) {
+        // For hybrid mode, send both credential and face image
+        verifyResponse = await axios.post('/api/webauthn/register-hybrid', {
+          attestationResponse,
+          faceImage: faceImageBase64
+        });
+      } else {
+        // For regular registration, just send credential
+        verifyResponse = await axios.post('/api/webauthn/register-verify', {
+          attestationResponse
+        });
+      }
+      
+      const registrationResult: WebAuthnRegistrationResponse = verifyResponse.data;
+      
+      if (registrationResult.success) {
+        setStatus('success');
+        setProgress(100);
+        setMessage(registrationResult.message || "Registration successful!");
+        
+        if (onSuccess) {
+          onSuccess({
+            success: true,
+            message: registrationResult.message,
+            user: {
+              id: userId,
+              username,
+              isVerified: true
+            }
+          });
+        }
+      } else {
+        throw new Error(registrationResult.error || "Registration failed");
+      }
+    } catch (error) {
+      handleError(error as Error);
+    }
+  };
+  
+  // Verify with existing credential
+  const startVerification = async () => {
+    try {
+      // 1. Get authentication options from server
+      setMessage("Requesting authentication options...");
+      const response = await axios.post('/api/webauthn/auth-options', {
+        userId,
+      });
+      
+      setProgress(50);
+      setMessage(`Please verify with ${getBiometricTerm()}...`);
+      
+      // 2. Parse the options from the server
+      const options: WebAuthnAuthenticationOptions = response.data;
+      
+      // 3. Verify with device biometrics
+      // @ts-ignore: TypeScript doesn't recognize the WebAuthn API properly
+      const assertion = await navigator.credentials.get({
+        publicKey: {
+          ...options,
+          challenge: base64UrlToBuffer(options.challenge),
+          allowCredentials: options.allowCredentials.map(cred => ({
+            id: base64UrlToBuffer(cred.id),
+            type: cred.type,
+          })),
+        },
+      });
+      
+      if (!assertion) {
+        throw new Error("Failed to verify credential");
+      }
+      
+      // 4. Format the assertion for the server
+      const assertionResponse: WebAuthnAssertionResponse = {
+        id: assertion.id,
+        rawId: bufferToBase64Url(new Uint8Array(assertion.rawId)),
+        type: assertion.type,
+        response: {
+          authenticatorData: bufferToBase64Url(new Uint8Array(assertion.response.authenticatorData)),
+          clientDataJSON: bufferToBase64Url(new Uint8Array(assertion.response.clientDataJSON)),
+          signature: bufferToBase64Url(new Uint8Array(assertion.response.signature)),
+          userHandle: assertion.response.userHandle ? bufferToBase64Url(new Uint8Array(assertion.response.userHandle)) : undefined,
+        },
+      };
+      
+      setProgress(75);
+      setMessage("Verifying with server...");
+      
+      // 5. Send the assertion to the server for verification
+      let verifyResponse;
+      
+      if (mode === 'hybrid' && faceImageBase64) {
+        // For hybrid mode, send both assertion and face image
+        verifyResponse = await axios.post('/api/webauthn/verify-hybrid', {
+          assertionResponse,
+          faceImage: faceImageBase64
+        });
+      } else {
+        // For regular verification, just send assertion
+        verifyResponse = await axios.post('/api/webauthn/verify', {
+          assertionResponse
+        });
+      }
+      
+      const authResult: WebAuthnAuthenticationResponse = verifyResponse.data;
+      
+      if (authResult.success) {
+        setStatus('success');
+        setProgress(100);
+        setMessage(authResult.message || "Authentication successful!");
+        
+        if (onSuccess) {
+          onSuccess(authResult);
+        }
+      } else {
+        throw new Error(authResult.error || "Authentication failed");
+      }
+    } catch (error) {
+      handleError(error as Error);
+    }
+  };
+  
+  // Handle errors
+  const handleError = (error: Error) => {
+    console.error('WebAuthn error:', error);
+    setStatus('error');
+    setProgress(0);
+    
+    // User-friendly error message based on error type
+    const errorMessage = getUserFriendlyErrorMessage(error);
+    setMessage(errorMessage);
+    setErrorDetails(error.message);
+    
+    if (onError) {
+      onError(error);
+    }
+  };
+  
+  // Get a user-friendly error message
+  const getUserFriendlyErrorMessage = (error: Error): string => {
+    const errorMsg = error.message.toLowerCase();
+    
+    if (errorMsg.includes('operation either timed out or was not allowed')) {
+      return `${getBiometricTerm()} verification was canceled or timed out`;
+    }
+    
+    if (errorMsg.includes('user verification')) {
+      return `${getBiometricTerm()} verification failed`;
+    }
+    
+    if (errorMsg.includes('already registered')) {
+      return 'This device is already registered for this account';
+    }
+    
+    if (errorMsg.includes('not found')) {
+      return 'No registered credentials found for this account';
+    }
+    
+    // Default message
+    return 'Authentication failed';
+  };
+  
+  // Start/stop face capture
+  useEffect(() => {
+    if (mode === 'hybrid' && showFaceCapture && status !== 'success' && status !== 'error') {
+      startFaceCapture();
+      
+      return () => {
+        stopFaceCapture();
+      };
+    }
+  }, [mode, showFaceCapture, status]);
+  
+  // Start face capture
+  const startFaceCapture = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: 'user',
+          width: { ideal: 640 },
+          height: { ideal: 480 }
+        }
+      });
+      
+      setStream(stream);
       
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        setWebcamActive(true);
       }
     } catch (err) {
-      console.error('Error accessing webcam:', err);
-      setError('Unable to access webcam. Please ensure camera permissions are granted.');
+      console.error('Camera access error:', err);
+      // Continue without face capture
     }
   };
-
-  // Capture image from webcam
-  const captureImage = () => {
-    if (!videoRef.current) return;
-    
-    const canvas = document.createElement('canvas');
-    canvas.width = videoRef.current.videoWidth;
-    canvas.height = videoRef.current.videoHeight;
-    
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    
-    ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-    
-    // Convert to base64
-    const imageData = canvas.toDataURL('image/jpeg');
-    setFaceImage(imageData);
-    
-    // Stop the webcam
-    if (videoRef.current.srcObject) {
-      const mediaStream = videoRef.current.srcObject as MediaStream;
-      mediaStream.getTracks().forEach(track => track.stop());
+  
+  // Stop face capture
+  const stopFaceCapture = () => {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
     }
-    
-    setWebcamActive(false);
   };
-
-  // Start biometric registration process
-  const startRegistration = async () => {
-    try {
-      setStatus('registering');
-      setProgress(10);
-      setError(null);
-
-      // 1. Get registration options from server
-      const response = await axios.post('/api/webauthn/register/options', { 
-        userId, 
-        username 
-      });
+  
+  // Capture face from video
+  const captureFace = () => {
+    if (videoRef.current && canvasRef.current) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      const context = canvas.getContext('2d');
       
-      const options: WebAuthnRegistrationOptions = response.data;
-      setProgress(30);
-
-      // 2. Convert challenge from base64 to ArrayBuffer
-      const publicKeyOptions = {
-        ...options,
-        challenge: Uint8Array.from(
-          atob(options.challenge), c => c.charCodeAt(0)
-        ),
-        user: {
-          ...options.user,
-          id: Uint8Array.from(
-            String(options.user.id), c => c.charCodeAt(0)
-          ),
-        }
-      };
-
-      // 3. Create credentials with device biometrics
-      setProgress(50);
-      const credential = await navigator.credentials.create({
-        publicKey: publicKeyOptions as any
-      }) as any;
-
-      if (!credential) {
-        throw new Error('Failed to create credential');
-      }
-
-      // 4. Prepare attestation response for server
-      const attestationResponse: WebAuthnAttestationResponse = {
-        id: credential.id,
-        rawId: btoa(String.fromCharCode(...new Uint8Array(credential.rawId))),
-        type: credential.type,
-        response: {
-          attestationObject: btoa(String.fromCharCode(
-            ...new Uint8Array(credential.response.attestationObject)
-          )),
-          clientDataJSON: btoa(String.fromCharCode(
-            ...new Uint8Array(credential.response.clientDataJSON)
-          )),
-          publicKey: credential.response.getPublicKey ? 
-            btoa(String.fromCharCode(
-              ...new Uint8Array(credential.response.getPublicKey())
-            )) : undefined
-        }
-      };
-
-      setProgress(70);
-
-      // 5. Send response to server
-      let verifyEndpoint = '/api/webauthn/register/verify';
-      let verifyData: any = { attestationResponse };
-
-      if (mode === 'hybrid' && faceImage) {
-        verifyEndpoint = '/api/webauthn/hybrid/register';
-        verifyData.faceImage = faceImage;
-      }
-
-      const verifyResponse = await axios.post(verifyEndpoint, verifyData);
-      const registrationResult: WebAuthnRegistrationResponse = verifyResponse.data;
-
-      setProgress(100);
-      setStatus('success');
-      setResult(registrationResult as any);
-
-      if (onSuccess) {
-        onSuccess(registrationResult as any);
-      }
-    } catch (err) {
-      setStatus('error');
-      setError(err instanceof Error ? err.message : 'Registration failed');
-      console.error('WebAuthn registration error:', err);
-      
-      if (onError && err instanceof Error) {
-        onError(err);
+      if (context) {
+        // Set canvas dimensions to match video
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        
+        // Draw video frame to canvas
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        // Get base64 image data
+        const imageData = canvas.toDataURL('image/jpeg', 0.8);
+        setFaceImageBase64(imageData.split(',')[1]); // Remove data:image/jpeg;base64, prefix
+        setFaceCaptured(true);
       }
     }
   };
-
-  // Start biometric verification process
-  const startVerification = async () => {
-    try {
-      setStatus('verifying');
-      setProgress(10);
-      setError(null);
-
-      // 1. Get authentication options from server
-      const response = await axios.post('/api/webauthn/authenticate/options', { 
-        userId 
-      });
-      
-      const options: WebAuthnAuthenticationOptions = response.data;
-      setProgress(30);
-
-      // 2. Convert challenge and credential IDs from base64 to ArrayBuffer
-      const publicKeyOptions = {
-        ...options,
-        challenge: Uint8Array.from(
-          atob(options.challenge), c => c.charCodeAt(0)
-        ),
-        allowCredentials: options.allowCredentials.map(cred => ({
-          ...cred,
-          id: Uint8Array.from(
-            atob(cred.id), c => c.charCodeAt(0)
-          ),
-        }))
-      };
-
-      // 3. Get credential from device
-      setProgress(50);
-      const credential = await navigator.credentials.get({
-        publicKey: publicKeyOptions as any
-      }) as any;
-
-      if (!credential) {
-        throw new Error('Failed to get credential');
-      }
-
-      // 4. Prepare assertion response for server
-      const assertionResponse: WebAuthnAssertionResponse = {
-        id: credential.id,
-        rawId: btoa(String.fromCharCode(...new Uint8Array(credential.rawId))),
-        type: credential.type,
-        response: {
-          authenticatorData: btoa(String.fromCharCode(
-            ...new Uint8Array(credential.response.authenticatorData)
-          )),
-          clientDataJSON: btoa(String.fromCharCode(
-            ...new Uint8Array(credential.response.clientDataJSON)
-          )),
-          signature: btoa(String.fromCharCode(
-            ...new Uint8Array(credential.response.signature)
-          )),
-          userHandle: credential.response.userHandle ? 
-            btoa(String.fromCharCode(
-              ...new Uint8Array(credential.response.userHandle)
-            )) : undefined
-        }
-      };
-
-      setProgress(70);
-
-      // 5. Send response to server
-      let verifyEndpoint = '/api/webauthn/authenticate/verify';
-      let verifyData: any = { assertionResponse };
-
-      if (mode === 'hybrid' && faceImage) {
-        verifyEndpoint = '/api/webauthn/hybrid/verify';
-        verifyData.faceImage = faceImage;
-      }
-
-      const verifyResponse = await axios.post(verifyEndpoint, verifyData);
-      const authResult: WebAuthnAuthenticationResponse = verifyResponse.data;
-
-      setProgress(100);
-      setStatus('success');
-      setResult(authResult);
-
-      if (onSuccess) {
-        onSuccess(authResult);
-      }
-    } catch (err) {
-      setStatus('error');
-      setError(err instanceof Error ? err.message : 'Verification failed');
-      console.error('WebAuthn verification error:', err);
-      
-      if (onError && err instanceof Error) {
-        onError(err);
-      }
+  
+  // Convert base64url to buffer
+  const base64UrlToBuffer = (base64Url: string): ArrayBuffer => {
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const padding = '='.repeat((4 - (base64.length % 4)) % 4);
+    const binary = atob(base64 + padding);
+    const buffer = new ArrayBuffer(binary.length);
+    const bytes = new Uint8Array(buffer);
+    
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
     }
+    
+    return buffer;
   };
-
-  const getActionText = () => {
-    if (mode === 'register') {
-      return `Register with ${biometricName}`;
-    }
-    return `Verify with ${biometricName}`;
+  
+  // Convert buffer to base64url
+  const bufferToBase64Url = (buffer: Uint8Array): string => {
+    const binary = Array.from(buffer)
+      .map(byte => String.fromCharCode(byte))
+      .join('');
+    
+    const base64 = btoa(binary);
+    return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
   };
-
-  const resetProcess = () => {
-    setStatus('idle');
-    setProgress(0);
-    setError(null);
-    setResult(null);
-    setFaceImage(null);
-    setWebcamActive(false);
-  };
-
-  const renderStatus = () => {
-    const inProcess = status === 'registering' || status === 'verifying';
-
-    switch (status) {
-      case 'registering':
-        return <>Registering biometric credential...</>;
-      case 'verifying':
-        return <>Verifying your identity...</>;
-      case 'success':
-        return (
-          <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-            <CheckCircle2Icon className="h-5 w-5" />
-            <span>
-              {mode === 'register' 
-                ? 'Biometric registration successful!' 
-                : 'Biometric verification successful!'}
-            </span>
-          </div>
-        );
-      case 'error':
-        return (
-          <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
-            <AlertCircleIcon className="h-5 w-5" />
-            <span>{error || 'Something went wrong'}</span>
-          </div>
-        );
-      default:
-        return null;
-    }
-  };
-
+  
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          {mode === 'register' ? (
-            <FingerprintIcon className="h-5 w-5" />
-          ) : (
-            <ShieldCheckIcon className="h-5 w-5" />
-          )}
-          {customTitle || (mode === 'register' 
-            ? `Register ${biometricName}` 
-            : `Verify with ${biometricName}`)}
-        </CardTitle>
-        <CardDescription>
-          {customDescription || (mode === 'register'
-            ? `Register your device biometrics for secure authentication`
-            : `Verify your identity using your device biometrics`)}
-        </CardDescription>
-      </CardHeader>
-
-      <CardContent className="space-y-4">
-        {status !== 'idle' && status !== 'error' && (
-          <Progress value={progress} className="w-full" />
-        )}
-
-        {/* Face capture section */}
-        {(showFaceCapture || mode === 'hybrid') && (
-          <div className="space-y-4">
-            <div className="text-sm font-medium">Facial Verification:</div>
-            
-            {!faceImage && !webcamActive && (
-              <Button 
-                variant="outline" 
-                onClick={startWebcam}
-                className="w-full"
-              >
-                <FaceIcon className="mr-2 h-4 w-4" />
-                Capture Face
-              </Button>
-            )}
-            
-            {webcamActive && (
-              <div className="space-y-2">
-                <div className="relative rounded-md overflow-hidden aspect-[4/3] bg-slate-100 dark:bg-slate-800">
-                  <video 
-                    ref={videoRef} 
-                    autoPlay 
-                    playsInline 
-                    className="w-full h-full object-cover" 
-                  />
-                </div>
-                <Button onClick={captureImage} className="w-full">
-                  Capture Image
-                </Button>
+    <div className="w-full">
+      {/* Main authentication card */}
+      <Card className="mb-4">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            {customTitle || (mode === 'register' 
+              ? "Register Device Biometrics" 
+              : "Verify Your Identity")}
+          </CardTitle>
+          <CardDescription>
+            {customDescription || (mode === 'register'
+              ? `Register your ${getBiometricTerm()} for secure authentication`
+              : `Verify your identity using ${getBiometricTerm()}`)}
+          </CardDescription>
+        </CardHeader>
+        
+        <CardContent>
+          {/* Status display */}
+          {status !== 'idle' && (
+            <div className="mb-4">
+              <div className="flex justify-between mb-2">
+                <span className="text-sm">
+                  {status === 'registering' ? 'Registration' : 
+                   status === 'verifying' ? 'Verification' : 
+                   status === 'success' ? 'Complete' : 'Failed'}
+                </span>
+                <span className="text-sm">{progress}%</span>
               </div>
-            )}
-            
-            {faceImage && (
-              <div className="space-y-2">
-                <div className="relative rounded-md overflow-hidden aspect-[4/3] bg-slate-100 dark:bg-slate-800">
-                  <img 
-                    src={faceImage} 
-                    alt="Captured face" 
-                    className="w-full h-full object-cover" 
+              <Progress value={progress} className="w-full" />
+            </div>
+          )}
+          
+          {/* Status message */}
+          {message && (
+            <Alert 
+              variant={status === 'error' ? 'destructive' : status === 'success' ? 'default' : 'outline'} 
+              className="mb-4"
+            >
+              <div className="flex items-center gap-2">
+                {status === 'error' ? (
+                  <AlertCircleIcon className="h-4 w-4" />
+                ) : status === 'success' ? (
+                  <CheckCircle2Icon className="h-4 w-4" />
+                ) : (
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                )}
+                <AlertTitle>{message}</AlertTitle>
+              </div>
+              {errorDetails && status === 'error' && (
+                <AlertDescription className="mt-2 text-xs opacity-80">
+                  Technical details: {errorDetails}
+                </AlertDescription>
+              )}
+            </Alert>
+          )}
+          
+          {/* Face capture (for hybrid mode) */}
+          {mode === 'hybrid' && showFaceCapture && status === 'idle' && (
+            <div className="space-y-4">
+              <div className="text-sm text-muted-foreground mb-2">
+                This enhanced security option combines your device biometrics with facial recognition
+              </div>
+              
+              <div className="relative mx-auto w-full max-w-[300px] h-[225px] bg-muted rounded-lg overflow-hidden">
+                {!faceCaptured ? (
+                  <>
+                    <video 
+                      ref={videoRef} 
+                      autoPlay 
+                      playsInline 
+                      muted 
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 border-2 border-dashed border-primary/50 rounded-lg pointer-events-none" />
+                  </>
+                ) : (
+                  <canvas 
+                    ref={canvasRef}
+                    className="absolute inset-0 w-full h-full object-cover"
                   />
-                </div>
+                )}
+                
+                {!stream && !faceCaptured && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/90 p-4 text-center">
+                    <FaceIcon className="h-8 w-8 mb-2 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">
+                      Camera access required for enhanced security
+                    </p>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="mt-2"
+                      onClick={startFaceCapture}
+                    >
+                      Enable Camera
+                    </Button>
+                  </div>
+                )}
+              </div>
+              
+              {!faceCaptured && stream ? (
                 <Button 
                   variant="outline" 
-                  onClick={() => {
-                    setFaceImage(null);
-                    startWebcam();
-                  }}
+                  size="sm" 
                   className="w-full"
+                  onClick={captureFace}
                 >
-                  Retake Photo
+                  <FaceIcon className="h-4 w-4 mr-2" />
+                  Capture Image
                 </Button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {renderStatus() && (
-          <Alert variant={status === 'success' ? 'default' : 'destructive'}>
-            <AlertTitle>
-              {status === 'success' ? 'Success' : 'Error'}
-            </AlertTitle>
-            <AlertDescription>
-              {renderStatus()}
-            </AlertDescription>
-          </Alert>
-        )}
-      </CardContent>
-
-      <CardFooter className="flex flex-col gap-2">
-        {status === 'idle' && (
-          <Button 
-            onClick={mode === 'register' ? startRegistration : startVerification}
-            className="w-full"
-            disabled={mode === 'hybrid' && !faceImage}
-          >
-            {mode === 'register' 
-              ? <FingerprintIcon className="mr-2 h-4 w-4" /> 
-              : <ShieldCheckIcon className="mr-2 h-4 w-4" />
-            }
-            {getActionText()}
-          </Button>
-        )}
-
-        {(status === 'success' || status === 'error') && (
-          <Button 
-            variant="outline" 
-            onClick={resetProcess}
-            className="w-full"
-          >
-            {status === 'error' ? 'Try Again' : 'Done'}
-          </Button>
-        )}
-      </CardFooter>
-    </Card>
+              ) : faceCaptured && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full"
+                  onClick={() => {
+                    setFaceCaptured(false);
+                    setFaceImageBase64(null);
+                    startFaceCapture();
+                  }}
+                >
+                  <FaceIcon className="h-4 w-4 mr-2" />
+                  Retake Image
+                </Button>
+              )}
+            </div>
+          )}
+          
+          {/* Hidden canvas for face capture */}
+          <canvas ref={canvasRef} style={{ display: 'none' }} />
+        </CardContent>
+        
+        <CardFooter>
+          {status === 'idle' && (
+            <Button 
+              className="w-full" 
+              onClick={startAuthentication}
+              disabled={mode === 'hybrid' && showFaceCapture && !faceCaptured}
+            >
+              {mode === 'register' ? (
+                <>
+                  <FingerprintIcon className="mr-2 h-4 w-4" />
+                  Register with {getBiometricTerm()}
+                </>
+              ) : (
+                <>
+                  <ShieldCheckIcon className="mr-2 h-4 w-4" />
+                  Verify with {getBiometricTerm()}
+                </>
+              )}
+            </Button>
+          )}
+          
+          {(status === 'error') && (
+            <Button 
+              variant="outline" 
+              className="w-full" 
+              onClick={() => {
+                setStatus('idle');
+                setMessage('');
+                setErrorDetails('');
+                setProgress(0);
+              }}
+            >
+              Try Again
+            </Button>
+          )}
+        </CardFooter>
+      </Card>
+    </div>
   );
 };
 
