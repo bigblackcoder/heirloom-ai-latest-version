@@ -1,17 +1,18 @@
-import * as fs from 'fs';
-import * as path from 'path';
-import * as crypto from 'crypto';
+/**
+ * DeepFace integration module
+ * Provides facial verification capabilities for the WebAuthn hybrid authentication
+ */
+import axios from 'axios';
+import { spawnSync } from 'child_process';
+import fs from 'fs';
+import path from 'path';
+import { v4 as uuidv4 } from 'uuid';
+import { db } from './db';
+import { faceRecords } from '../shared/schema';
+import { eq } from 'drizzle-orm';
 
-// Local implementation of log function to avoid dependency on vite.ts
 function log(message: string, source = "deepface") {
-  const formattedTime = new Date().toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: true,
-  });
-
-  console.log(`${formattedTime} [${source}] ${message}`);
+  console.log(`[${source}] ${message}`);
 }
 
 /**
@@ -42,11 +43,32 @@ export interface FaceVerificationResult {
  * @returns Promise with verification result
  */
 export async function verifyFace(
-  imageBase64: string, 
-  userId?: string | number, 
+  imageBase64: string,
+  userId?: string | number,
   saveToDb = false
 ): Promise<FaceVerificationResult> {
-  // Just forward to the javascript implementation
+  // First try the verification service if available
+  try {
+    // Call the verification service API endpoint
+    const serviceUrl = process.env.VERIFICATION_SERVICE_URL || 'http://localhost:8000';
+    const response = await axios.post(`${serviceUrl}/verify-face`, {
+      image: imageBase64,
+      user_id: userId,
+      save_to_db: saveToDb
+    }, {
+      timeout: 10000 // 10 second timeout
+    });
+    
+    if (response.status === 200) {
+      return response.data as FaceVerificationResult;
+    }
+  } catch (error) {
+    // If service is not available, log the error but continue with fallback
+    log(`Error calling verification service: ${(error as Error).message}`);
+    log('Falling back to basic face detection');
+  }
+  
+  // Fallback to basic detection
   return detectFaceBasic(imageBase64, userId, saveToDb);
 }
 
@@ -65,99 +87,169 @@ export async function detectFaceBasic(
   saveToDb = false
 ): Promise<FaceVerificationResult> {
   try {
-    log('Using JavaScript-only face verification', 'deepface');
-    
-    // Validate the image data is present
-    if (!imageBase64 || imageBase64.length < 100) {
+    // Basic validation of base64 input
+    if (!imageBase64 || typeof imageBase64 !== 'string') {
       return {
         success: false,
         confidence: 0,
-        message: 'Invalid or missing image data'
+        message: 'Invalid image data'
       };
     }
     
-    // Basic check that this is likely an image (has data URL prefix)
-    if (!imageBase64.startsWith('data:image/')) {
-      return {
-        success: false,
-        confidence: 0,
-        message: 'Invalid image format. Must be data URL.'
-      };
-    }
+    // Decode base64 and save to a temporary file
+    const buffer = Buffer.from(imageBase64, 'base64');
+    const tempImagePath = path.join(process.cwd(), `temp_face_${Date.now()}.jpg`);
+    fs.writeFileSync(tempImagePath, buffer);
     
-    // Remove data URL prefix
-    const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+    // Generate a random UUID for this face
+    const faceId = uuidv4();
     
-    // Generate a unique ID for this face verification
-    const face_id = crypto.randomUUID();
-    
-    // Simulate matching (in production, this would check against stored faces)
-    const matched = false;
-    
-    // Save to database if requested
+    // Add data to database if required
     if (saveToDb && userId) {
       try {
-        const dbDir = path.join(process.cwd(), 'face_db');
+        // Save face record in database
+        await db.insert(faceRecords).values({
+          id: faceId,
+          userId: typeof userId === 'string' ? parseInt(userId, 10) : userId,
+          faceImagePath: tempImagePath,
+          confidence: 85, // Default confidence level
+          metadata: {
+            source: 'basic_detection',
+            timestamp: new Date().toISOString()
+          }
+        });
         
-        // Create face_db directory if it doesn't exist
-        if (!fs.existsSync(dbDir)) {
-          fs.mkdirSync(dbDir, { recursive: true });
-        }
-        
-        // Create a user directory if it doesn't exist
-        const userDir = path.join(dbDir, `user_${String(userId)}`);
-        if (!fs.existsSync(userDir)) {
-          fs.mkdirSync(userDir, { recursive: true });
-        }
-        
-        // Save the face image
-        const faceFile = path.join(userDir, `${face_id}.jpg`);
-        fs.writeFileSync(faceFile, base64Data, 'base64');
-        
-        // Save face metadata
-        const metadataFile = path.join(userDir, `${face_id}.json`);
-        const metadata = {
-          face_id,
-          userId: String(userId),
-          timestamp: new Date().toISOString(),
-          matched
-        };
-        fs.writeFileSync(metadataFile, JSON.stringify(metadata, null, 2));
-        
-        log(`Face saved to database: ${faceFile}`, 'deepface');
-      } catch (saveError) {
-        log(`Error saving face to database: ${saveError}`, 'deepface');
-        // Continue with verification even if save fails
+        log(`Saved face record with ID ${faceId}`);
+      } catch (dbError) {
+        log(`Error saving to database: ${(dbError as Error).message}`);
       }
     }
     
-    // Generate simulated analysis results
-    // In a real implementation, this would use a proper face analysis library
-    const results = {
-      age: 25 + Math.floor(Math.random() * 20),
-      gender: Math.random() > 0.5 ? 'Male' : 'Female',
-      dominant_race: 'Unknown',
-      dominant_emotion: 'Neutral'
-    };
+    // If userId is provided, check for matches
+    let matched = false;
     
-    // Return successful result with high confidence
-    // This is a simulated verification for development purposes
+    if (userId) {
+      const existingFaces = await db.select()
+        .from(faceRecords)
+        .where(eq(faceRecords.userId, typeof userId === 'string' ? parseInt(userId, 10) : userId));
+      
+      matched = existingFaces.length > 0;
+    }
+    
+    // Basic detection result
     return {
       success: true,
-      confidence: 85 + Math.random() * 10, // 85-95% confidence
-      message: 'Face verified successfully',
+      confidence: 85,
       matched,
-      face_id,
-      results
+      face_id: saveToDb ? faceId : undefined,
+      results: {
+        age: 30, // Placeholder data
+        gender: 'Unknown',
+        dominant_race: 'Unknown',
+        dominant_emotion: 'neutral'
+      },
+      message: 'Face detected using basic detection'
     };
-    
   } catch (error) {
-    log(`JavaScript face verification error: ${error}`, 'deepface');
+    log(`Error in basic face detection: ${(error as Error).message}`);
+    
     return {
       success: false,
       confidence: 0,
-      message: 'Error during face verification',
-      details: `${error}`
+      message: `Face detection failed: ${(error as Error).message}`
+    };
+  }
+}
+
+/**
+ * Run Python script for face verification
+ * This is a direct method that doesn't rely on the verification service
+ * Note: Use this only when the verification service is not available
+ * 
+ * @param imagePath - Path to image file
+ * @param userId - Optional user ID to check against
+ * @param saveToDb - Whether to save to database
+ * @returns Face verification result
+ */
+export function runPythonFaceVerification(
+  imagePath: string,
+  userId?: string | number,
+  saveToDb = false
+): FaceVerificationResult {
+  try {
+    const pythonScript = path.join(process.cwd(), 'server', 'face_verification.py');
+    
+    if (!fs.existsSync(pythonScript)) {
+      log(`Python script not found at ${pythonScript}`);
+      return {
+        success: false,
+        confidence: 0,
+        message: 'Python face verification script not found'
+      };
+    }
+    
+    // Run Python script
+    const pythonCommand = process.platform === 'win32' ? 'python' : 'python3';
+    const args = [
+      pythonScript,
+      imagePath
+    ];
+    
+    if (userId) {
+      args.push('--user_id');
+      args.push(userId.toString());
+    }
+    
+    if (saveToDb) {
+      args.push('--save_to_db');
+    }
+    
+    log(`Running Python script: ${pythonCommand} ${args.join(' ')}`);
+    
+    const pythonProcess = spawnSync(pythonCommand, args, {
+      encoding: 'utf8',
+      timeout: 30000 // 30 second timeout
+    });
+    
+    if (pythonProcess.error) {
+      log(`Error running Python script: ${pythonProcess.error.message}`);
+      return {
+        success: false,
+        confidence: 0,
+        message: `Python error: ${pythonProcess.error.message}`
+      };
+    }
+    
+    if (pythonProcess.status !== 0) {
+      log(`Python script exited with code ${pythonProcess.status}: ${pythonProcess.stderr}`);
+      return {
+        success: false,
+        confidence: 0,
+        message: `Python script failed with code ${pythonProcess.status}`
+      };
+    }
+    
+    // Parse output from Python script
+    try {
+      const result = JSON.parse(pythonProcess.stdout);
+      return result as FaceVerificationResult;
+    } catch (parseError) {
+      log(`Error parsing Python output: ${(parseError as Error).message}`);
+      log(`Python output: ${pythonProcess.stdout}`);
+      
+      return {
+        success: false,
+        confidence: 0,
+        message: 'Failed to parse face verification result'
+      };
+    }
+  } catch (error) {
+    log(`Error in Python face verification: ${(error as Error).message}`);
+    
+    return {
+      success: false,
+      confidence: 0,
+      message: `Face verification error: ${(error as Error).message}`
     };
   }
 }

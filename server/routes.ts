@@ -33,8 +33,8 @@ import {
   insertActivitySchema 
 } from "@shared/schema";
 import { z } from "zod";
-import { verifyFace, detectFaceBasic } from "./deepface";
-import { verifyFace as verifyFaceAPI, verifyVideo } from "./verification_proxy";
+import { detectFaceBasic } from "./deepface";
+import { verifyFace, verifyVideo } from "./verification_proxy";
 import { log } from "./vite";
 import { blockchainService } from "./blockchain/service";
 import { requireAuth, requireVerified } from "./middleware/auth";
