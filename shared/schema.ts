@@ -101,7 +101,9 @@ export const activities = pgTable("activities", {
   createdAt: timestamp("created_at").defaultNow().notNull()
 });
 
-export const insertActivitySchema = createInsertSchema(activities).omit({ id: true, createdAt: true });
+export const insertActivitySchema = createInsertSchema(activities).omit({ id: true, createdAt: true }).extend({
+  metadata: z.record(z.any()).nullable().optional()
+});
 export type InsertActivity = z.infer<typeof insertActivitySchema>;
 export type Activity = typeof activities.$inferSelect;
 
@@ -164,6 +166,11 @@ export const insertBiometricCredentialSchema = createInsertSchema(biometricCrede
   createdAt: true, 
   lastUsedAt: true,
   counter: true
+}).extend({
+  // Add proper types for JSON fields
+  attestation: z.record(z.any()).nullable().optional(),
+  transports: z.array(z.string()).nullable().optional(),
+  metadata: z.record(z.any()).nullable().optional()
 });
 export type InsertBiometricCredential = z.infer<typeof insertBiometricCredentialSchema>;
 export type BiometricCredential = typeof biometricCredentials.$inferSelect;

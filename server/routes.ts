@@ -444,30 +444,55 @@ export async function registerRoutes(app: express.Application): Promise<Server> 
 
   app.post("/api/biometrics/verify/complete", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const userId = req.session!.userId as number;
+      const userId = req.session?.userId;
       if (!userId) {
+        console.error("Biometric verification failed: User ID not found in session");
         return res.status(401).json({
           success: false,
-          message: "User ID not found in session"
+          message: "User ID not found in session",
+          error: "missing_user_id"
         });
       }
       const { id, rawId, type, response } = req.body;
       
       // Verify challenge
-      const expectedChallenge = req.session!.verifyChallenge;
+      const expectedChallenge = req.session?.verifyChallenge;
       if (!expectedChallenge) {
+        console.error("Biometric verification failed: Missing challenge in session");
         return res.status(400).json({ 
           success: false, 
-          message: "Verification session expired or invalid" 
+          message: "Verification session expired or invalid",
+          error: "missing_challenge"
         });
       }
       
       // Get credential from database
       const credential = await storage.getBiometricCredentialByCredentialId(id);
-      if (!credential || credential.userId !== userId || !credential.isActive) {
+      
+      if (!credential) {
+        console.error(`Biometric verification failed: Credential not found: ${id}`);
         return res.status(400).json({ 
           success: false, 
-          message: "Invalid credential" 
+          message: "Credential not found",
+          error: "credential_not_found"
+        });
+      }
+      
+      if (credential.userId !== Number(userId)) {
+        console.error(`Biometric verification failed: Credential belongs to different user`);
+        return res.status(403).json({ 
+          success: false, 
+          message: "Invalid credential ownership",
+          error: "invalid_ownership"
+        });
+      }
+      
+      if (!credential.isActive) {
+        console.error(`Biometric verification failed: Inactive credential`);
+        return res.status(400).json({ 
+          success: false, 
+          message: "Credential has been deactivated",
+          error: "inactive_credential"
         });
       }
       
