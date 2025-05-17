@@ -1,100 +1,68 @@
-import { QueryClient } from '@tanstack/react-query';
-import { toast } from '@/hooks/use-toast';
+import { QueryClient } from "@tanstack/react-query";
 
-// Default fetch function for React Query
-async function defaultFetchFunction(
-  url: string,
-  init?: RequestInit
-): Promise<Response> {
-  const response = await fetch(url, init);
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    const errorMessage = errorData.message || response.statusText || 'Request failed';
-    throw new Error(errorMessage);
-  }
-  return response;
-}
-
-// API request for mutations
-export async function apiRequest({ url, method = 'GET', body }: {
-  url: string;
-  method?: string;
-  body?: any;
-}) {
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-  };
-
-  const options: RequestInit = {
-    method,
-    headers,
-    credentials: 'include'
-  };
-
-  if (body) {
-    options.body = JSON.stringify(body);
-  }
-  
-  try {
-    const response = await defaultFetchFunction(url, options);
-    
-    // Check for redirects (especially for login/logout)
-    if (response.redirected) {
-      window.location.href = response.url;
-      return null;
-    }
-    
-    // Parse response
-    const contentType = response.headers.get('content-type');
-    if (contentType && contentType.includes('application/json')) {
-      return await response.json();
-    }
-    
-    return await response.text();
-  } catch (error) {
-    console.error(`API request failed for ${url}:`, error);
-    throw error;
-  }
-}
-
-// Create a global query client with default options
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 1,
+      retry: false,
       refetchOnWindowFocus: false,
-      queryFn: async ({ queryKey }) => {
-        if (typeof queryKey[0] === 'string') {
-          const response = await defaultFetchFunction(queryKey[0] as string, {
-            credentials: 'include'
-          });
-          
-          // Check for redirects
-          if (response.redirected) {
-            window.location.href = response.url;
-            return null;
-          }
-          
-          // Return JSON or text based on content type
-          const contentType = response.headers.get('content-type');
-          if (contentType && contentType.includes('application/json')) {
-            return await response.json();
-          }
-          
-          return await response.text();
-        }
-        throw new Error(`Invalid query key: ${queryKey}`);
-      },
+      staleTime: 1000 * 60 * 5, // 5 minutes
     },
-    mutations: {
-      onError: (error) => {
-        console.error('Mutation error:', error);
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: error instanceof Error ? error.message : 'An error occurred'
-        });
-      }
-    }
-  }
+  },
 });
+
+interface ApiRequestOptions {
+  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+  body?: any;
+  headers?: Record<string, string>;
+  signal?: AbortSignal;
+}
+
+export async function apiRequest(
+  endpoint: string,
+  options: ApiRequestOptions = {}
+) {
+  const { method = "GET", body, headers = {}, signal } = options;
+
+  const requestHeaders: HeadersInit = {
+    Accept: "application/json",
+    ...headers,
+  };
+
+  if (body && !(body instanceof FormData)) {
+    requestHeaders["Content-Type"] = "application/json";
+  }
+
+  const response = await fetch(endpoint, {
+    method,
+    headers: requestHeaders,
+    body: body instanceof FormData ? body : body ? JSON.stringify(body) : undefined,
+    credentials: "include", // Include cookies for authentication
+    signal,
+  });
+
+  // If no content, return empty response
+  if (response.status === 204) {
+    return {};
+  }
+
+  const data = await response.json();
+
+  // Handle API errors
+  if (!response.ok) {
+    const error = new Error(data.message || "An error occurred with the API request");
+    error.name = "ApiError";
+    // @ts-ignore
+    error.status = response.status;
+    // @ts-ignore
+    error.data = data;
+    throw error;
+  }
+
+  return data;
+}
+
+// Default fetcher for React Query
+export const defaultFetcher = async ({ queryKey }: { queryKey: any }) => {
+  const [endpoint] = queryKey;
+  return await apiRequest(endpoint);
+};
