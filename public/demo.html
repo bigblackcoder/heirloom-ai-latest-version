@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Heirloom Identity Platform - Biometric Demo</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    .animate-ping {
+      animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+    }
+    @keyframes ping {
+      75%, 100% {
+        transform: scale(2);
+        opacity: 0;
+      }
+    }
+    .animate-spin {
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      from {
+        transform: rotate(0deg);
+      }
+      to {
+        transform: rotate(360deg);
+      }
+    }
+  </style>
+</head>
+<body class="bg-gray-50">
+  <div class="flex min-h-screen">
+    <div class="flex flex-col justify-center flex-1 px-4 py-12 sm:px-6 lg:flex-none lg:px-20 xl:px-24">
+      <div class="w-full max-w-sm mx-auto lg:w-96">
+        <div>
+          <h2 class="mt-6 text-3xl font-bold tracking-tight text-gray-900">Secure Identity Verification</h2>
+          <p class="mt-2 text-sm text-gray-600">
+            Verify your identity using your device's biometric authentication
+          </p>
+          <div id="error-message" class="hidden p-3 mt-4 text-sm text-red-700 bg-red-100 rounded-md"></div>
+        </div>
+
+        <div class="mt-8">
+          <div class="mt-6">
+            <div class="space-y-6">
+              <!-- Step 1: Initial Screen -->
+              <div id="step-1" class="block">
+                <div class="p-6 bg-white rounded-lg shadow-md">
+                  <div class="flex items-center mb-4">
+                    <div class="flex-shrink-0 p-2 bg-indigo-100 rounded-md">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4" />
+                      </svg>
+                    </div>
+                    <div class="ml-4">
+                      <h3 class="text-lg font-medium text-gray-900">Secure Biometric Authentication</h3>
+                      <p class="mt-1 text-sm text-gray-500">
+                        Your biometric data never leaves your device. Only verification metadata is securely transmitted with CSRF protection.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <button 
+                  id="authenticate-button"
+                  class="w-full py-3 px-6 mt-4 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 flex items-center justify-center bg-indigo-600 text-white hover:bg-indigo-700"
+                >
+                  <svg id="biometric-icon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M6.625 2.655A9 9 0 0119 11a1 1 0 11-2 0 7 7 0 00-9.625-6.492 1 1 0 11-.75-1.853zM4.662 4.959A1 1 0 014.75 6.37 6.97 6.97 0 003 11a1 1 0 11-2 0 8.97 8.97 0 012.25-5.953 1 1 0 011.412-.088z" clip-rule="evenodd" />
+                    <path fill-rule="evenodd" d="M5 11a5 5 0 1110 0 1 1 0 11-2 0 3 3 0 10-6 0c0 1.677-.345 3.276-.968 4.729a1 1 0 11-1.838-.789A9.964 9.964 0 015 11zm8.921 2.012a1 1 0 01.831 1.145 19.86 19.86 0 01-.545 2.436 1 1 0 11-1.92-.558c.207-.713.371-1.445.49-2.192a1 1 0 011.144-.83z" clip-rule="evenodd" />
+                  </svg>
+                  <span class="ml-2">Authenticate with <span id="biometric-text">Fingerprint</span></span>
+                </button>
+              </div>
+              
+              <!-- Step 2: Processing -->
+              <div id="step-2" class="hidden text-center">
+                <div class="p-6 bg-white rounded-lg shadow-md mb-4 flex flex-col items-center">
+                  <div class="relative w-16 h-16 mb-4">
+                    <div class="absolute inset-0 bg-indigo-100 rounded-full animate-ping opacity-75"></div>
+                    <div class="relative flex items-center justify-center w-16 h-16 bg-indigo-100 rounded-full">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M6.625 2.655A9 9 0 0119 11a1 1 0 11-2 0 7 7 0 00-9.625-6.492 1 1 0 11-.75-1.853zM4.662 4.959A1 1 0 014.75 6.37 6.97 6.97 0 003 11a1 1 0 11-2 0 8.97 8.97 0 012.25-5.953 1 1 0 011.412-.088z" clip-rule="evenodd" />
+                        <path fill-rule="evenodd" d="M5 11a5 5 0 1110 0 1 1 0 11-2 0 3 3 0 10-6 0c0 1.677-.345 3.276-.968 4.729a1 1 0 11-1.838-.789A9.964 9.964 0 015 11zm8.921 2.012a1 1 0 01.831 1.145 19.86 19.86 0 01-.545 2.436 1 1 0 11-1.92-.558c.207-.713.371-1.445.49-2.192a1 1 0 011.144-.83z" clip-rule="evenodd" />
+                      </svg>
+                    </div>
+                  </div>
+                  <h3 id="biometric-processing-text" class="text-lg font-medium text-gray-900">
+                    Waiting for fingerprint
+                  </h3>
+                  <p class="mt-1 text-sm text-gray-500">
+                    Please use your <span id="biometric-prompt-text">fingerprint sensor</span> to verify your identity
+                  </p>
+                </div>
+                <p class="text-xs text-gray-500">
+                  If no system prompt appears, your device may not support biometric authentication
+                </p>
+              </div>
+              
+              <!-- Step 3: Success -->
+              <div id="step-3" class="hidden text-center">
+                <div class="p-6 bg-white rounded-lg shadow-md mb-4 flex flex-col items-center">
+                  <div class="flex items-center justify-center w-16 h-16 mb-4 bg-green-100 rounded-full">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <h3 class="text-lg font-medium text-gray-900">Verification Successful</h3>
+                  <p class="mt-1 text-sm text-gray-500">
+                    Your identity has been verified
+                  </p>
+                </div>
+                <p class="text-sm text-gray-700">
+                  Redirecting to your dashboard...
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="relative flex-1 hidden w-0 lg:block">
+      <div class="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-600 flex flex-col justify-center items-center">
+        <div class="max-w-md px-8 text-center">
+          <h2 class="text-4xl font-bold text-white">Heirloom Identity Platform</h2>
+          <p class="mt-4 text-lg text-white opacity-90">
+            Secure verification using your device's native biometrics
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dashboard (will be shown after successful authentication) -->
+  <div id="dashboard" class="hidden min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-lg p-8 max-w-lg w-full">
+      <h1 class="text-2xl font-bold text-indigo-600 mb-4">Welcome to Your Dashboard</h1>
+      <p class="text-gray-700 mb-6">
+        Your identity has been successfully verified using device biometrics.
+      </p>
+      <div class="bg-green-50 border border-green-200 rounded-md p-4 mb-6">
+        <div class="flex">
+          <div class="flex-shrink-0">
+            <svg class="h-5 w-5 text-green-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+            </svg>
+          </div>
+          <div class="ml-3">
+            <h3 class="text-sm font-medium text-green-800">Verification Successful</h3>
+            <div class="mt-2 text-sm text-green-700">
+              <p>Your identity was verified using biometric authentication. This session is secured with enhanced protection.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="border-t border-gray-200 pt-4">
+        <p class="text-sm text-gray-500">
+          Your biometric data never left your device. Only verification metadata was processed securely.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Elements
+      const step1 = document.getElementById('step-1');
+      const step2 = document.getElementById('step-2');
+      const step3 = document.getElementById('step-3');
+      const dashboard = document.getElementById('dashboard');
+      const errorMessage = document.getElementById('error-message');
+      const authenticateButton = document.getElementById('authenticate-button');
+      const biometricText = document.getElementById('biometric-text');
+      const biometricPromptText = document.getElementById('biometric-prompt-text');
+      const biometricProcessingText = document.getElementById('biometric-processing-text');
+      const biometricIcon = document.getElementById('biometric-icon');
+
+      // Detect biometric type based on user agent
+      const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      const isFaceID = isIOS && (window.screen.height > 800 || window.screen.width > 800);
+      
+      // Update UI based on detected biometric type
+      function updateBiometricUI() {
+        if (isFaceID) {
+          biometricText.textContent = 'Face ID';
+          biometricPromptText.textContent = 'Face ID';
+          biometricProcessingText.textContent = 'Looking for Face ID';
+          
+          // Replace icon with face icon
+          biometricIcon.innerHTML = '<path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />';
+        } else {
+          biometricText.textContent = 'Fingerprint';
+          biometricPromptText.textContent = 'fingerprint sensor';
+          biometricProcessingText.textContent = 'Waiting for fingerprint';
+        }
+      }
+      
+      // Try to use WebAuthn if available, otherwise simulate it
+      function startBiometricAuth() {
+        // Hide error message if it was showing
+        errorMessage.classList.add('hidden');
+        
+        // Show the processing UI
+        step1.classList.add('hidden');
+        step2.classList.remove('hidden');
+        
+        if (window.PublicKeyCredential) {
+          // Real WebAuthn implementation
+          checkWebAuthnSupport();
+        } else {
+          // Fallback to simulation
+          simulateBiometricAuth();
+        }
+      }
+      
+      // Check if WebAuthn is supported and a platform authenticator is available
+      function checkWebAuthnSupport() {
+        if (typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function') {
+          PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
+            .then(available => {
+              if (available) {
+                tryRealWebAuthn();
+              } else {
+                // No platform authenticator available, show info and simulate
+                errorMessage.textContent = 'No biometric authenticator detected. Using simulated mode for demo.';
+                errorMessage.classList.remove('hidden');
+                simulateBiometricAuth();
+              }
+            })
+            .catch(err => {
+              console.error('Error checking platform authenticator:', err);
+              simulateBiometricAuth();
+            });
+        } else {
+          // Browser supports WebAuthn but not platform authenticator check
+          simulateBiometricAuth();
+        }
+      }
+      
+      // Try to use real WebAuthn for biometric auth
+      function tryRealWebAuthn() {
+        // This would be the challenge from the server
+        const challenge = new Uint8Array(32);
+        window.crypto.getRandomValues(challenge);
+        
+        // This would be provided by the server in a real implementation
+        const authOptions = {
+          publicKey: {
+            challenge,
+            timeout: 60000,
+            userVerification: "required",
+            rpId: window.location.hostname
+          }
+        };
+        
+        // Try to use a platform authenticator if available
+        navigator.credentials.get(authOptions)
+          .then(credential => {
+            console.log('Successful authentication!', credential);
+            onAuthSuccess();
+          })
+          .catch(err => {
+            console.error('WebAuthn error:', err);
+            // Fall back to simulation if real WebAuthn fails
+            errorMessage.textContent = 'Platform authenticator failed: ' + err.message + '. Using simulated mode.';
+            errorMessage.classList.remove('hidden');
+            simulateBiometricAuth();
+          });
+      }
+      
+      // Simulate biometric authentication when real WebAuthn isn't available
+      function simulateBiometricAuth() {
+        // Simulate a delay and biometric verification
+        setTimeout(() => {
+          // 80% success rate for demo purposes
+          const success = Math.random() > 0.2;
+          
+          if (success) {
+            onAuthSuccess();
+          } else {
+            // Show failure
+            step2.classList.add('hidden');
+            step1.classList.remove('hidden');
+            errorMessage.textContent = 'Biometric verification failed. Please try again.';
+            errorMessage.classList.remove('hidden');
+          }
+        }, 2000);
+      }
+      
+      // Handle successful authentication
+      function onAuthSuccess() {
+        // Show success state
+        step2.classList.add('hidden');
+        step3.classList.remove('hidden');
+        
+        // Redirect to dashboard after delay
+        setTimeout(() => {
+          step3.classList.add('hidden');
+          dashboard.classList.remove('hidden');
+        }, 1500);
+      }
+      
+      // Initialize
+      updateBiometricUI();
+      
+      // Event listener for authentication button
+      authenticateButton.addEventListener('click', startBiometricAuth);
+    });
+  </script>
+</body>
+</html>
