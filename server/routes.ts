@@ -4,12 +4,18 @@ import { storage } from "./storage";
 import { createSessionConfig, isAuthenticated, isVerifiedIdentity, setIdentityVerification, clearIdentityVerification } from "./session";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
+import path from "path";
 import { z } from "zod";
 import { insertUserSchema } from "@shared/schema";
 
 export async function registerRoutes(app: express.Application): Promise<Server> {
   // Apply session middleware
   app.use(createSessionConfig());
+  
+  // Serve static HTML page for immediate preview visibility
+  app.get("/", (_req: Request, res: Response) => {
+    res.sendFile(path.resolve(process.cwd(), "server", "static-page.html"));
+  });
   
   // Basic routes
   app.get("/api/health", (_req: Request, res: Response) => {
