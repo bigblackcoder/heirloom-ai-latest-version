@@ -497,12 +497,23 @@ export async function registerRoutes(app: express.Application): Promise<Server> 
       }
       
       // Verify attestation (simplified for demo - would be more robust in production)
-      const clientDataJSON = JSON.parse(Buffer.from(response.clientDataJSON, 'base64url').toString());
-      
-      if (clientDataJSON.challenge !== expectedChallenge) {
-        return res.status(400).json({ 
-          success: false, 
-          message: "Challenge verification failed" 
+      try {
+        const clientDataJSON = JSON.parse(Buffer.from(response.clientDataJSON, 'base64url').toString());
+        
+        if (clientDataJSON.challenge !== expectedChallenge) {
+          console.error(`Biometric verification failed: Challenge mismatch`);
+          return res.status(400).json({ 
+            success: false, 
+            message: "Challenge verification failed",
+            error: "challenge_mismatch"
+          });
+        }
+      } catch (error: any) {
+        console.error(`Biometric verification failed: Invalid client data: ${error?.message || 'Unknown error'}`);
+        return res.status(400).json({
+          success: false,
+          message: "Invalid verification data",
+          error: "invalid_client_data"
         });
       }
       
@@ -519,15 +530,17 @@ export async function registerRoutes(app: express.Application): Promise<Server> 
         lastUsedAt: new Date()
       });
       
-      // Log activity
+      // Log activity with properly formatted metadata
       await storage.createActivity({
         userId: Number(userId),
-        type: "identity_verified",
+        activityType: "identity_verified",
         description: `Identity verified with ${credential.biometricType}`,
         metadata: { 
           credentialId: id,
-          deviceType: credential.deviceType,
-          blockchainTxId: credential.blockchainTxId
+          deviceType: credential.deviceType || "unknown",
+          biometricType: credential.biometricType,
+          verifiedAt: new Date().toISOString(),
+          blockchainTxId: credential.blockchainTxId || null
         }
       });
       
