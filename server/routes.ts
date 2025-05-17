@@ -223,8 +223,15 @@ export async function registerRoutes(app: express.Application): Promise<Server> 
 
   app.post("/api/biometrics/register/options", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const userId = req.session!.userId;
-      const username = req.session!.username;
+      const userId = req.session!.userId as number;
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: "User ID not found in session"
+        });
+      }
+      
+      const username = req.session!.username as string;
       const { biometricType = "fingerprint", deviceType = "web" } = req.body;
       
       // Create challenge
@@ -436,7 +443,13 @@ export async function registerRoutes(app: express.Application): Promise<Server> 
 
   app.post("/api/biometrics/verify/complete", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const userId = req.session!.userId;
+      const userId = req.session!.userId as number;
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: "User ID not found in session"
+        });
+      }
       const { id, rawId, type, response } = req.body;
       
       // Verify challenge
@@ -510,7 +523,14 @@ export async function registerRoutes(app: express.Application): Promise<Server> 
 
   app.delete("/api/biometrics/credentials/:credentialId", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const userId = req.session!.userId;
+      const userId = req.session!.userId as number;
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: "User ID not found in session"
+        });
+      }
+      
       const { credentialId } = req.params;
       
       // Get credential
