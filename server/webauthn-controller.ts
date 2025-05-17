@@ -392,7 +392,7 @@ export async function verifyHybridAuthentication(req: Request, res: Response) {
         faceImage, 
         userCredential[0].userId, 
         false
-      );
+      ) as FaceVerificationResult;
       
       faceVerified = faceResult.success && 
                     (faceResult.matched || faceResult.confidence > 80);
