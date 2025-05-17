@@ -136,3 +136,20 @@ export const achievements = pgTable("achievements", {
 export const insertAchievementSchema = createInsertSchema(achievements).omit({ id: true, awardedAt: true });
 export type InsertAchievement = z.infer<typeof insertAchievementSchema>;
 export type Achievement = typeof achievements.$inferSelect;
+
+// WebAuthn Credentials for device-based biometric authentication
+export const credentials = pgTable("credentials", {
+  id: serial("id").primaryKey(),
+  credentialId: text("credential_id").notNull().unique(),
+  userId: text("user_id").notNull(),
+  publicKey: text("public_key"),
+  counter: integer("counter").default(0).notNull(),
+  faceId: uuid("face_id").references(() => faceRecords.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  lastUsed: timestamp("last_used").defaultNow().notNull(),
+  metadata: json("metadata").$type<Record<string, any>>()
+});
+
+export const insertCredentialSchema = createInsertSchema(credentials).omit({ id: true, counter: true, createdAt: true, lastUsed: true });
+export type InsertCredential = z.infer<typeof insertCredentialSchema>;
+export type Credential = typeof credentials.$inferSelect;
