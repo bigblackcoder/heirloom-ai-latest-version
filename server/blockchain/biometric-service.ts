@@ -1,162 +1,168 @@
-/**
- * Blockchain Biometric Service
- * 
- * This service handles the integration between device biometrics and blockchain contracts.
- * It stores ONLY metadata about verifications, never the actual biometric data.
- */
-
-import { log } from '../vite';
+import crypto from 'crypto';
 import { storage } from '../storage';
-import { blockchainService } from './service';
+import { db } from '../db';
+import { users } from '@shared/schema';
+import { FaceRecord } from '@shared/schema';
 
-// Types for the biometric metadata
-interface BiometricCredentialMetadata {
+/**
+ * Represents metadata for biometric credentials
+ * This is stored in our system while actual biometric data stays on device
+ */
+type BiometricMetadata = {
   credentialId: string;
-  authenticatorType: string;
-  registrationTime: string;
-  deviceId?: string;
-}
+  deviceType: string;
+  biometricType: string;
+  registeredAt: string;
+  lastVerified?: string;
+};
 
-interface BiometricVerificationMetadata {
-  credentialId: string;
-  verificationType: string;
-  verificationTime: string;
-  authenticatorType?: string;
+/**
+ * Result of a biometric verification attempt
+ */
+interface VerificationResult {
+  success: boolean;
+  userId?: number;
+  credentialId?: string;
+  timestamp: string;
+  metadata?: Record<string, any>;
 }
 
 /**
- * Register a new biometric credential and store metadata on the blockchain
+ * Service to handle blockchain-based biometric operations
+ * Keeps actual biometric data on the device while only storing
+ * verification metadata in our system
  */
-export async function registerBiometricCredential(
-  userId: number,
-  metadata: BiometricCredentialMetadata
-) {
-  try {
-    log(`Registering biometric credential for user ${userId}`, 'blockchain');
-    
-    // First, create a record in our database
-    const credentialRecord = await storage.createBiometricCredential({
-      userId,
-      credentialId: metadata.credentialId,
-      type: metadata.authenticatorType,
-      metadata: JSON.stringify(metadata)
-    });
-    
-    // Then register it on the blockchain
-    const contractResult = await blockchainService.registerContract({
-      owner: userId.toString(),
-      contractType: 'BIOMETRIC_CREDENTIAL',
-      data: {
-        credentialId: metadata.credentialId,
-        authenticatorType: metadata.authenticatorType,
-        registrationTime: metadata.registrationTime,
-        // No actual biometric data is stored
+export class BlockchainBiometricService {
+  /**
+   * Register a new biometric credential
+   * @param userId User ID to associate with the biometric
+   * @param credentialId Credential ID from device's biometric system
+   * @param biometricType Type of biometric (face, fingerprint, etc.)
+   * @param deviceType Type of device (iOS, Android, Web)
+   */
+  async registerBiometric(
+    userId: number,
+    credentialId: string,
+    biometricType: string,
+    deviceType: string
+  ): Promise<{ success: boolean; message: string }> {
+    try {
+      // Store only metadata, not actual biometric data
+      const metadataObj: BiometricMetadata = {
+        credentialId,
+        deviceType,
+        biometricType,
+        registeredAt: new Date().toISOString(),
+      };
+
+      // Store as a face record (using existing table for simplicity)
+      await storage.createFaceRecord({
+        userId,
+        metadata: metadataObj as unknown as Record<string, any>,
+        faceEmbedding: null, // No actual biometric data stored
+        confidence: 100, // Native biometrics are highly confident
+      });
+
+      // Log the registration activity
+      await storage.createActivity({
+        userId,
+        type: 'BIOMETRIC_REGISTERED',
+        description: `Registered ${biometricType} biometric on ${deviceType} device`,
+        metadata: { credentialId: [credentialId] } as Record<string, any>,
+      });
+
+      return {
+        success: true,
+        message: `Successfully registered ${biometricType} biometric`,
+      };
+    } catch (error: any) {
+      console.error('Error registering biometric:', error);
+      return {
+        success: false,
+        message: `Failed to register biometric: ${error.message}`,
+      };
+    }
+  }
+
+  /**
+   * Verify a user's identity using their device biometric
+   * @param credentialId Credential ID from the device
+   * @param userId Optional user ID to check against
+   */
+  async verifyIdentity(
+    credentialId: string,
+    userId?: number
+  ): Promise<VerificationResult> {
+    try {
+      // Get relevant face records based on user ID
+      let faceRecords: FaceRecord[] = [];
+      
+      if (userId) {
+        // More efficient - only check specific user's records
+        faceRecords = await storage.getFaceRecordsByUserId(userId);
+      } else {
+        // Less efficient - check all users
+        const allUsers = await db.select().from(users);
+        
+        for (const user of allUsers) {
+          const userRecords = await storage.getFaceRecordsByUserId(user.id);
+          faceRecords = [...faceRecords, ...userRecords];
+        }
       }
-    });
-    
-    // Update the credential record with the contract address
-    if (contractResult.contractAddress) {
-      await storage.updateBiometricCredential(
-        credentialRecord.id,
-        { contractAddress: contractResult.contractAddress }
+
+      // Find matching credential
+      const matchingRecord = faceRecords.find(record => 
+        record.metadata?.credentialId === credentialId
       );
-    }
-    
-    // Log this activity
-    await storage.createActivity({
-      userId,
-      type: 'biometric-registered',
-      description: 'Biometric credential registered with blockchain',
-      metadata: {
-        credentialId: metadata.credentialId,
-        contractAddress: contractResult.contractAddress
+
+      if (!matchingRecord) {
+        return {
+          success: false,
+          timestamp: new Date().toISOString(),
+        };
       }
-    });
-    
-    return {
-      success: true,
-      credentialId: metadata.credentialId,
-      contractAddress: contractResult.contractAddress,
-      transactionHash: contractResult.transactionHash
-    };
-  } catch (error) {
-    log(`Error registering biometric credential: ${error}`, 'blockchain-error');
-    throw error;
+
+      // Update verification metadata
+      const updatedMetadata = {
+        ...matchingRecord.metadata,
+        lastVerified: new Date().toISOString(),
+      };
+
+      // Log verification activity
+      await storage.createActivity({
+        userId: matchingRecord.userId,
+        type: 'BIOMETRIC_VERIFIED',
+        description: 'Verified identity using device biometric',
+        metadata: { 
+          credentialId: [credentialId],
+          verifiedAt: [new Date().toISOString()]
+        } as Record<string, any>,
+      });
+
+      return {
+        success: true,
+        userId: matchingRecord.userId,
+        credentialId,
+        timestamp: new Date().toISOString(),
+        metadata: updatedMetadata,
+      };
+    } catch (error: any) {
+      console.error('Error verifying identity:', error);
+      return {
+        success: false,
+        timestamp: new Date().toISOString(),
+      };
+    }
+  }
+
+  /**
+   * Generate a challenge for biometric verification
+   * Used to prevent replay attacks
+   */
+  generateChallenge(): string {
+    return crypto.randomBytes(32).toString('hex');
   }
 }
 
-/**
- * Record a biometric verification event on the blockchain
- */
-export async function recordBiometricVerification(
-  userId: number,
-  metadata: BiometricVerificationMetadata
-) {
-  try {
-    log(`Recording biometric verification for user ${userId}`, 'blockchain');
-    
-    // Get the credential record from our database
-    const credential = await storage.getBiometricCredentialByCredentialId(
-      metadata.credentialId
-    );
-    
-    if (!credential || credential.userId !== userId) {
-      throw new Error('Invalid credential ID or credential does not belong to user');
-    }
-    
-    // Record the verification on blockchain
-    const verificationResult = await blockchainService.verifyIdentity({
-      subjectId: userId.toString(),
-      verificationType: 'BIOMETRIC',
-      verifierId: 'DEVICE_NATIVE', // The device itself is the verifier
-      data: {
-        credentialId: metadata.credentialId,
-        verificationType: metadata.verificationType,
-        verificationTime: metadata.verificationTime,
-        authenticatorType: metadata.authenticatorType
-      }
-    });
-    
-    // Log this activity
-    await storage.createActivity({
-      userId,
-      type: 'biometric-verified',
-      description: 'Identity verified using biometrics',
-      metadata: {
-        credentialId: metadata.credentialId,
-        transactionHash: verificationResult.transactionHash
-      }
-    });
-    
-    return {
-      success: true,
-      verified: true,
-      transactionHash: verificationResult.transactionHash
-    };
-  } catch (error) {
-    log(`Error recording biometric verification: ${error}`, 'blockchain-error');
-    throw error;
-  }
-}
-
-/**
- * Get all biometric credentials for a user
- */
-export async function getUserBiometricCredentials(userId: number) {
-  try {
-    const credentials = await storage.getBiometricCredentialsByUserId(userId);
-    
-    // Format the response
-    return {
-      credentials: credentials.map(cred => ({
-        id: cred.credentialId,
-        type: cred.type,
-        registrationTime: JSON.parse(cred.metadata || '{}').registrationTime,
-        contractAddress: cred.contractAddress
-      }))
-    };
-  } catch (error) {
-    log(`Error getting user biometric credentials: ${error}`, 'blockchain-error');
-    throw error;
-  }
-}
+// Export singleton instance
+export const biometricService = new BlockchainBiometricService();
