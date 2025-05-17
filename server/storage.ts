@@ -5,7 +5,8 @@ import {
   aiConnections, type AiConnection, type InsertAiConnection,
   activities, type Activity, type InsertActivity,
   faceRecords, type FaceRecord, type InsertFaceRecord,
-  achievements, type Achievement, type InsertAchievement
+  achievements, type Achievement, type InsertAchievement,
+  biometricCredentials, type BiometricCredential, type InsertBiometricCredential
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc } from "drizzle-orm";
@@ -48,6 +49,13 @@ export interface IStorage {
   getAchievement(id: number): Promise<Achievement | undefined>;
   getAchievementsByUserId(userId: number): Promise<Achievement[]>;
   createAchievement(achievement: InsertAchievement): Promise<Achievement>;
+  
+  // Biometric Credential operations
+  getBiometricCredential(id: number): Promise<BiometricCredential | undefined>;
+  getBiometricCredentialByCredentialId(credentialId: string): Promise<BiometricCredential | undefined>;
+  getBiometricCredentialsByUserId(userId: number): Promise<BiometricCredential[]>;
+  createBiometricCredential(credential: InsertBiometricCredential): Promise<BiometricCredential>;
+  updateBiometricCredential(id: number, updates: Partial<BiometricCredential>): Promise<BiometricCredential | undefined>;
 }
 
 // Database storage implementation
@@ -182,6 +190,45 @@ export class DatabaseStorage implements IStorage {
   async createAchievement(achievement: InsertAchievement): Promise<Achievement> {
     const [newAchievement] = await db.insert(achievements).values(achievement).returning();
     return newAchievement;
+  }
+
+  // Biometric Credential operations
+  async getBiometricCredential(id: number): Promise<BiometricCredential | undefined> {
+    const [credential] = await db.select().from(biometricCredentials).where(eq(biometricCredentials.id, id));
+    return credential;
+  }
+
+  async getBiometricCredentialByCredentialId(credentialId: string): Promise<BiometricCredential | undefined> {
+    const [credential] = await db.select().from(biometricCredentials).where(eq(biometricCredentials.credentialId, credentialId));
+    return credential;
+  }
+
+  async getBiometricCredentialsByUserId(userId: number): Promise<BiometricCredential[]> {
+    return await db
+      .select()
+      .from(biometricCredentials)
+      .where(and(
+        eq(biometricCredentials.userId, userId),
+        eq(biometricCredentials.isActive, true)
+      ))
+      .orderBy(desc(biometricCredentials.createdAt));
+  }
+
+  async createBiometricCredential(credential: InsertBiometricCredential): Promise<BiometricCredential> {
+    const [newCredential] = await db.insert(biometricCredentials).values(credential).returning();
+    return newCredential;
+  }
+
+  async updateBiometricCredential(id: number, updates: Partial<BiometricCredential>): Promise<BiometricCredential | undefined> {
+    const [updatedCredential] = await db
+      .update(biometricCredentials)
+      .set({ 
+        ...updates, 
+        lastUsedAt: updates.lastUsedAt || new Date() 
+      })
+      .where(eq(biometricCredentials.id, id))
+      .returning();
+    return updatedCredential;
   }
 }
 
