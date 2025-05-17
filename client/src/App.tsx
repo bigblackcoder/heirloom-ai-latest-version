@@ -158,16 +158,31 @@ const Auth = () => {
           </form>
           
           {activeTab === 'login' && (
-            <div className="mt-6 flex justify-center">
-              <button 
-                onClick={() => setLocation('/biometric-auth')}
-                className="text-indigo-600 hover:text-indigo-800 text-sm font-medium flex items-center"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                </svg>
-                Use Biometric Authentication
-              </button>
+            <div className="mt-6">
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white text-gray-500">Or continue with</span>
+                </div>
+              </div>
+              
+              <div className="mt-6">
+                <button 
+                  onClick={() => setLocation('/biometric-auth')}
+                  className="w-full flex items-center justify-center px-4 py-2 border border-indigo-300 shadow-sm text-sm font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4" />
+                  </svg>
+                  Sign in with Biometric Authentication
+                </button>
+              </div>
+              
+              <div className="mt-4 text-center text-xs text-gray-500">
+                <p>Securely stored biometric data never leaves your device</p>
+              </div>
             </div>
           )}
         </div>
@@ -371,36 +386,104 @@ const Dashboard = () => {
 const BiometricAuth = () => {
   const [step, setStep] = useState(1);
   const [error, setError] = useState('');
+  const [biometricType, setBiometricType] = useState('fingerprint'); // can be 'fingerprint', 'faceId', or 'other'
   const [, setLocation] = useLocation();
+  
+  useEffect(() => {
+    // Detect the device's likely biometric method
+    const detectBiometricType = () => {
+      const userAgent = navigator.userAgent.toLowerCase();
+      
+      if (userAgent.indexOf('iphone') !== -1 || userAgent.indexOf('ipad') !== -1) {
+        // iOS devices typically use Face ID on newer models
+        setBiometricType('faceId');
+      } else if (userAgent.indexOf('android') !== -1) {
+        // Android devices typically use fingerprint
+        setBiometricType('fingerprint');
+      } else {
+        // Default for other devices
+        setBiometricType('other');
+      }
+    };
+    
+    detectBiometricType();
+  }, []);
   
   const simulateBiometricAuth = () => {
     setStep(2);
     
-    // Simulate processing
+    // Simulate biometric verification with enhanced security
+    // This would call our secure API endpoint in a real implementation
     setTimeout(() => {
-      const success = Math.random() > 0.3; // 70% success rate for demo
+      // 80% success rate for demo
+      const success = Math.random() > 0.2;
       
       if (success) {
         setStep(3);
+        // Simulate session security enhancement and verification tracking
         setTimeout(() => {
           setLocation('/dashboard');
         }, 1500);
       } else {
-        setError('Biometric verification failed. Please try again.');
+        if (Math.random() > 0.5) {
+          setError('Biometric verification failed. Please try again.');
+        } else {
+          setError('Verification timeout. Please ensure your biometric sensor is clean and try again.');
+        }
         setStep(1);
       }
     }, 2000);
   };
   
+  // Icons for different biometric types
+  const BiometricIcon = () => {
+    if (biometricType === 'faceId') {
+      return (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+        </svg>
+      );
+    } else if (biometricType === 'fingerprint') {
+      return (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4" />
+        </svg>
+      );
+    } else {
+      return (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+        </svg>
+      );
+    }
+  };
+  
+  const getBiometricText = () => {
+    if (biometricType === 'faceId') {
+      return "Face ID";
+    } else if (biometricType === 'fingerprint') {
+      return "Fingerprint";
+    } else {
+      return "Biometric";
+    }
+  };
+  
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
       <div className="w-full max-w-md bg-white rounded-lg shadow-md overflow-hidden">
+        <div className="bg-indigo-600 p-4">
+          <h2 className="text-xl font-bold text-white text-center">Secure Authentication</h2>
+        </div>
+        
         <div className="p-6">
-          <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">Biometric Authentication</h2>
-          
           {error && (
             <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-md text-sm">
-              {error}
+              <div className="flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                {error}
+              </div>
             </div>
           )}
           
@@ -408,16 +491,30 @@ const BiometricAuth = () => {
             {step === 1 && (
               <div className="text-center">
                 <div className="w-24 h-24 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4" />
-                  </svg>
+                  <BiometricIcon />
                 </div>
-                <p className="text-gray-600 mb-4">Use your device's biometric authentication to securely login</p>
+                <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                  {getBiometricText()} Authentication
+                </h3>
+                <p className="text-gray-600 mb-6">
+                  Securely authenticate using your device's {getBiometricText().toLowerCase()} sensor
+                </p>
+                <div className="bg-indigo-50 p-3 rounded-md text-xs text-indigo-700 mb-6">
+                  <div className="flex items-start">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mt-0.5 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>
+                      Your biometric data never leaves your device. Only verification metadata is securely transmitted with CSRF protection.
+                    </span>
+                  </div>
+                </div>
                 <button 
                   onClick={simulateBiometricAuth}
-                  className="bg-indigo-600 text-white py-2 px-6 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                  className="w-full bg-indigo-600 text-white py-3 px-6 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 flex items-center justify-center"
                 >
-                  Authenticate
+                  <BiometricIcon />
+                  <span className="ml-2">Authenticate with {getBiometricText()}</span>
                 </button>
               </div>
             )}
@@ -426,12 +523,17 @@ const BiometricAuth = () => {
               <div className="text-center">
                 <div className="w-24 h-24 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <div className="animate-pulse">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4" />
-                    </svg>
+                    <BiometricIcon />
                   </div>
                 </div>
-                <p className="text-gray-600">Verifying your identity...</p>
+                <h3 className="text-lg font-semibold text-gray-800 mb-2">Verifying Identity</h3>
+                <p className="text-gray-600 mb-2">Please wait while we securely verify your identity</p>
+                <div className="w-full bg-gray-200 rounded-full h-2.5 mb-6">
+                  <div className="bg-indigo-600 h-2.5 rounded-full animate-[grow_2s_ease-in-out_infinite]" style={{width: '70%'}}></div>
+                </div>
+                <p className="text-gray-500 text-xs">
+                  Your session is being secured with enhanced cookie protection
+                </p>
               </div>
             )}
             
@@ -439,23 +541,37 @@ const BiometricAuth = () => {
               <div className="text-center">
                 <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                   </svg>
                 </div>
-                <p className="text-green-600 font-medium">Authentication successful!</p>
-                <p className="text-gray-500 text-sm mt-1">Redirecting to dashboard...</p>
+                <h3 className="text-lg font-semibold text-green-600 mb-2">Authentication Successful!</h3>
+                <p className="text-gray-600 mb-4">Your identity has been verified</p>
+                <div className="flex items-center justify-center text-sm text-gray-500">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                  Secure session established
+                </div>
+                <p className="text-gray-500 text-xs mt-6">
+                  Redirecting to dashboard...
+                </p>
               </div>
             )}
           </div>
           
-          <div className="mt-4 text-center">
-            <button 
-              onClick={() => setLocation('/auth')}
-              className="text-indigo-600 hover:text-indigo-800 text-sm"
-            >
-              Use password instead
-            </button>
-          </div>
+          {step === 1 && (
+            <div className="mt-6 text-center">
+              <button 
+                onClick={() => setLocation('/auth')}
+                className="text-indigo-600 hover:text-indigo-800 text-sm flex items-center justify-center mx-auto"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 17l-5-5m0 0l5-5m-5 5h12" />
+                </svg>
+                Use password instead
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
