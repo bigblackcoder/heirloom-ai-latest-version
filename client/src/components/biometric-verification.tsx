@@ -1,11 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import FaceScanner from "@/components/face-scanner";
 import { motion } from "framer-motion";
 import { HeirloomLogo } from "@/components/heirloom-logo";
-import { useNativeBiometrics } from "@/hooks/use-native-biometrics";
-import { Button } from "@/components/ui/button";
-import { Shield, Fingerprint, Smartphone } from "lucide-react";
 
 interface BiometricVerificationProps {
   onProgress: (progress: number) => void;
@@ -21,22 +18,6 @@ export default function BiometricVerification({
   isComplete 
 }: BiometricVerificationProps) {
   const [activeMethod, setActiveMethod] = useState<VerificationMethod>("face");
-  const { isAvailable: nativeBiometricsAvailable, biometricType, authenticate, isAuthenticating } = useNativeBiometrics({
-    onSuccess: () => {
-      onProgress(100);
-      onComplete("face");
-    },
-    onError: () => {
-      onProgress(0);
-    }
-  });
-  
-  // Set default to native biometrics if available
-  useEffect(() => {
-    if (nativeBiometricsAvailable && !isComplete) {
-      setActiveMethod("face");
-    }
-  }, [nativeBiometricsAvailable, isComplete]);
   
   const handleMethodChange = (method: VerificationMethod) => {
     if (isComplete) return; // Don't allow changes if verification is complete
@@ -112,101 +93,11 @@ export default function BiometricVerification({
         </TabsList>
         
         <TabsContent value="face" className="flex flex-col items-center justify-center mt-0">
-          {nativeBiometricsAvailable ? (
-            <div className="flex flex-col items-center">
-              <div className="relative w-64 h-64 flex items-center justify-center mb-4">
-                <div className="w-48 h-48 rounded-full border-2 border-white/30 flex items-center justify-center bg-[#143404]/50">
-                  <div className="bg-[#4caf50]/20 w-32 h-32 rounded-full flex items-center justify-center">
-                    {isComplete ? (
-                      <motion.div 
-                        initial={{ scale: 0.5, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        transition={{ duration: 0.5 }}
-                      >
-                        <svg className="w-16 h-16 text-[#4caf50]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                          <path d="M20 6L9 17l-5-5" />
-                        </svg>
-                      </motion.div>
-                    ) : (
-                      <div className="text-center">
-                        {biometricType === 'faceId' && (
-                          <Shield className="w-16 h-16 text-white/70 mb-2" />
-                        )}
-                        {(biometricType === 'touchId' || biometricType === 'fingerprint') && (
-                          <Fingerprint className="w-16 h-16 text-white/70 mb-2" />
-                        )}
-                        {biometricType === 'face' && (
-                          <Smartphone className="w-16 h-16 text-white/70 mb-2" />
-                        )}
-                        <p className="text-sm text-white/90 font-medium">
-                          {biometricType === 'faceId' ? 'Face ID' : 
-                           biometricType === 'touchId' ? 'Touch ID' : 
-                           biometricType === 'fingerprint' ? 'Fingerprint' : 
-                           'Device Authentication'}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                
-                {/* Progress circle */}
-                <svg className="absolute inset-0 w-full h-full z-20" viewBox="0 0 290 290">
-                  <motion.circle
-                    className="text-[#4caf50]"
-                    strokeWidth="2"
-                    stroke="currentColor"
-                    fill="transparent"
-                    r="142"
-                    cx="145"
-                    cy="145"
-                    strokeDasharray="892"
-                    initial={{ strokeDashoffset: 892 }}
-                    animate={{ 
-                      strokeDashoffset: calculateOffset(onProgress)
-                    }}
-                    transition={{ 
-                      duration: 0.5,
-                      ease: "easeInOut"
-                    }}
-                  />
-                </svg>
-              </div>
-              
-              {!isComplete && (
-                <Button 
-                  className="bg-[#4caf50] hover:bg-[#3d8b40] text-white px-8 py-6 rounded-lg shadow-lg text-lg font-medium" 
-                  disabled={isAuthenticating}
-                  onClick={authenticate}
-                >
-                  {isAuthenticating ? "Verifying..." : `Authenticate with ${biometricType === 'faceId' ? 'Face ID' : biometricType === 'touchId' ? 'Touch ID' : biometricType === 'fingerprint' ? 'Fingerprint' : 'Device Biometrics'}`}
-                </Button>
-              )}
-              
-              {!isComplete && (
-                <Button 
-                  variant="link" 
-                  className="mt-3 text-white/70"
-                  onClick={() => document.getElementById('use-camera-fallback')?.click()}
-                >
-                  Use camera instead
-                </Button>
-              )}
-              
-              <div className="hidden">
-                <button id="use-camera-fallback" onClick={() => {
-                  // This is a bit of a hack to make the camera fallback work
-                  localStorage.setItem('preferCameraVerification', 'true');
-                  window.location.reload();
-                }}></button>
-              </div>
-            </div>
-          ) : (
-            <FaceScanner
-              onProgress={handleProgressUpdate}
-              onComplete={handleComplete}
-              isComplete={isComplete}
-            />
-          )}
+          <FaceScanner
+            onProgress={handleProgressUpdate}
+            onComplete={handleComplete}
+            isComplete={isComplete}
+          />
         </TabsContent>
         
         <TabsContent value="fingerprint" className="flex flex-col items-center justify-center h-72 mt-0">

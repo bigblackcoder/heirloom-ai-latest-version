@@ -1,93 +1,222 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { User } from "@shared/schema";
-import { apiRequest } from "@/lib/queryClient";
+import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
+import { toast } from '@/hooks/use-toast';
 
-interface AuthContextType {
+// Define user type
+export type User = {
+  id: number;
+  username: string;
+  email: string | null;
+  firstName?: string;
+  lastName?: string;
+  isVerified: boolean;
+  createdAt: string;
+  updatedAt: string;
+  memberSince?: string;
+  avatar?: string;
+};
+
+// Auth context type
+type AuthContextType = {
   user: User | null;
-  isAuthenticated: boolean;
   isLoading: boolean;
-  error: Error | null;
-  login: (username: string, password: string) => Promise<User>;
+  isAuthenticated: boolean;
+  login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  signup: (userData: any) => Promise<User>;
-}
+  signup: (username: string, email: string, password: string) => Promise<void>;
+};
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+// Create the auth context
+const AuthContext = createContext<AuthContextType | null>(null);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+// Auth provider props
+type AuthProviderProps = {
+  children: ReactNode;
+};
+
+// Auth provider component
+export function AuthProvider({ children }: AuthProviderProps) {
   const queryClient = useQueryClient();
-  const [error, setError] = useState<Error | null>(null);
-
-  // Query for the current user
-  const {
-    data: user,
-    isLoading,
-    error: queryError,
+  const [isInitialized, setIsInitialized] = useState(false);
+  
+  // Fetch current user
+  const { 
+    data: user, 
+    isLoading: isUserLoading,
+    refetch: refetchUser 
   } = useQuery({
-    queryKey: ["/api/auth/me"],
+    queryKey: ['/api/auth/me'],
+    enabled: isInitialized,
     retry: false,
     staleTime: 1000 * 60 * 5, // 5 minutes
-  });
-
-  useEffect(() => {
-    if (queryError) {
-      setError(queryError as Error);
+    refetchOnWindowFocus: true,
+    refetchInterval: 1000 * 60 * 30, // 30 minutes,
+    select: (data): User | null => {
+      // Handle when the data is null or not a user
+      if (!data || typeof data !== 'object') return null;
+      
+      // Try to map the response to our User type
+      return {
+        id: data.id,
+        username: data.username,
+        email: data.email,
+        firstName: data.firstName || undefined,
+        lastName: data.lastName || undefined,
+        isVerified: !!data.isVerified,
+        createdAt: data.createdAt || new Date().toISOString(),
+        updatedAt: data.updatedAt || new Date().toISOString(),
+        memberSince: data.memberSince || data.createdAt,
+        avatar: data.avatar || undefined
+      };
     }
-  }, [queryError]);
-
+  });
+  
+  // Login mutation
+  const loginMutation = useMutation({
+    mutationFn: async (credentials: { username: string; password: string }) => {
+      return apiRequest({
+        url: '/api/auth/login',
+        method: 'POST',
+        body: credentials
+      });
+    },
+    onSuccess: (data) => {
+      // Set user data directly in cache to prevent flash of unauthenticated content
+      if (data && data.user) {
+        queryClient.setQueryData(['/api/auth/me'], data.user);
+      }
+      
+      // Then refetch to ensure we have the latest data
+      setTimeout(() => {
+        refetchUser();
+        queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+      }, 500);
+    }
+  });
+  
+  // Logout mutation
+  const logoutMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest({
+        url: '/api/auth/logout',
+        method: 'POST'
+      });
+    },
+    onSuccess: () => {
+      // Clear user data in cache
+      queryClient.setQueryData(['/api/auth/me'], null);
+      
+      // Then invalidate all queries and clear cache
+      setTimeout(() => {
+        queryClient.invalidateQueries();
+        queryClient.clear();
+      }, 500);
+    }
+  });
+  
+  // Signup mutation
+  const signupMutation = useMutation({
+    mutationFn: async (userData: { username: string; email: string; password: string }) => {
+      return apiRequest({
+        url: '/api/auth/register',
+        method: 'POST',
+        body: userData
+      });
+    }
+  });
+  
+  // Initialize auth
+  useEffect(() => {
+    setIsInitialized(true);
+  }, []);
+  
+  // Login function
   const login = async (username: string, password: string) => {
     try {
-      setError(null);
-      const user = await apiRequest("/api/auth/login", {
-        method: "POST",
-        body: { username, password },
+      await loginMutation.mutateAsync({ username, password });
+      toast({
+        title: 'Login successful',
+        description: 'Welcome back to Heirloom!'
       });
-      await queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
-      return user;
-    } catch (err: any) {
-      setError(err);
-      throw err;
+    } catch (error) {
+      console.error('Login error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Login failed',
+        description: error instanceof Error ? error.message : 'Invalid username or password'
+      });
+      throw error;
     }
   };
-
+  
+  // Logout function
   const logout = async () => {
     try {
-      setError(null);
-      await apiRequest("/api/auth/logout", { method: "POST" });
-      queryClient.setQueryData(["/api/auth/me"], null);
-      await queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
-    } catch (err: any) {
-      setError(err);
-      throw err;
-    }
-  };
-
-  const signup = async (userData: any) => {
-    try {
-      setError(null);
-      const user = await apiRequest("/api/auth/signup", {
-        method: "POST",
-        body: userData,
+      await logoutMutation.mutateAsync();
+      toast({
+        title: 'Logged out',
+        description: 'You have been successfully logged out'
       });
-      await queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
-      return user;
-    } catch (err: any) {
-      setError(err);
-      throw err;
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Logout failed',
+        description: 'There was an error logging out'
+      });
+      throw error;
     }
   };
-
+  
+  // Signup function
+  const signup = async (username: string, email: string, password: string) => {
+    try {
+      const result = await signupMutation.mutateAsync({ username, email, password });
+      toast({
+        title: 'Account created',
+        description: 'Your account has been successfully created!'
+      });
+      
+      // Auto login after signup if response contains user data
+      if (result && result.user) {
+        // Set user data directly in cache
+        queryClient.setQueryData(['/api/auth/me'], result.user);
+        
+        // Also perform a login to establish a session
+        try {
+          await login(username, password);
+        } catch (error) {
+          console.error('Auto-login error after signup:', error);
+          // If auto-login fails, we already have an account, so just continue
+        }
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('Signup error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Signup failed',
+        description: error instanceof Error ? error.message : 'There was an error creating your account'
+      });
+      throw error;
+    }
+  };
+  
+  // Determine if we're in a loading state
+  const isLoading = isUserLoading || loginMutation.isPending || logoutMutation.isPending;
+  
+  // Provide auth context
   return (
     <AuthContext.Provider
       value={{
-        user: user || null,
-        isAuthenticated: !!user,
+        user,
         isLoading,
-        error,
+        isAuthenticated: !!user,
         login,
         logout,
-        signup,
+        signup
       }}
     >
       {children}
@@ -95,10 +224,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
+// Custom hook to use auth context
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 }

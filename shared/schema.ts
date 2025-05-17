@@ -80,8 +80,7 @@ export const aiConnections = pgTable("ai_connections", {
   userId: integer("user_id").references(() => users.id).notNull(),
   aiServiceName: text("ai_service_name").notNull(),
   aiServiceId: text("ai_service_id"),
-  // Changed to jsonb for better array storage
-  permissions: jsonb("permissions"),
+  permissions: json("permissions").$type<string[]>(),
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
@@ -97,13 +96,11 @@ export const activities = pgTable("activities", {
   userId: integer("user_id").references(() => users.id).notNull(),
   type: text("type").notNull(),
   description: text("description").notNull(),
-  metadata: json("metadata").$type<Record<string, any>>(), // Keep as JSON
+  metadata: json("metadata").$type<Record<string, any>>(),
   createdAt: timestamp("created_at").defaultNow().notNull()
 });
 
-export const insertActivitySchema = createInsertSchema(activities).omit({ id: true, createdAt: true }).extend({
-  metadata: z.record(z.any()).nullable().optional()
-});
+export const insertActivitySchema = createInsertSchema(activities).omit({ id: true, createdAt: true });
 export type InsertActivity = z.infer<typeof insertActivitySchema>;
 export type Activity = typeof activities.$inferSelect;
 
@@ -139,38 +136,3 @@ export const achievements = pgTable("achievements", {
 export const insertAchievementSchema = createInsertSchema(achievements).omit({ id: true, awardedAt: true });
 export type InsertAchievement = z.infer<typeof insertAchievementSchema>;
 export type Achievement = typeof achievements.$inferSelect;
-
-// Biometric Credentials for device-native authentication with blockchain verification
-export const biometricCredentials = pgTable("biometric_credentials", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id).notNull(),
-  credentialId: text("credential_id").notNull().unique(),
-  publicKey: text("public_key"),
-  biometricType: text("biometric_type").notNull(), // 'face', 'fingerprint', 'iris', 'voice'
-  deviceType: text("device_type").notNull(), // 'ios', 'android', 'web'
-  // Changed to jsonb for better object storage
-  attestation: jsonb("attestation"),
-  counter: integer("counter").default(0).notNull(), // For WebAuthn verification
-  // Changed to jsonb for better array storage
-  transports: jsonb("transports"),
-  blockchainTxId: text("blockchain_tx_id"), // Blockchain transaction ID for verification
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  lastUsedAt: timestamp("last_used_at"),
-  isActive: boolean("is_active").default(true).notNull(),
-  // Changed to jsonb for better metadata storage
-  metadata: jsonb("metadata")
-});
-
-export const insertBiometricCredentialSchema = createInsertSchema(biometricCredentials).omit({ 
-  id: true, 
-  createdAt: true, 
-  lastUsedAt: true,
-  counter: true
-}).extend({
-  // Add proper types for JSON fields
-  attestation: z.record(z.any()).nullable().optional(),
-  transports: z.array(z.string()).nullable().optional(),
-  metadata: z.record(z.any()).nullable().optional()
-});
-export type InsertBiometricCredential = z.infer<typeof insertBiometricCredentialSchema>;
-export type BiometricCredential = typeof biometricCredentials.$inferSelect;
