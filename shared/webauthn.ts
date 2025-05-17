@@ -1,63 +1,84 @@
 /**
- * Type definitions for WebAuthn operations
+ * WebAuthn Type Definitions
+ * 
+ * This file contains shared type definitions for WebAuthn (FIDO2) biometric authentication
+ * used by both the client and server components.
  */
 
-export interface WebAuthnUser {
-  id: string;
-  name: string;
-  displayName: string;
-}
-
+/**
+ * WebAuthn Registration Options
+ * These options are sent from the server to the client to initiate registration
+ */
 export interface WebAuthnRegistrationOptions {
-  user: WebAuthnUser;
-  challenge: string;
+  challenge: string | ArrayBuffer;
   rp: {
     name: string;
     id?: string;
   };
+  user: {
+    id: string | ArrayBuffer;
+    name: string;
+    displayName: string;
+  };
   pubKeyCredParams: {
-    type: "public-key";
+    type: string;
     alg: number;
   }[];
-  authenticatorSelection?: {
-    authenticatorAttachment?: "platform" | "cross-platform";
-    userVerification?: "required" | "preferred" | "discouraged";
-    requireResidentKey?: boolean;
-    residentKey?: "required" | "preferred" | "discouraged";
-  };
   timeout?: number;
-  attestation?: "none" | "indirect" | "direct";
   excludeCredentials?: {
-    id: string;
-    type: "public-key";
-    transports?: ("ble" | "internal" | "nfc" | "usb")[];
+    id: string | ArrayBuffer;
+    type: string;
+    transports?: string[];
   }[];
+  authenticatorSelection?: {
+    authenticatorAttachment?: string;
+    requireResidentKey?: boolean;
+    residentKey?: string;
+    userVerification?: string;
+  };
+  attestation?: string;
+  extensions?: {
+    credProps?: boolean;
+  };
 }
 
+/**
+ * WebAuthn Authentication Options
+ * These options are sent from the server to the client to initiate authentication
+ */
 export interface WebAuthnAuthenticationOptions {
-  challenge: string;
-  rpId?: string;
+  challenge: string | ArrayBuffer;
   timeout?: number;
-  userVerification?: "required" | "preferred" | "discouraged";
+  rpId?: string;
   allowCredentials?: {
-    id: string;
-    type: "public-key";
-    transports?: ("ble" | "internal" | "nfc" | "usb")[];
+    id: string | ArrayBuffer;
+    type: string;
+    transports?: string[];
   }[];
+  userVerification?: string;
+  extensions?: Record<string, any>;
 }
 
+/**
+ * WebAuthn Attestation Response
+ * The client sends this response to the server after registration
+ */
 export interface WebAuthnAttestationResponse {
   id: string;
   rawId: string;
   type: string;
   response: {
-    attestationObject: string;
     clientDataJSON: string;
+    attestationObject: string;
   };
-  clientExtensionResults?: any;
-  authenticatorAttachment?: "platform" | "cross-platform";
+  authenticatorAttachment?: string;
+  clientExtensionResults?: Record<string, any>;
 }
 
+/**
+ * WebAuthn Authentication Response
+ * The client sends this response to the server after authentication
+ */
 export interface WebAuthnAuthenticationResponse {
   id: string;
   rawId: string;
@@ -68,19 +89,43 @@ export interface WebAuthnAuthenticationResponse {
     signature: string;
     userHandle?: string;
   };
-  clientExtensionResults?: any;
+  clientExtensionResults?: Record<string, any>;
 }
 
+/**
+ * WebAuthn User
+ * This represents a user in the WebAuthn system
+ */
+export interface WebAuthnUser {
+  id: string | ArrayBuffer;
+  name: string;
+  displayName: string;
+}
+
+/**
+ * WebAuthn Credential
+ * This represents a credential stored by an authenticator
+ */
 export interface WebAuthnCredential {
   id: string;
-  userId: string;
-  credentialId: string;
-  credentialPublicKey: string;
+  publicKey: string;
+  algorithm: string | number;
   counter: number;
-  credentialDeviceType: string;
-  credentialBackedUp: boolean;
+  userId: string;
   transports?: string[];
-  createdAt: Date;
-  lastUsed?: Date | null;
-  userVerified?: boolean;
+  created?: Date;
+  lastUsed?: Date;
+}
+
+/**
+ * Face Verification Response
+ * This represents the response from a face verification operation
+ */
+export interface FaceVerificationResponse {
+  verified: boolean;
+  confidence?: number;
+  faceId?: string;
+  userId?: string;
+  timestamp?: Date | string;
+  metadata?: Record<string, any>;
 }
