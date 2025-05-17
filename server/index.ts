@@ -23,7 +23,7 @@ app.use(fileUpload({
 app.use(sessionMiddleware);
 
 // Register API routes (including WebAuthn)
-registerAPIRoutes(app);
+app.use('/api', apiRouter);
 
 app.use((req, res, next) => {
   const start = Date.now();

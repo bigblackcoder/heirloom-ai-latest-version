@@ -1,5 +1,5 @@
-import express, { Router } from 'express';
-import {
+import { Router } from 'express';
+import { 
   generateRegistrationOptions,
   verifyRegistration,
   generateAuthenticationOptions,
@@ -9,14 +9,14 @@ import {
 /**
  * Router for WebAuthn-related endpoints
  */
-const webauthnRouter = Router();
+const router = Router();
 
 // WebAuthn registration endpoints
-webauthnRouter.post('/generate-registration-options', generateRegistrationOptions);
-webauthnRouter.post('/verify-registration', verifyRegistration);
+router.post('/register/options', generateRegistrationOptions);
+router.post('/register/verify', verifyRegistration);
 
 // WebAuthn authentication endpoints
-webauthnRouter.post('/generate-authentication-options', generateAuthenticationOptions);
-webauthnRouter.post('/verify-authentication', verifyAuthentication);
+router.post('/authenticate/options', generateAuthenticationOptions);
+router.post('/authenticate/verify', verifyAuthentication);
 
-export default webauthnRouter;
+export default router;
