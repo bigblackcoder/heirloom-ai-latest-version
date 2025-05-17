@@ -267,7 +267,8 @@ export async function verifyAuthentication(req: Request, res: Response) {
     if (req.session) {
       req.session.isVerified = true;
       if (!req.session.userId) {
-        req.session.userId = userCredential[0].userId;
+        // Ensure userId is stored as a string in the session
+        req.session.userId = String(userCredential[0].userId);
       }
     }
 
@@ -411,7 +412,8 @@ export async function verifyHybridAuthentication(req: Request, res: Response) {
       // Only mark as verified if both checks pass for hybrid auth
       req.session.isVerified = !isHybridAuth || (isHybridAuth && faceVerified);
       if (!req.session.userId) {
-        req.session.userId = userCredential[0].userId;
+        // Ensure userId is stored as a string in the session
+        req.session.userId = String(userCredential[0].userId);
       }
     }
 
