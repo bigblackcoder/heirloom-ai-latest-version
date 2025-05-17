@@ -18,6 +18,7 @@ import Settings from "@/pages/settings";
 import Achievements from "@/pages/achievements";
 import Demo from "@/pages/demo";
 import WebAuthnTest from "@/pages/WebAuthnTest";
+import FaceIDTest from "@/pages/FaceIDTest";
 
 // Beta related imports
 import BetaBadge from "@/components/beta-badge";
@@ -52,6 +53,7 @@ function Router() {
       <Route path="/demo" component={Demo} />
       <Route path="/beta-dashboard" component={BetaTesterDashboard} />
       <Route path="/webauthn-test" component={WebAuthnTest} />
+      <Route path="/face-id-test" component={FaceIDTest} />
       <Route component={NotFound} />
     </Switch>
   );
