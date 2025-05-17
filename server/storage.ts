@@ -126,7 +126,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createAiConnection(connection: InsertAiConnection): Promise<AiConnection> {
-    const [newConnection] = await db.insert(aiConnections).values(connection).returning();
+    // Ensure we're passing a single object, not an array
+    const connectionData = {
+      userId: connection.userId,
+      aiServiceName: connection.aiServiceName,
+      aiServiceId: connection.aiServiceId || null,
+      permissions: connection.permissions || null
+    };
+    
+    const [newConnection] = await db.insert(aiConnections).values(connectionData).returning();
     return newConnection;
   }
 
@@ -215,7 +223,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createBiometricCredential(credential: InsertBiometricCredential): Promise<BiometricCredential> {
-    const [newCredential] = await db.insert(biometricCredentials).values(credential).returning();
+    // Ensure we're passing a single object, not an array
+    const credentialData = {
+      userId: credential.userId,
+      credentialId: credential.credentialId,
+      biometricType: credential.biometricType,
+      deviceType: credential.deviceType,
+      publicKey: credential.publicKey || null,
+      attestation: credential.attestation || null,
+      transports: credential.transports || null,
+      blockchainTxId: credential.blockchainTxId || null,
+      isActive: credential.isActive !== undefined ? credential.isActive : true,
+      metadata: credential.metadata || null
+    };
+    
+    const [newCredential] = await db.insert(biometricCredentials).values(credentialData).returning();
     return newCredential;
   }
 

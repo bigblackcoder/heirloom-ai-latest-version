@@ -1,245 +1,282 @@
-import { useState, useEffect } from 'react';
-import { apiRequest } from '@/lib/queryClient';
+import { useState, useCallback } from "react";
+import { useAuth } from "./use-auth";
+import { apiRequest } from "@/lib/queryClient";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { BiometricCredential } from "@shared/schema";
 
-type BiometricType = 'face' | 'fingerprint' | 'both' | 'none';
+type BiometricType = "face" | "fingerprint" | "iris" | "voice";
 
-interface BiometricAuthHook {
-  isSupported: boolean;
-  isBusy: boolean;
-  biometricType: BiometricType;
-  error: string | null;
-  registerBiometric: (userId: string) => Promise<any>;
-  verifyBiometric: (userId: string) => Promise<any>;
+interface BiometricAuthStatus {
+  supported: boolean;
+  registeredCredentials: BiometricCredential[];
+  availableDeviceTypes: string[];
+  preferredBiometricType: BiometricType;
 }
 
-interface Challenge {
-  challenge: string;
-  credentialId?: string;
-}
-
-export function useBiometricAuth(): BiometricAuthHook {
-  const [isSupported, setIsSupported] = useState<boolean>(false);
-  const [isBusy, setIsBusy] = useState<boolean>(false);
-  const [biometricType, setBiometricType] = useState<BiometricType>('none');
+export function useBiometricAuth() {
+  const { user, isAuthenticated } = useAuth();
+  const queryClient = useQueryClient();
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
-  // Check device compatibility on mount
-  useEffect(() => {
-    checkDeviceSupport();
+  // Check if browser/device supports WebAuthn/biometric authentication
+  const checkSupport = useCallback(async () => {
+    try {
+      if (typeof window === "undefined" || !window.PublicKeyCredential) {
+        return false;
+      }
+      
+      // Check if user verification is available
+      return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+    } catch (err) {
+      console.error("Failed to check biometric support:", err);
+      return false;
+    }
   }, []);
 
-  const checkDeviceSupport = async () => {
+  // Query for current biometric status
+  const { data: biometricStatus, isLoading, refetch } = useQuery({
+    queryKey: ["/api/biometrics/status"],
+    enabled: isAuthenticated,
+    select: (data: any): BiometricAuthStatus => ({
+      supported: data.supported,
+      registeredCredentials: data.credentials || [],
+      availableDeviceTypes: data.availableDeviceTypes || [],
+      preferredBiometricType: data.preferredBiometricType || "fingerprint",
+    }),
+  });
+
+  // Register a new biometric credential
+  const registerBiometric = useCallback(async (biometricType: BiometricType = "fingerprint") => {
+    if (!user) {
+      setError("You must be logged in to register biometrics");
+      return null;
+    }
+
     try {
-      // Check if WebAuthn is supported
-      if (window.PublicKeyCredential === undefined) {
-        setIsSupported(false);
-        setBiometricType('none');
-        return;
-      }
+      setError(null);
+      setSuccess(null);
+      setIsRegistering(true);
 
-      // Check platform authenticator availability
-      const available = await window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
-      setIsSupported(available);
-
-      // Detect likely biometric type based on user agent
-      const ua = navigator.userAgent.toLowerCase();
-      
-      if (ua.includes('iphone') || ua.includes('ipad') || ua.includes('macintosh')) {
-        // Apple devices typically use Face ID or Touch ID
-        if (ua.includes('iphone x') || ua.includes('iphone 1') || ua.includes('iphone 2')) {
-          setBiometricType('face'); // Newer iPhones use Face ID
-        } else {
-          setBiometricType('fingerprint'); // Older iPhones and iPads use Touch ID
+      // 1. Get registration options from server
+      const options = await apiRequest("/api/biometrics/register/options", {
+        method: "POST",
+        body: { 
+          userId: user.id,
+          biometricType,
+          deviceType: detectDeviceType()
         }
-      } else if (ua.includes('android')) {
-        // Most Android devices have fingerprint sensors
-        setBiometricType('fingerprint');
-      } else if (ua.includes('windows') && available) {
-        // Windows Hello could be face or fingerprint
-        setBiometricType('both');
-      } else {
-        setBiometricType('none');
-      }
-    } catch (err) {
-      console.error('Error checking biometric support:', err);
-      setIsSupported(false);
-      setBiometricType('none');
-    }
-  };
-
-  const getChallenge = async (userId: string, forVerification = false): Promise<Challenge> => {
-    try {
-      const endpoint = forVerification 
-        ? '/api/biometrics/challenge/verify' 
-        : '/api/biometrics/challenge/register';
-      
-      const response = await apiRequest(endpoint, {
-        method: 'POST',
-        body: { userId }
       });
-      
-      return response as Challenge;
-    } catch (err: any) {
-      console.error('Error getting challenge:', err);
-      throw new Error(err.message || 'Failed to get authentication challenge');
-    }
-  };
 
-  const registerBiometric = async (userId: string) => {
-    setError(null);
-    setIsBusy(true);
-    
-    try {
-      // Get challenge from server
-      const challenge = await getChallenge(userId);
+      // 2. WebAuthn credential creation
+      // Convert base64 challenge to ArrayBuffer
+      options.publicKey.challenge = base64UrlToArrayBuffer(options.publicKey.challenge);
       
-      // Request credential creation from browser
+      // Convert user ID to ArrayBuffer
+      if (options.publicKey.user && options.publicKey.user.id) {
+        options.publicKey.user.id = base64UrlToArrayBuffer(options.publicKey.user.id);
+      }
+
+      // 3. Create credential using platform authenticator
       const credential = await navigator.credentials.create({
-        publicKey: {
-          challenge: Uint8Array.from(challenge.challenge, c => c.charCodeAt(0)),
-          rp: {
-            name: 'Heirloom Identity Platform',
-            id: window.location.hostname
-          },
-          user: {
-            id: Uint8Array.from(userId, c => c.charCodeAt(0)),
-            name: `user-${userId}`,
-            displayName: `User ${userId}`
-          },
-          pubKeyCredParams: [
-            { type: 'public-key', alg: -7 } // ES256
-          ],
-          timeout: 60000,
-          attestation: 'direct',
-          authenticatorSelection: {
-            authenticatorAttachment: 'platform',
-            userVerification: 'required',
-            requireResidentKey: false
-          }
-        }
-      });
-      
-      if (!credential) {
-        throw new Error('Failed to create credential');
-      }
-      
-      // Format credential for server
-      const publicKeyCredential = credential as PublicKeyCredential;
-      const response = publicKeyCredential.response as AuthenticatorAttestationResponse;
-      
-      // Convert ArrayBuffer to base64
-      const attestationObj = btoa(
-        String.fromCharCode(...new Uint8Array(response.attestationObject))
-      );
-      const clientDataJSON = btoa(
-        String.fromCharCode(...new Uint8Array(response.clientDataJSON))
-      );
-      
-      // Submit to server
-      const registrationResult = await apiRequest('/api/biometrics/register', {
-        method: 'POST',
-        body: {
-          userId,
-          credentialId: btoa(
-            String.fromCharCode(...new Uint8Array(publicKeyCredential.rawId))
-          ),
-          attestationObj,
-          clientDataJSON,
-          type: publicKeyCredential.type
-        }
-      });
-      
-      return registrationResult;
-    } catch (err: any) {
-      console.error('Biometric registration error:', err);
-      setError(err.message || 'Failed to register biometric credential');
-      throw err;
-    } finally {
-      setIsBusy(false);
-    }
-  };
+        publicKey: options.publicKey
+      }) as PublicKeyCredential;
 
-  const verifyBiometric = async (userId: string) => {
-    setError(null);
-    setIsBusy(true);
-    
-    try {
-      // Get challenge from server
-      const challenge = await getChallenge(userId, true);
+      // 4. Process response from authenticator
+      const attestationResponse = credential.response as AuthenticatorAttestationResponse;
       
-      if (!challenge.credentialId) {
-        throw new Error('No biometric credential found for this user');
-      }
-      
-      // Convert base64 credentialId to ArrayBuffer
-      const credentialIdArray = Uint8Array.from(
-        atob(challenge.credentialId), c => c.charCodeAt(0)
-      );
-      
-      // Request assertion from browser
-      const assertion = await navigator.credentials.get({
-        publicKey: {
-          challenge: Uint8Array.from(challenge.challenge, c => c.charCodeAt(0)),
-          allowCredentials: [{
-            id: credentialIdArray.buffer,
-            type: 'public-key',
-            transports: ['internal']
-          }],
-          timeout: 60000,
-          userVerification: 'required'
-        }
+      // 5. Prepare response to send to server
+      const registrationResponse = {
+        id: credential.id,
+        rawId: arrayBufferToBase64Url(credential.rawId),
+        type: credential.type,
+        response: {
+          attestationObject: arrayBufferToBase64Url(attestationResponse.attestationObject),
+          clientDataJSON: arrayBufferToBase64Url(attestationResponse.clientDataJSON),
+        },
+        biometricType,
+        deviceType: detectDeviceType(),
+        userId: user.id
+      };
+
+      // 6. Send registration response to server for verification
+      const result = await apiRequest("/api/biometrics/register/complete", {
+        method: "POST",
+        body: registrationResponse
       });
-      
-      if (!assertion) {
-        throw new Error('Biometric verification failed');
-      }
-      
-      // Format assertion for server
-      const publicKeyCredential = assertion as PublicKeyCredential;
-      const response = publicKeyCredential.response as AuthenticatorAssertionResponse;
-      
-      // Convert ArrayBuffer to base64
-      const authenticatorData = btoa(
-        String.fromCharCode(...new Uint8Array(response.authenticatorData))
-      );
-      const clientDataJSON = btoa(
-        String.fromCharCode(...new Uint8Array(response.clientDataJSON))
-      );
-      const signature = btoa(
-        String.fromCharCode(...new Uint8Array(response.signature))
-      );
-      
-      // Submit to server
-      const verificationResult = await apiRequest('/api/biometrics/verify', {
-        method: 'POST',
-        body: {
-          userId,
-          credentialId: challenge.credentialId,
-          authenticatorData,
-          clientDataJSON,
-          signature,
-          userHandle: response.userHandle 
-            ? btoa(String.fromCharCode(...new Uint8Array(response.userHandle))) 
-            : null
-        }
-      });
-      
-      return verificationResult;
+
+      setSuccess("Biometric registration successful");
+      await queryClient.invalidateQueries({ queryKey: ["/api/biometrics/status"] });
+      refetch();
+      return result;
     } catch (err: any) {
-      console.error('Biometric verification error:', err);
-      setError(err.message || 'Failed to verify biometric credential');
-      throw err;
+      console.error("Biometric registration failed:", err);
+      setError(err.message || "Biometric registration failed");
+      return null;
     } finally {
-      setIsBusy(false);
+      setIsRegistering(false);
     }
-  };
+  }, [user, queryClient, refetch]);
+
+  // Verify identity using previously registered biometric
+  const verifyIdentity = useCallback(async (credentialId?: string) => {
+    if (!user) {
+      setError("You must be logged in to verify identity");
+      return false;
+    }
+
+    try {
+      setError(null);
+      setSuccess(null);
+      setIsVerifying(true);
+
+      // 1. Get authentication options from server
+      const options = await apiRequest("/api/biometrics/verify/options", {
+        method: "POST",
+        body: { 
+          userId: user.id,
+          credentialId // Optional - will use preferred credential if not specified
+        }
+      });
+
+      // 2. Convert base64 challenge to ArrayBuffer
+      options.publicKey.challenge = base64UrlToArrayBuffer(options.publicKey.challenge);
+      
+      // 3. Convert any credential IDs to ArrayBuffer
+      if (options.publicKey.allowCredentials) {
+        options.publicKey.allowCredentials = options.publicKey.allowCredentials.map((cred: any) => {
+          return {
+            ...cred,
+            id: base64UrlToArrayBuffer(cred.id)
+          };
+        });
+      }
+
+      // 4. Get credential using platform authenticator
+      const credential = await navigator.credentials.get({
+        publicKey: options.publicKey
+      }) as PublicKeyCredential;
+
+      // 5. Process response from authenticator
+      const assertionResponse = credential.response as AuthenticatorAssertionResponse;
+      
+      // 6. Prepare verification response to send to server
+      const verificationResponse = {
+        id: credential.id,
+        rawId: arrayBufferToBase64Url(credential.rawId),
+        type: credential.type,
+        response: {
+          authenticatorData: arrayBufferToBase64Url(assertionResponse.authenticatorData),
+          clientDataJSON: arrayBufferToBase64Url(assertionResponse.clientDataJSON),
+          signature: arrayBufferToBase64Url(assertionResponse.signature),
+          userHandle: assertionResponse.userHandle ? arrayBufferToBase64Url(assertionResponse.userHandle) : null
+        },
+        userId: user.id
+      };
+
+      // 7. Send verification response to server
+      const result = await apiRequest("/api/biometrics/verify/complete", {
+        method: "POST",
+        body: verificationResponse
+      });
+
+      setSuccess("Identity verification successful");
+      return result.verified;
+    } catch (err: any) {
+      console.error("Biometric verification failed:", err);
+      setError(err.message || "Biometric verification failed");
+      return false;
+    } finally {
+      setIsVerifying(false);
+    }
+  }, [user]);
+
+  // Delete a registered biometric credential
+  const deleteBiometric = useCallback(async (credentialId: string) => {
+    if (!user) {
+      setError("You must be logged in to manage biometrics");
+      return false;
+    }
+
+    try {
+      setError(null);
+      
+      await apiRequest(`/api/biometrics/credentials/${credentialId}`, {
+        method: "DELETE"
+      });
+      
+      setSuccess("Biometric credential removed successfully");
+      await queryClient.invalidateQueries({ queryKey: ["/api/biometrics/status"] });
+      refetch();
+      return true;
+    } catch (err: any) {
+      console.error("Failed to delete biometric credential:", err);
+      setError(err.message || "Failed to delete biometric credential");
+      return false;
+    }
+  }, [user, queryClient, refetch]);
 
   return {
-    isSupported,
-    isBusy,
-    biometricType,
+    isSupported: biometricStatus?.supported,
+    registeredCredentials: biometricStatus?.registeredCredentials || [],
+    isRegistering,
+    isVerifying,
+    isLoading,
     error,
+    success,
+    checkSupport,
     registerBiometric,
-    verifyBiometric
+    verifyIdentity,
+    deleteBiometric,
+    availableDeviceTypes: biometricStatus?.availableDeviceTypes || [],
+    preferredBiometricType: biometricStatus?.preferredBiometricType || "fingerprint"
   };
+}
+
+// Utility function to detect device type
+function detectDeviceType(): string {
+  const userAgent = navigator.userAgent.toLowerCase();
+  
+  if (/iphone|ipad|ipod/.test(userAgent)) {
+    return "ios";
+  } else if (/android/.test(userAgent)) {
+    return "android";
+  } else {
+    return "web";
+  }
+}
+
+// Utility functions for converting between ArrayBuffer and Base64URL
+function arrayBufferToBase64Url(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let str = '';
+  
+  for (const byte of bytes) {
+    str += String.fromCharCode(byte);
+  }
+  
+  return btoa(str)
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+
+function base64UrlToArrayBuffer(base64Url: string): ArrayBuffer {
+  const base64 = base64Url
+    .replace(/-/g, '+')
+    .replace(/_/g, '/');
+  
+  const padLength = 4 - (base64.length % 4);
+  const padded = padLength < 4 ? base64 + '='.repeat(padLength) : base64;
+  
+  const binary = atob(padded);
+  const bytes = new Uint8Array(binary.length);
+  
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  
+  return bytes.buffer;
 }

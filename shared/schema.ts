@@ -137,19 +137,29 @@ export const insertAchievementSchema = createInsertSchema(achievements).omit({ i
 export type InsertAchievement = z.infer<typeof insertAchievementSchema>;
 export type Achievement = typeof achievements.$inferSelect;
 
-// Biometric Credentials for blockchain-based authentication
+// Biometric Credentials for device-native authentication with blockchain verification
 export const biometricCredentials = pgTable("biometric_credentials", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id).notNull(),
   credentialId: text("credential_id").notNull().unique(),
+  publicKey: text("public_key"),
   biometricType: text("biometric_type").notNull(), // 'face', 'fingerprint', 'iris', 'voice'
   deviceType: text("device_type").notNull(), // 'ios', 'android', 'web'
+  attestation: json("attestation").$type<Record<string, any>>(),
+  counter: integer("counter").default(0).notNull(), // For WebAuthn verification
+  transports: json("transports").$type<string[]>(),
+  blockchainTxId: text("blockchain_tx_id"), // Blockchain transaction ID for verification
   createdAt: timestamp("created_at").defaultNow().notNull(),
   lastUsedAt: timestamp("last_used_at"),
   isActive: boolean("is_active").default(true).notNull(),
   metadata: json("metadata").$type<Record<string, any>>()
 });
 
-export const insertBiometricCredentialSchema = createInsertSchema(biometricCredentials).omit({ id: true, createdAt: true, lastUsedAt: true });
+export const insertBiometricCredentialSchema = createInsertSchema(biometricCredentials).omit({ 
+  id: true, 
+  createdAt: true, 
+  lastUsedAt: true,
+  counter: true
+});
 export type InsertBiometricCredential = z.infer<typeof insertBiometricCredentialSchema>;
 export type BiometricCredential = typeof biometricCredentials.$inferSelect;
