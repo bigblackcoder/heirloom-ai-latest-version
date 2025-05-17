@@ -1,7 +1,7 @@
 import express, { Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { createSessionConfig, isAuthenticated, isVerifiedIdentity } from "./session";
+import { createSessionConfig, isAuthenticated, isVerifiedIdentity, setIdentityVerification, clearIdentityVerification } from "./session";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { z } from "zod";
@@ -521,9 +521,6 @@ export async function registerRoutes(app: express.Application): Promise<Server> 
       
       // Clear challenge from session
       delete req.session!.verifyChallenge;
-      
-      // Import helper function to set identity verification properly
-      const { setIdentityVerification } = require('./session');
       
       // Set verified status in session using our helper function
       setIdentityVerification(req, true, credential.biometricType);
