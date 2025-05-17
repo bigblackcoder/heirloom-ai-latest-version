@@ -1,0 +1,108 @@
+Based on the code and the errors you're seeing, I can identify several type-related issues that need to be fixed. Let me analyze these issues and suggest solutions:
+
+## Analysis of the Type Errors
+
+The main problem appears to be inconsistent handling of user IDs between string and number types. The errors indicate that in several places, the code is trying to assign string values to variables or parameters that expect numbers.
+
+### Issue Locations:
+
+1. **Line 270-271**: Type 'string' is not assignable to type 'number'
+   - This is likely in the `verifyAuthentication` function where `req.session.userId` is being set
+
+2. **Line 310-311**: Argument of type 'string | undefined' is not assignable to parameter of type 'number | undefined'
+   - This appears to be in the `registerHybridVerification` function where `challengeData.userId` is passed to `verifyFace`
+
+3. **Line 393-394**: Argument of type 'string' is not assignable to parameter of type 'number'
+   - In the `verifyHybridAuthentication` function where a user ID is being passed to `verifyFace`
+
+4. **Line 415-416**: Type 'string' is not assignable to type 'number'
+   - Also in the `verifyHybridAuthentication` function, likely setting session data
+
+## Proposed Fixes
+
+Here's how I would fix these issues:
+
+1. **Consistent User ID Type Handling**: 
+
+```typescript
+// For verifyAuthentication function (around line 270-271)
+if (req.session) {
+  req.session.isVerified = true;
+  if (!req.session.userId) {
+    // Ensure userId is stored as a string in the session
+    req.session.userId = String(userCredential[0].userId);
+  }
+}
+
+// For registerHybridVerification (around line 310-311)
+// Modify the verifyFace call
+const faceResult: FaceVerificationResult = await verifyFace(
+  faceImage, 
+  challengeData.userId?.toString(), // Convert to string explicitly
+  true
+);
+
+// For verifyHybridAuthentication (around line 393-394)
+// Update the verifyFace call
+faceResult = await verifyFace(
+  faceImage, 
+  userCredential[0].userId.toString(), // Convert to string explicitly
+  false
+) as FaceVerificationResult;
+
+// For verifyHybridAuthentication (around line 415-416)
+if (req.session) {
+  // Only mark as verified if both checks pass for hybrid auth
+  req.session.isVerified = !isHybridAuth || (isHybridAuth && faceVerified);
+  if (!req.session.userId) {
+    // Ensure userId is stored as a string in the session
+    req.session.userId = String(userCredential[0].userId);
+  }
+}
+```
+
+2. **Update Type Definitions**:
+
+You should also ensure that the `verifyFace` function's parameter type definitions are consistent with how you're calling the function. Based on the errors, it seems like the function expects a number, but you're passing strings:
+
+```typescript
+// Update the verifyFace function signature in deepface.ts
+export function verifyFace(
+  faceImage: string, 
+  userId: string | number | undefined, // Accept both string and number types
+  isRegistration: boolean
+): Promise<FaceVerificationResult> {
+  // Convert userId to string internally if needed
+  const userIdStr = userId?.toString();
+  
+  // Rest of the function...
+}
+```
+
+3. **Consider Updating the Schema**:
+
+If `shared/schema.ts` defines the `credentials` table and user ID types, you might want to ensure it uses consistent types. For example, if your database stores user IDs as strings, make sure the schema reflects this:
+
+```typescript
+// In shared/schema.ts
+export const credentials = sqliteTable('credentials', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  credentialId: text('credential_id').notNull().unique(),
+  userId: text('user_id').notNull(), // Explicitly define as text/string
+  publicKey: text('public_key').notNull(),
+  faceId: text('face_id'),
+  // ...other fields
+});
+```
+
+## General Recommendation
+
+The fundamental issue here is mixing string and number types for user IDs. Since user IDs in web applications are often used in URLs, JSON, and other string contexts, I would recommend standardizing on string types for user IDs throughout your application.
+
+This would involve:
+1. Ensuring your database schema defines user IDs as strings
+2. Always converting user IDs to strings when storing them
+3. Updating function signatures to accept string types where user IDs are involved
+4. Using explicit type conversions when necessary (e.g., `toString()` or `String()`)
+
+Would you like me to elaborate on any specific part of these fixes?

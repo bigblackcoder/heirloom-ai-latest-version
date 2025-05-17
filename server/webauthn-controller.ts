@@ -308,7 +308,11 @@ export async function registerHybridVerification(req: Request, res: Response) {
     challengeStore.delete(challengeId);
 
     // Verify the face using DeepFace
-    const faceResult: FaceVerificationResult = await verifyFace(faceImage, challengeData.userId?.toString(), true);
+    const faceResult: FaceVerificationResult = await verifyFace(
+      faceImage, 
+      challengeData.userId !== undefined ? String(challengeData.userId) : undefined, 
+      true
+    );
     
     if (!faceResult.success) {
       return res.status(400).json({ 
@@ -391,7 +395,7 @@ export async function verifyHybridAuthentication(req: Request, res: Response) {
     if (isHybridAuth && faceImage) {
       faceResult = await verifyFace(
         faceImage, 
-        userCredential[0].userId, 
+        String(userCredential[0].userId), // Explicitly convert to string
         false
       ) as FaceVerificationResult;
       

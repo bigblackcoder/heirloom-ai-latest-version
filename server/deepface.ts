@@ -43,7 +43,7 @@ export interface FaceVerificationResult {
  */
 export async function verifyFace(
   imageBase64: string, 
-  userId?: number, 
+  userId?: string | number, 
   saveToDb = false
 ): Promise<FaceVerificationResult> {
   // Just forward to the javascript implementation
@@ -61,7 +61,7 @@ export async function verifyFace(
  */
 export async function detectFaceBasic(
   imageBase64: string,
-  userId?: number,
+  userId?: string | number,
   saveToDb = false
 ): Promise<FaceVerificationResult> {
   try {
@@ -105,7 +105,7 @@ export async function detectFaceBasic(
         }
         
         // Create a user directory if it doesn't exist
-        const userDir = path.join(dbDir, `user_${userId}`);
+        const userDir = path.join(dbDir, `user_${String(userId)}`);
         if (!fs.existsSync(userDir)) {
           fs.mkdirSync(userDir, { recursive: true });
         }
@@ -118,7 +118,7 @@ export async function detectFaceBasic(
         const metadataFile = path.join(userDir, `${face_id}.json`);
         const metadata = {
           face_id,
-          userId,
+          userId: String(userId),
           timestamp: new Date().toISOString(),
           matched
         };
