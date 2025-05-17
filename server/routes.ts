@@ -351,11 +351,13 @@ export async function registerRoutes(app: express.Application): Promise<Server> 
       await storage.createActivity({
         userId: Number(userId),
         type: "biometric_registered",
-        description: `${biometricType} biometric registered`,
+        description: `${biometricType} biometric registered on ${deviceType} device`,
         metadata: { 
           credentialId: id,
           deviceType,
-          blockchainTxId
+          biometricType,
+          blockchainTxId,
+          timestamp: new Date().toISOString()
         }
       });
       
@@ -520,10 +522,11 @@ export async function registerRoutes(app: express.Application): Promise<Server> 
       // Clear challenge from session
       delete req.session!.verifyChallenge;
       
-      // Set verified status in session
-      req.session!.identityVerified = true;
-      req.session!.verifiedAt = new Date();
-      req.session!.verifiedWith = credential.biometricType;
+      // Import helper function to set identity verification properly
+      const { setIdentityVerification } = require('./session');
+      
+      // Set verified status in session using our helper function
+      setIdentityVerification(req, true, credential.biometricType);
       
       // Update credential last used
       await storage.updateBiometricCredential(credential.id, {

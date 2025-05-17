@@ -109,3 +109,24 @@ export function setIdentityVerification(
   
   console.log(`Identity verification ${verified ? 'set' : 'cleared'} for user ID: ${req.session.userId || 'unknown'}`);
 }
+
+/**
+ * Helper function to clear identity verification from user session
+ * This is useful when a session times out or when user logs out
+ * @param req Express request object
+ */
+export function clearIdentityVerification(req: Request): void {
+  if (!req.session) {
+    console.error("Cannot clear identity verification: No session available");
+    return;
+  }
+  
+  req.session.identityVerified = false;
+  req.session.biometricInfo = {
+    verified: false,
+    method: 'none',
+    lastVerified: new Date()
+  };
+  
+  console.log(`Identity verification cleared for user ID: ${req.session.userId || 'unknown'}`);
+}
