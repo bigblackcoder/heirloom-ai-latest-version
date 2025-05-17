@@ -28,7 +28,7 @@ export interface FaceVerificationResult {
   debug_session?: string;
   results?: {
     age?: number;
-    gender?: string;
+    gender?: string | Record<string, number>;
     dominant_race?: string;
     dominant_emotion?: string;
   };
@@ -219,7 +219,7 @@ async function fallbackVerification(request: FaceVerificationRequest): Promise<F
     // Use the basic detection method
     const result = await detectFaceBasic(
       request.image,
-      request.userId?.toString(),
+      typeof request.userId === 'number' ? request.userId : undefined,
       request.saveToDb
     );
     
