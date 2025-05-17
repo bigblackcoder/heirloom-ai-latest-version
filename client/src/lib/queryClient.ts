@@ -1,17 +1,17 @@
-import { QueryClient } from "@tanstack/react-query";
+import { QueryClient, QueryFunction, QueryKey } from "@tanstack/react-query";
 
+// Create a custom fetch function without the queryFn setting
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 1,
       refetchOnWindowFocus: false,
-      queryFn: defaultQueryFn,
     },
   },
 });
 
-async function defaultQueryFn({ queryKey }: { queryKey: string[] }) {
-  const [url] = queryKey;
+// We'll use this function directly in our queries instead
+export async function fetchData(url: string) {
   const res = await fetch(url);
   
   if (!res.ok) {
