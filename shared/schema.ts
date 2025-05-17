@@ -1,156 +1,134 @@
-import { z } from "zod";
-import { createInsertSchema } from "drizzle-zod";
+/**
+ * Database Schema
+ * 
+ * This file contains the Drizzle ORM schema definitions for the application.
+ * These schemas are used for both the database and the TypeScript types.
+ */
+
+import { relations, sql } from 'drizzle-orm';
 import {
+  index,
+  integer,
   pgTable,
+  primaryKey,
   serial,
   text,
-  boolean,
   timestamp,
-  integer,
-  varchar,
-  json,
-  uuid,
-  index,
-  jsonb,
-  primaryKey
-} from "drizzle-orm/pg-core";
+  boolean,
+  json
+} from 'drizzle-orm/pg-core';
+import { createInsertSchema } from 'drizzle-zod';
+import { z } from 'zod';
 
-// Session storage for authentication
-export const sessions = pgTable(
-  "sessions",
-  {
-    sid: varchar("sid").primaryKey(),
-    sess: jsonb("sess").notNull(),
-    expire: timestamp("expire").notNull(),
-  },
-  (table) => [index("IDX_session_expire").on(table.expire)],
-);
-
-// Users table
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
-  email: text("email"),
-  firstName: text("first_name"),
-  lastName: text("last_name"),
-  avatar: text("avatar"),
-  isVerified: boolean("is_verified").default(false).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull()
+/**
+ * Users table
+ * Stores user information and authentication data
+ */
+export const users = pgTable('users', {
+  id: text('id').primaryKey().notNull(),
+  username: text('username').notNull().unique(),
+  displayName: text('display_name'),
+  email: text('email').unique(),
+  isVerified: boolean('is_verified').default(false),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  lastLogin: timestamp('last_login')
 });
 
-export const insertUserSchema = createInsertSchema(users).omit({ id: true, isVerified: true, createdAt: true, updatedAt: true });
-export type InsertUser = z.infer<typeof insertUserSchema>;
+/**
+ * WebAuthn Credentials table
+ * Stores credentials for WebAuthn authentication
+ */
+export const webauthnCredentials = pgTable('webauthn_credentials', {
+  id: text('id').primaryKey().notNull(), // Credential ID from authenticator
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  publicKey: text('public_key').notNull(), // Base64URL encoded public key
+  algorithm: integer('algorithm').notNull(), // Algorithm used (-7 for ES256, -257 for RS256, etc.)
+  counter: integer('counter').notNull().default(0), // Signature counter for detecting cloned authenticators
+  transports: json('transports').$type<string[]>(), // Optional transports used by the authenticator
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  lastUsed: timestamp('last_used')
+});
+
+/**
+ * Faces table
+ * Stores face data for facial verification
+ */
+export const faces = pgTable('faces', {
+  id: text('id').primaryKey().notNull(), // UUID for the face
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  embedding: json('embedding'), // Facial embedding vector data
+  imageHash: text('image_hash'), // Hash of the original image for duplication check
+  metadata: json('metadata').$type<{
+    age?: number;
+    gender?: string;
+    emotion?: string;
+    hasGlasses?: boolean;
+    hasMask?: boolean;
+  }>(), // Metadata about the face
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  lastVerified: timestamp('last_verified')
+});
+
+/**
+ * Verification History table
+ * Stores history of verification attempts
+ */
+export const verificationHistory = pgTable('verification_history', {
+  id: serial('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  credentialId: text('credential_id').references(() => webauthnCredentials.id),
+  faceId: text('face_id').references(() => faces.id),
+  success: boolean('success').notNull(),
+  confidence: integer('confidence'), // Confidence score for face verification (0-100)
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+  timestamp: timestamp('timestamp').defaultNow().notNull(),
+  details: json('details')
+});
+
+// Define relationships between tables
+export const usersRelations = relations(users, ({ many }) => ({
+  credentials: many(webauthnCredentials),
+  faces: many(faces),
+  verificationHistory: many(verificationHistory)
+}));
+
+export const credentialsRelations = relations(webauthnCredentials, ({ one }) => ({
+  user: one(users, { fields: [webauthnCredentials.userId], references: [users.id] })
+}));
+
+export const facesRelations = relations(faces, ({ one }) => ({
+  user: one(users, { fields: [faces.userId], references: [users.id] })
+}));
+
+export const verificationHistoryRelations = relations(verificationHistory, ({ one }) => ({
+  user: one(users, { fields: [verificationHistory.userId], references: [users.id] }),
+  credential: one(webauthnCredentials, { fields: [verificationHistory.credentialId], references: [webauthnCredentials.id] }),
+  face: one(faces, { fields: [verificationHistory.faceId], references: [faces.id] })
+}));
+
+// Create Zod schemas for insertion validation
+export const insertUserSchema = createInsertSchema(users, {
+  username: (schema) => schema.username.min(3),
+  email: (schema) => schema.email.email().optional()
+}).omit({ id: true });
+
+export const insertCredentialSchema = createInsertSchema(webauthnCredentials);
+
+export const insertFaceSchema = createInsertSchema(faces).omit({ id: true });
+
+export const insertVerificationHistorySchema = createInsertSchema(verificationHistory).omit({ id: true });
+
+// Create type definitions based on the schemas
 export type User = typeof users.$inferSelect;
+export type InsertUser = z.infer<typeof insertUserSchema>;
 
-// Identity Capsules (containers for verified data)
-export const identityCapsules = pgTable("identity_capsules", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id).notNull(),
-  name: text("name").notNull(),
-  description: text("description"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull()
-});
+export type WebAuthnCredential = typeof webauthnCredentials.$inferSelect;
+export type InsertWebAuthnCredential = z.infer<typeof insertCredentialSchema>;
 
-export const insertIdentityCapsuleSchema = createInsertSchema(identityCapsules).omit({ id: true, createdAt: true, updatedAt: true });
-export type InsertIdentityCapsule = z.infer<typeof insertIdentityCapsuleSchema>;
-export type IdentityCapsule = typeof identityCapsules.$inferSelect;
+export type Face = typeof faces.$inferSelect;
+export type InsertFace = z.infer<typeof insertFaceSchema>;
 
-// Verified Data (attributes stored in capsules)
-export const verifiedData = pgTable("verified_data", {
-  id: serial("id").primaryKey(),
-  capsuleId: integer("capsule_id").references(() => identityCapsules.id).notNull(),
-  dataType: text("data_type").notNull(),
-  value: text("value").notNull(),
-  verificationMethod: text("verification_method").notNull(),
-  issuanceDate: timestamp("issuance_date").notNull(),
-  expirationDate: timestamp("expiration_date"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull()
-});
-
-export const insertVerifiedDataSchema = createInsertSchema(verifiedData).omit({ id: true, createdAt: true, updatedAt: true });
-export type InsertVerifiedData = z.infer<typeof insertVerifiedDataSchema>;
-export type VerifiedData = typeof verifiedData.$inferSelect;
-
-// AI Connections (permissions granted to AI services)
-export const aiConnections = pgTable("ai_connections", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id).notNull(),
-  aiServiceName: text("ai_service_name").notNull(),
-  aiServiceId: text("ai_service_id"),
-  permissions: json("permissions").$type<string[]>(),
-  isActive: boolean("is_active").default(true).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull()
-});
-
-export const insertAiConnectionSchema = createInsertSchema(aiConnections).omit({ id: true, isActive: true, createdAt: true, updatedAt: true });
-export type InsertAiConnection = z.infer<typeof insertAiConnectionSchema>;
-export type AiConnection = typeof aiConnections.$inferSelect;
-
-// Activity Log
-export const activities = pgTable("activities", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id).notNull(),
-  type: text("type").notNull(),
-  description: text("description").notNull(),
-  metadata: json("metadata").$type<Record<string, any>>(),
-  createdAt: timestamp("created_at").defaultNow().notNull()
-});
-
-export const insertActivitySchema = createInsertSchema(activities).omit({ id: true, createdAt: true });
-export type InsertActivity = z.infer<typeof insertActivitySchema>;
-export type Activity = typeof activities.$inferSelect;
-
-// Face verification records
-export const faceRecords = pgTable("face_records", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: integer("user_id").references(() => users.id).notNull(),
-  faceEmbedding: json("face_embedding"),
-  faceImagePath: text("face_image_path"),
-  confidence: integer("confidence"),
-  verifiedAt: timestamp("verified_at").defaultNow().notNull(),
-  metadata: json("metadata").$type<Record<string, any>>()
-});
-
-export const insertFaceRecordSchema = createInsertSchema(faceRecords).omit({ id: true, verifiedAt: true });
-export type InsertFaceRecord = z.infer<typeof insertFaceRecordSchema>;
-export type FaceRecord = typeof faceRecords.$inferSelect;
-
-// Achievements/Badges
-export const achievements = pgTable("achievements", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id).notNull(),
-  type: text("type").notNull(),
-  title: text("title").notNull(),
-  description: text("description").notNull(),
-  imageUrl: text("image_url"),
-  awardedAt: timestamp("awarded_at").defaultNow().notNull(),
-  metadata: json("metadata").$type<Record<string, any>>(),
-  shareId: text("share_id"),
-  shareUrl: text("share_url")
-});
-
-export const insertAchievementSchema = createInsertSchema(achievements).omit({ id: true, awardedAt: true });
-export type InsertAchievement = z.infer<typeof insertAchievementSchema>;
-export type Achievement = typeof achievements.$inferSelect;
-
-// WebAuthn Credentials for device-based biometric authentication
-export const credentials = pgTable("credentials", {
-  id: serial("id").primaryKey(),
-  credentialId: text("credential_id").notNull().unique(),
-  userId: text("user_id").notNull(),
-  publicKey: text("public_key"),
-  counter: integer("counter").default(0).notNull(),
-  faceId: uuid("face_id").references(() => faceRecords.id),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  lastUsed: timestamp("last_used").defaultNow().notNull(),
-  metadata: json("metadata").$type<Record<string, any>>()
-});
-
-export const insertCredentialSchema = createInsertSchema(credentials).omit({ id: true, counter: true, createdAt: true, lastUsed: true });
-export type InsertCredential = z.infer<typeof insertCredentialSchema>;
-export type Credential = typeof credentials.$inferSelect;
+export type VerificationHistory = typeof verificationHistory.$inferSelect;
+export type InsertVerificationHistory = z.infer<typeof insertVerificationHistorySchema>;
