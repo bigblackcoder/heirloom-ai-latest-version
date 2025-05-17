@@ -89,9 +89,9 @@ export async function registerRoutes(app: express.Application): Promise<Server> 
         userId: newUser.id,
         type: "account_created",
         description: "Account created",
-        metadata: JSON.stringify({ 
+        metadata: { 
           method: "password" 
-        })
+        }
       });
       
       // Return user (without password)
@@ -134,9 +134,9 @@ export async function registerRoutes(app: express.Application): Promise<Server> 
         userId: user.id,
         type: "login",
         description: "User logged in",
-        metadata: JSON.stringify({ 
+        metadata: { 
           method: "password" 
-        })
+        }
       });
       
       // Return user (without password)
@@ -352,11 +352,11 @@ export async function registerRoutes(app: express.Application): Promise<Server> 
         userId: Number(userId),
         type: "biometric_registered",
         description: `${biometricType} biometric registered`,
-        metadata: JSON.stringify({ 
+        metadata: { 
           credentialId: id,
           deviceType,
           blockchainTxId
-        })
+        }
       });
       
       // Return success with credential
@@ -562,11 +562,11 @@ export async function registerRoutes(app: express.Application): Promise<Server> 
         userId: Number(userId),
         type: "biometric_removed",
         description: `${credential.biometricType} biometric removed`,
-        metadata: JSON.stringify({ 
+        metadata: { 
           credentialId,
           deviceType: credential.deviceType,
           blockchainTxId: credential.blockchainTxId
-        })
+        }
       });
       
       // Return success
