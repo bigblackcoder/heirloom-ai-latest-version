@@ -1,126 +1,86 @@
 /**
- * WebAuthn Interface Types
- * 
- * This file contains the TypeScript interfaces for WebAuthn authentication data
- * shared between the client and server
+ * Type definitions for WebAuthn operations
  */
 
 export interface WebAuthnUser {
-  id: string | number; // User ID can be string or number
-  name: string; // Username
-  displayName?: string; // User's display name
-  isVerified?: boolean; // Whether user is verified
+  id: string;
+  name: string;
+  displayName: string;
 }
 
 export interface WebAuthnRegistrationOptions {
-  challenge: string; // Base64URL encoded challenge
+  user: WebAuthnUser;
+  challenge: string;
   rp: {
-    name: string; // Relying party name
-    id?: string; // Optional Relying party ID
+    name: string;
+    id?: string;
   };
-  user: {
-    id: string | number; // User ID can be string or number
-    name: string; // Username
-    displayName: string; // User's display name
-  };
-  pubKeyCredParams: Array<{
-    type: 'public-key';
-    alg: number; // Algorithm identifier
-  }>;
-  timeout?: number; // Optional timeout in milliseconds
-  excludeCredentials?: Array<{
-    id: string; // Base64URL encoded credential ID
-    type: 'public-key';
-    transports?: string[]; // Optional transports
-  }>;
+  pubKeyCredParams: {
+    type: "public-key";
+    alg: number;
+  }[];
   authenticatorSelection?: {
-    authenticatorAttachment?: 'platform' | 'cross-platform';
+    authenticatorAttachment?: "platform" | "cross-platform";
+    userVerification?: "required" | "preferred" | "discouraged";
     requireResidentKey?: boolean;
-    userVerification?: 'required' | 'preferred' | 'discouraged';
+    residentKey?: "required" | "preferred" | "discouraged";
   };
-  attestation?: 'none' | 'indirect' | 'direct';
-  extensions?: Record<string, any>; // Optional extensions
+  timeout?: number;
+  attestation?: "none" | "indirect" | "direct";
+  excludeCredentials?: {
+    id: string;
+    type: "public-key";
+    transports?: ("ble" | "internal" | "nfc" | "usb")[];
+  }[];
 }
 
 export interface WebAuthnAuthenticationOptions {
-  challenge: string; // Base64URL encoded challenge
-  timeout?: number; // Optional timeout in milliseconds
-  rpId?: string; // Optional Relying party ID
-  allowCredentials: Array<{
-    id: string; // Base64URL encoded credential ID
-    type: 'public-key';
-    transports?: string[]; // Optional transports
-  }>;
-  userVerification?: 'required' | 'preferred' | 'discouraged';
-  extensions?: Record<string, any>; // Optional extensions
+  challenge: string;
+  rpId?: string;
+  timeout?: number;
+  userVerification?: "required" | "preferred" | "discouraged";
+  allowCredentials?: {
+    id: string;
+    type: "public-key";
+    transports?: ("ble" | "internal" | "nfc" | "usb")[];
+  }[];
 }
 
 export interface WebAuthnAttestationResponse {
-  id: string; // Base64URL encoded credential ID
-  rawId: string; // Base64URL encoded raw credential ID
-  type: 'public-key';
+  id: string;
+  rawId: string;
+  type: string;
   response: {
-    attestationObject: string; // Base64URL encoded attestation object
-    clientDataJSON: string; // Base64URL encoded client data
+    attestationObject: string;
+    clientDataJSON: string;
   };
-  extensions?: Record<string, any>; // Optional extensions
-}
-
-export interface WebAuthnAssertionResponse {
-  id: string; // Base64URL encoded credential ID
-  rawId: string; // Base64URL encoded raw credential ID
-  type: 'public-key';
-  response: {
-    authenticatorData: string; // Base64URL encoded authenticator data
-    clientDataJSON: string; // Base64URL encoded client data
-    signature: string; // Base64URL encoded signature
-    userHandle?: string; // Optional Base64URL encoded user handle
-  };
-  extensions?: Record<string, any>; // Optional extensions
-}
-
-export interface WebAuthnRegistrationResponse {
-  success: boolean; // Whether registration was successful
-  message?: string; // Optional message
-  error?: string; // Optional error message
-  user?: WebAuthnUser; // Optional user object
-  credential?: {
-    id: string; // Base64URL encoded credential ID
-    publicKey: string; // Base64URL encoded public key
-  };
-  hybrid?: {
-    faceVerified: boolean;
-    score?: number;
-  };
+  clientExtensionResults?: any;
+  authenticatorAttachment?: "platform" | "cross-platform";
 }
 
 export interface WebAuthnAuthenticationResponse {
-  success: boolean; // Whether authentication was successful
-  message?: string; // Optional message
-  error?: string; // Optional error message
-  user?: WebAuthnUser; // Optional user object
-  hybrid?: {
-    faceVerified: boolean;
-    score?: number;
+  id: string;
+  rawId: string;
+  type: string;
+  response: {
+    authenticatorData: string;
+    clientDataJSON: string;
+    signature: string;
+    userHandle?: string;
   };
+  clientExtensionResults?: any;
 }
 
 export interface WebAuthnCredential {
-  id: string; // Base64URL encoded credential ID
-  publicKey: string; // Base64URL encoded public key
-  userId: string | number; // User ID can be string or number
-  algorithm: number; // Algorithm identifier
-  counter: number; // Signature counter
-  createdAt: Date; // Creation date
-  lastUsed?: Date; // Last usage date
-  transports?: string[]; // Optional transports
-}
-
-export interface FaceVerificationResponse {
-  success: boolean; // Whether verification was successful
-  matched?: boolean; // Whether face matched with stored faces
-  confidence?: number; // Confidence score
-  faceId?: string; // ID of matched face
-  message?: string; // Optional message
-  error?: string; // Optional error message
+  id: string;
+  userId: string;
+  credentialId: string;
+  credentialPublicKey: string;
+  counter: number;
+  credentialDeviceType: string;
+  credentialBackedUp: boolean;
+  transports?: string[];
+  createdAt: Date;
+  lastUsed?: Date | null;
+  userVerified?: boolean;
 }

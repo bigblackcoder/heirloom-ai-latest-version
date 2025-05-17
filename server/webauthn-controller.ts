@@ -1,404 +1,326 @@
-/**
- * WebAuthn Controller
- * Handles registration and authentication of WebAuthn credentials
- */
-
 import crypto from 'crypto';
+import { type Request, type Response } from 'express';
 import { db } from './db';
+import { webauthnCredentials, users } from '@shared/schema';
 import { eq } from 'drizzle-orm';
-import { users, webauthnCredentials } from '../shared/schema';
-import { verifyFace } from './deepface';
-import type {
+import { 
+  WebAuthnUser,
   WebAuthnRegistrationOptions,
   WebAuthnAuthenticationOptions,
   WebAuthnAttestationResponse,
-  WebAuthnAssertionResponse,
-  WebAuthnRegistrationResponse,
   WebAuthnAuthenticationResponse,
-  WebAuthnCredential,
-  WebAuthnUser
-} from '../shared/webauthn';
+  WebAuthnCredential
+} from '@shared/webauthn';
 
-// Configuration for WebAuthn
-const WEBAUTHN_CONFIG = {
-  // Relying Party info
-  rpName: 'Heirloom Identity Platform',
-  rpId: typeof window !== 'undefined' ? window.location.hostname : 'localhost',
-  origin: typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000',
-  // Challenge settings
-  challengeSize: 32,
-  // Timeout in milliseconds
-  timeout: 60000,
-  // Supported algorithms, see https://www.iana.org/assignments/cose/cose.xhtml#algorithms
-  supportedAlgorithms: [-7, -257] // ES256, RS256
-};
+// Relying Party (RP) information
+const RP_NAME = 'Heirloom Identity Platform';
+const RP_ID = process.env.RP_ID || process.env.REPLIT_DOMAIN || 'localhost';
+const ORIGIN = process.env.ORIGIN || `https://${RP_ID}`;
+
+// Constants for WebAuthn
+const USER_VERIFICATION = 'required' as const; // 'required' | 'preferred' | 'discouraged'
+const AUTHENTICATOR_ATTACHMENT = 'platform' as const; // 'platform' | 'cross-platform'
+const TIMEOUT = 60000; // 1 minute in milliseconds
 
 /**
- * Generate a random challenge for WebAuthn operations
- * @returns Base64URL encoded challenge
+ * Generate a random challenge
  */
-export function generateChallenge(): string {
-  const challenge = crypto.randomBytes(WEBAUTHN_CONFIG.challengeSize);
-  return bufferToBase64Url(challenge);
+function generateChallenge(): string {
+  return crypto.randomBytes(32).toString('base64url');
 }
 
 /**
- * Convert a Buffer to a Base64URL string
+ * Convert a base64url string to a buffer
  */
-export function bufferToBase64Url(buffer: Buffer): string {
-  return buffer
-    .toString('base64')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=/g, '');
+function base64urlToBuffer(base64url: string): Buffer {
+  return Buffer.from(base64url, 'base64url');
 }
 
 /**
- * Convert a Base64URL string to a Buffer
+ * Convert a buffer to a base64url string
  */
-export function base64UrlToBuffer(base64Url: string): Buffer {
-  const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-  const paddingLength = 4 - (base64.length % 4);
-  const padding = paddingLength < 4 ? '='.repeat(paddingLength) : '';
-  return Buffer.from(base64 + padding, 'base64');
+function bufferToBase64url(buffer: Buffer): string {
+  return buffer.toString('base64url');
 }
 
 /**
- * Get registration options for a user
- * @param userId User ID
- * @param username Username
- * @returns Registration options for the WebAuthn client
+ * Generate registration options for WebAuthn
  */
-export async function getRegistrationOptions(userId: string | number, username: string): Promise<WebAuthnRegistrationOptions> {
-  console.log(`Generating registration options for user ${username} (${userId})`);
-  
-  // Generate a new challenge
-  const challenge = generateChallenge();
-  
-  // Check if the user already has credentials
-  let userCredentials: WebAuthnCredential[] = [];
+export async function generateRegistrationOptions(
+  req: Request, 
+  res: Response
+): Promise<Response> {
   try {
-    const result = await db.select().from(webauthnCredentials)
-      .where(eq(webauthnCredentials.userId, userId.toString()));
-    userCredentials = result;
-  } catch (error) {
-    console.error('Error fetching user credentials:', error);
-  }
-  
-  // Create registration options
-  const registrationOptions: WebAuthnRegistrationOptions = {
-    challenge,
-    rp: {
-      name: WEBAUTHN_CONFIG.rpName,
-      id: WEBAUTHN_CONFIG.rpId
-    },
-    user: {
+    const { userId, username, displayName } = req.body;
+
+    if (!userId || !username) {
+      return res.status(400).json({ error: 'Missing userId or username' });
+    }
+
+    // Create a user object for WebAuthn
+    const user: WebAuthnUser = {
       id: userId,
       name: username,
-      displayName: username
-    },
-    pubKeyCredParams: WEBAUTHN_CONFIG.supportedAlgorithms.map(alg => ({
-      type: 'public-key',
-      alg
-    })),
-    timeout: WEBAUTHN_CONFIG.timeout,
-    excludeCredentials: userCredentials.map(cred => ({
-      id: cred.id,
-      type: 'public-key',
-      transports: cred.transports || undefined
-    })),
-    authenticatorSelection: {
-      userVerification: 'preferred',
-      authenticatorAttachment: 'platform'  // Prefer platform authenticators (like Face ID, Touch ID, Windows Hello)
-    },
-    attestation: 'none'  // Don't require attestation to simplify the process
-  };
-  
-  return registrationOptions;
-}
-
-/**
- * Get authentication options for a user
- * @param userId User ID
- * @returns Authentication options for the WebAuthn client
- */
-export async function getAuthenticationOptions(userId: string | number): Promise<WebAuthnAuthenticationOptions> {
-  console.log(`Generating authentication options for user ${userId}`);
-  
-  // Generate a new challenge
-  const challenge = generateChallenge();
-  
-  // Fetch user credentials
-  let userCredentials: WebAuthnCredential[] = [];
-  try {
-    const result = await db.select().from(webauthnCredentials)
-      .where(eq(webauthnCredentials.userId, userId.toString()));
-    userCredentials = result;
-  } catch (error) {
-    console.error('Error fetching user credentials:', error);
-  }
-  
-  if (userCredentials.length === 0) {
-    throw new Error(`No credentials found for user ${userId}`);
-  }
-  
-  // Create authentication options
-  const authenticationOptions: WebAuthnAuthenticationOptions = {
-    challenge,
-    timeout: WEBAUTHN_CONFIG.timeout,
-    rpId: WEBAUTHN_CONFIG.rpId,
-    allowCredentials: userCredentials.map(cred => ({
-      id: cred.id,
-      type: 'public-key',
-      transports: cred.transports || undefined
-    })),
-    userVerification: 'preferred'
-  };
-  
-  return authenticationOptions;
-}
-
-/**
- * Verify registration response from client
- * @param attestation Attestation response from client
- * @returns Registration result
- */
-export async function verifyRegistration(attestation: WebAuthnAttestationResponse): Promise<WebAuthnRegistrationResponse> {
-  console.log('Verifying registration response');
-  
-  // Here we would normally implement a full verification of the attestation
-  // For simplicity in this example, we're just extracting the credential ID and public key
-  // In a production environment, use a library like @simplewebauthn/server for proper verification
-  
-  try {
-    // In a real implementation, we would:
-    // 1. Verify the attestation object format and signature
-    // 2. Verify the client data JSON including challenge, origin, and type
-    // 3. Extract the credential public key in the correct format
-    
-    // For this example, we're mocking this by assuming the credential ID is valid
-    const credentialId = attestation.id;
-    
-    // In a real implementation, we'd extract the public key from the attestation object
-    // For now, just generate a mock public key
-    const publicKey = bufferToBase64Url(crypto.randomBytes(32));
-    
-    return {
-      success: true,
-      message: 'Registration successful',
-      credential: {
-        id: credentialId,
-        publicKey
-      }
+      displayName: displayName || username
     };
-  } catch (error) {
-    console.error('Error verifying registration:', error);
-    return {
-      success: false,
-      error: `Registration verification failed: ${error instanceof Error ? error.message : String(error)}`
-    };
-  }
-}
 
-/**
- * Save a verified credential to the database
- * @param credential WebAuthn credential
- * @param userId User ID
- * @returns Success status
- */
-export async function saveCredential(credential: { id: string, publicKey: string }, userId: string | number): Promise<boolean> {
-  console.log(`Saving credential for user ${userId}`);
-  
-  try {
-    // Create a new credential record
-    await db.insert(webauthnCredentials).values({
-      id: credential.id,
-      publicKey: credential.publicKey,
-      userId: userId.toString(),
-      algorithm: -7, // ES256 as default
-      counter: 0,
-      createdAt: new Date()
+    // Generate a new random challenge
+    const challenge = generateChallenge();
+
+    // Store the challenge and userId in the session for verification later
+    if (req.session) {
+      req.session.webauthnChallenge = challenge;
+      req.session.webauthnUserId = userId;
+    }
+
+    // Create registration options
+    const options: WebAuthnRegistrationOptions = {
+      challenge,
+      rp: {
+        name: RP_NAME,
+        id: RP_ID
+      },
+      user,
+      pubKeyCredParams: [
+        { alg: -7, type: 'public-key' }, // ES256
+        { alg: -257, type: 'public-key' } // RS256
+      ],
+      authenticatorSelection: {
+        authenticatorAttachment: AUTHENTICATOR_ATTACHMENT,
+        userVerification: USER_VERIFICATION,
+        residentKey: 'preferred',
+        requireResidentKey: false
+      },
+      timeout: TIMEOUT,
+      attestation: 'none',
+      excludeCredentials: [] // We'll populate this with existing credentials
+    };
+
+    // Get existing credentials for this user to exclude them
+    const existingCredentials = await db.query.webauthnCredentials.findMany({
+      where: eq(webauthnCredentials.userId, userId)
     });
+
+    if (existingCredentials.length > 0) {
+      options.excludeCredentials = existingCredentials.map(cred => ({
+        id: cred.credentialId,
+        type: 'public-key',
+        transports: cred.transports ? JSON.parse(cred.transports) : undefined
+      }));
+    }
+
+    return res.json(options);
+  } catch (error) {
+    console.error('Error generating registration options:', error);
+    return res.status(500).json({ error: 'Failed to generate registration options' });
+  }
+}
+
+/**
+ * Verify and store WebAuthn registration
+ */
+export async function verifyRegistration(
+  req: Request, 
+  res: Response
+): Promise<Response> {
+  try {
+    const attestation = req.body as WebAuthnAttestationResponse;
+
+    // Verify challenge from session
+    if (!req.session?.webauthnChallenge || !req.session?.webauthnUserId) {
+      return res.status(400).json({ error: 'No challenge found in session' });
+    }
+
+    const expectedChallenge = req.session.webauthnChallenge;
+    const userId = req.session.webauthnUserId;
+
+    // Parse client data JSON
+    const clientDataJSON = JSON.parse(
+      Buffer.from(attestation.response.clientDataJSON, 'base64url').toString()
+    );
     
-    // Update user's verification status
+    // Verify challenge
+    const challengeFromClientData = clientDataJSON.challenge;
+    if (challengeFromClientData !== expectedChallenge) {
+      return res.status(400).json({ error: 'Challenge verification failed' });
+    }
+
+    // In a production environment, you would:
+    // 1. Verify the attestation object
+    // 2. Verify the authenticator
+    // 3. Verify the signature
+    // For this implementation, we'll focus on saving the credential
+
+    // Extract credential public key and ID
+    // Note: In a real implementation, you would parse these from the attestation object
+    const credentialId = attestation.id;
+    const credentialPublicKey = Buffer.from(attestation.response.attestationObject, 'base64url').toString('base64url');
+
+    // Save the credential to the database
+    await db.insert(webauthnCredentials).values({
+      userId,
+      credentialId,
+      credentialPublicKey,
+      counter: 0,
+      credentialDeviceType: attestation.authenticatorAttachment || 'platform',
+      credentialBackedUp: false,
+      transports: JSON.stringify(['internal']), // Assuming internal transport for platform authenticators
+      userVerified: true
+    });
+
+    // Update user as verified
     await db.update(users)
       .set({ isVerified: true })
-      .where(eq(users.id, userId.toString()));
-    
-    return true;
+      .where(eq(users.id, userId));
+
+    // Clear the challenge from the session
+    delete req.session.webauthnChallenge;
+
+    return res.json({ 
+      success: true, 
+      message: 'Registration successful',
+      userId 
+    });
   } catch (error) {
-    console.error('Error saving credential:', error);
-    return false;
+    console.error('Error during registration verification:', error);
+    return res.status(500).json({ error: 'Failed to verify registration' });
   }
 }
 
 /**
- * Verify authentication response from client
- * @param assertion Assertion response from client
- * @returns Authentication result
+ * Generate authentication options for WebAuthn
  */
-export async function verifyAuthentication(assertion: WebAuthnAssertionResponse): Promise<WebAuthnAuthenticationResponse> {
-  console.log('Verifying authentication response');
-  
-  // In a production environment, use a library like @simplewebauthn/server for proper verification
+export async function generateAuthenticationOptions(
+  req: Request, 
+  res: Response
+): Promise<Response> {
   try {
-    // Fetch the credential from the database
-    const credentialResult = await db.select().from(webauthnCredentials)
-      .where(eq(webauthnCredentials.id, assertion.id));
-    
-    if (credentialResult.length === 0) {
-      return {
-        success: false,
-        error: 'Credential not found'
-      };
+    const { userId } = req.body;
+
+    // Generate a new random challenge
+    const challenge = generateChallenge();
+
+    // Store the challenge in the session for verification later
+    if (req.session) {
+      req.session.webauthnChallenge = challenge;
+      if (userId) {
+        req.session.webauthnUserId = userId;
+      }
     }
+
+    // Create authentication options
+    const options: WebAuthnAuthenticationOptions = {
+      challenge,
+      rpId: RP_ID,
+      timeout: TIMEOUT,
+      userVerification: USER_VERIFICATION
+    };
+
+    // If we have a userId, add allow credentials 
+    if (userId) {
+      const credentials = await db.query.webauthnCredentials.findMany({
+        where: eq(webauthnCredentials.userId, userId)
+      });
+
+      if (credentials.length > 0) {
+        options.allowCredentials = credentials.map(cred => ({
+          id: cred.credentialId,
+          type: 'public-key',
+          transports: cred.transports ? JSON.parse(cred.transports) : undefined
+        }));
+      }
+    }
+
+    return res.json(options);
+  } catch (error) {
+    console.error('Error generating authentication options:', error);
+    return res.status(500).json({ error: 'Failed to generate authentication options' });
+  }
+}
+
+/**
+ * Verify WebAuthn authentication
+ */
+export async function verifyAuthentication(
+  req: Request, 
+  res: Response
+): Promise<Response> {
+  try {
+    const assertion = req.body as WebAuthnAuthenticationResponse;
+
+    // Verify challenge from session
+    if (!req.session?.webauthnChallenge) {
+      return res.status(400).json({ error: 'No challenge found in session' });
+    }
+
+    const expectedChallenge = req.session.webauthnChallenge;
+
+    // Parse client data JSON
+    const clientDataJSON = JSON.parse(
+      Buffer.from(assertion.response.clientDataJSON, 'base64url').toString()
+    );
     
-    const credential = credentialResult[0];
-    
-    // In a real implementation, we would:
-    // 1. Verify the signature using the stored public key
-    // 2. Verify the authenticator data including counters
-    // 3. Verify the client data JSON including challenge, origin, and type
-    
-    // Update the credential's last used date and counter
+    // Verify challenge
+    const challengeFromClientData = clientDataJSON.challenge;
+    if (challengeFromClientData !== expectedChallenge) {
+      return res.status(400).json({ error: 'Challenge verification failed' });
+    }
+
+    // Find the credential in the database
+    const credential = await db.query.webauthnCredentials.findFirst({
+      where: eq(webauthnCredentials.credentialId, assertion.id)
+    });
+
+    if (!credential) {
+      return res.status(400).json({ error: 'Credential not found' });
+    }
+
+    // In a production environment, you would:
+    // 1. Verify the authenticator data
+    // 2. Verify the signature using the stored public key
+    // 3. Update the counter
+    // For this implementation, we'll focus on finding the user
+
+    // Find the user
+    const user = await db.query.users.findFirst({
+      where: eq(users.id, credential.userId)
+    });
+
+    if (!user) {
+      return res.status(400).json({ error: 'User not found' });
+    }
+
+    // Update the credential last used timestamp
     await db.update(webauthnCredentials)
       .set({ 
         lastUsed: new Date(),
         counter: credential.counter + 1
       })
-      .where(eq(webauthnCredentials.id, assertion.id));
-    
-    // Fetch the user
-    const userResult = await db.select().from(users)
-      .where(eq(users.id, credential.userId));
-    
-    if (userResult.length === 0) {
-      return {
-        success: false,
-        error: 'User not found'
-      };
+      .where(eq(webauthnCredentials.id, credential.id));
+
+    // Update user's last login time
+    await db.update(users)
+      .set({ lastLogin: new Date() })
+      .where(eq(users.id, user.id));
+
+    // Set user as authenticated in session
+    if (req.session) {
+      req.session.isAuthenticated = true;
+      req.session.userId = user.id;
+      delete req.session.webauthnChallenge;
     }
-    
-    const user = userResult[0];
-    
-    return {
+
+    return res.json({
       success: true,
-      message: 'Authentication successful',
       user: {
         id: user.id,
-        name: user.username,
-        displayName: user.displayName || user.username,
+        username: user.username,
+        displayName: user.displayName,
         isVerified: user.isVerified
       }
-    };
+    });
   } catch (error) {
-    console.error('Error verifying authentication:', error);
-    return {
-      success: false,
-      error: `Authentication verification failed: ${error instanceof Error ? error.message : String(error)}`
-    };
-  }
-}
-
-/**
- * Hybrid verification: Combine WebAuthn with face verification
- * @param assertion WebAuthn assertion response
- * @param faceImage Base64 encoded face image
- * @returns Authentication result with hybrid verification
- */
-export async function hybridVerification(
-  assertion: WebAuthnAssertionResponse, 
-  faceImage: string
-): Promise<WebAuthnAuthenticationResponse> {
-  console.log('Performing hybrid verification (WebAuthn + Face)');
-  
-  // First, verify the WebAuthn assertion
-  const webAuthnResult = await verifyAuthentication(assertion);
-  
-  if (!webAuthnResult.success) {
-    return webAuthnResult;
-  }
-  
-  // Now verify the face if WebAuthn succeeded
-  const userId = webAuthnResult.user?.id;
-  
-  if (!userId) {
-    return {
-      ...webAuthnResult,
-      success: false,
-      error: 'User ID not found for face verification'
-    };
-  }
-  
-  try {
-    // Perform face verification
-    const faceResult = await verifyFace(faceImage, userId.toString(), false);
-    
-    return {
-      ...webAuthnResult,
-      hybrid: {
-        faceVerified: faceResult.matched === true,
-        score: faceResult.confidence || 0
-      }
-    };
-  } catch (error) {
-    console.error('Face verification error:', error);
-    return {
-      ...webAuthnResult,
-      hybrid: {
-        faceVerified: false,
-        score: 0
-      }
-    };
-  }
-}
-
-/**
- * Hybrid registration: Combine WebAuthn with face registration
- * @param attestation WebAuthn attestation response
- * @param faceImage Base64 encoded face image
- * @param userId User ID
- * @returns Registration result with hybrid verification
- */
-export async function hybridRegistration(
-  attestation: WebAuthnAttestationResponse,
-  faceImage: string,
-  userId: string | number
-): Promise<WebAuthnRegistrationResponse> {
-  console.log('Performing hybrid registration (WebAuthn + Face)');
-  
-  // First, verify the WebAuthn attestation
-  const webAuthnResult = await verifyRegistration(attestation);
-  
-  if (!webAuthnResult.success) {
-    return webAuthnResult;
-  }
-  
-  // Now register the face if WebAuthn succeeded
-  try {
-    // Save the credential
-    if (webAuthnResult.credential) {
-      await saveCredential(webAuthnResult.credential, userId);
-    }
-    
-    // Register face
-    const faceResult = await verifyFace(faceImage, userId.toString(), true);
-    
-    return {
-      ...webAuthnResult,
-      hybrid: {
-        faceVerified: faceResult.success,
-        score: faceResult.confidence || 0
-      }
-    };
-  } catch (error) {
-    console.error('Face registration error:', error);
-    return {
-      ...webAuthnResult,
-      hybrid: {
-        faceVerified: false,
-        score: 0
-      }
-    };
+    console.error('Error during authentication verification:', error);
+    return res.status(500).json({ error: 'Failed to verify authentication' });
   }
 }

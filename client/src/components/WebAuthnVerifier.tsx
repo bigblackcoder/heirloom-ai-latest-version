@@ -1,370 +1,456 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { 
+  Card, 
+  CardHeader, 
+  CardTitle, 
+  CardDescription, 
+  CardContent, 
+  CardFooter 
+} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
-import axios from 'axios';
-import type {
-  WebAuthnRegistrationOptions,
+import { 
+  WebAuthnRegistrationOptions, 
   WebAuthnAuthenticationOptions,
   WebAuthnAttestationResponse,
-  WebAuthnAssertionResponse,
-  WebAuthnRegistrationResponse,
-  WebAuthnAuthenticationResponse,
-  WebAuthnUser
+  WebAuthnAuthenticationResponse
 } from '../../shared/webauthn';
 
-interface WebAuthnVerifierProps {
-  userId: string;
-  username: string;
-  onSuccess?: (result: WebAuthnRegistrationResponse | WebAuthnAuthenticationResponse) => void;
-  onError?: (error: Error) => void;
-  mode: 'register' | 'authenticate';
-  withCamera?: boolean;
-  buttonText?: string;
-  title?: string;
-  description?: string;
+/**
+ * WebAuthn registration methods available in modern browsers
+ */
+declare global {
+  interface Navigator {
+    credentials: {
+      create(options: any): Promise<any>;
+      get(options: any): Promise<any>;
+    };
+  }
 }
 
+/**
+ * Platform detection for better UX messaging
+ */
+function getPlatformSpecificName() {
+  const userAgent = navigator.userAgent.toLowerCase();
+  if (userAgent.includes('iphone') || userAgent.includes('ipad') || userAgent.includes('mac')) {
+    return 'Face ID / Touch ID';
+  } else if (userAgent.includes('android')) {
+    return 'Android biometrics';
+  }
+  return 'device biometrics';
+}
+
+/**
+ * Props for the WebAuthnVerifier component
+ */
+export interface WebAuthnVerifierProps {
+  mode: 'register' | 'authenticate';
+  userId?: string;
+  username?: string;
+  displayName?: string;
+  onSuccess?: (response: any) => void;
+  onError?: (error: Error) => void;
+  autoInitiate?: boolean;
+  serverUrl?: string;
+}
+
+/**
+ * WebAuthnVerifier Component
+ * Provides a UI for WebAuthn (FIDO2) device biometric registration and authentication
+ */
 export function WebAuthnVerifier({
+  mode,
   userId,
   username,
+  displayName,
   onSuccess,
   onError,
-  mode = 'authenticate',
-  withCamera = false,
-  buttonText,
-  title,
-  description
+  autoInitiate = false,
+  serverUrl = '/api/webauthn'
 }: WebAuthnVerifierProps) {
+  // State
   const [status, setStatus] = useState<'idle' | 'processing' | 'success' | 'error'>('idle');
+  const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
-  const [message, setMessage] = useState('');
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [cameraActive, setCameraActive] = useState(false);
-  const [webcamImage, setWebcamImage] = useState<string | null>(null);
   const { toast } = useToast();
+  const platformName = getPlatformSpecificName();
 
-  // Determine if the browser supports WebAuthn
-  const isWebAuthnSupported = typeof window !== 'undefined' && 
-    window.PublicKeyCredential !== undefined;
-
-  // Determine the platform-specific biometric name
-  const getBiometricName = useCallback(() => {
-    const userAgent = navigator.userAgent.toLowerCase();
-    if (userAgent.indexOf('mac') !== -1) return 'Touch ID or Face ID';
-    if (userAgent.indexOf('iphone') !== -1 || userAgent.indexOf('ipad') !== -1) return 'Face ID or Touch ID';
-    if (userAgent.indexOf('android') !== -1) return 'Fingerprint or Face Recognition';
-    if (userAgent.indexOf('win') !== -1) return 'Windows Hello';
-    return 'Biometric Authentication';
-  }, []);
-
-  // Generate default text based on the mode
-  const defaultTitle = mode === 'register' 
-    ? `Register with ${getBiometricName()}` 
-    : `Sign in with ${getBiometricName()}`;
-
-  const defaultDescription = mode === 'register'
-    ? `Securely register your identity using your device's built-in biometric sensor`
-    : `Securely authenticate using your device's built-in biometric sensor`;
-
-  const defaultButtonText = mode === 'register'
-    ? `Register with ${getBiometricName()}`
-    : `Sign in with ${getBiometricName()}`;
-
-  // Registration process
-  const startRegistration = async () => {
-    if (!isWebAuthnSupported) {
-      setErrorMessage('WebAuthn is not supported in this browser');
+  /**
+   * Start the WebAuthn registration process
+   */
+  const startRegistration = useCallback(async () => {
+    if (!userId || !username) {
+      setError('User ID and username are required for registration');
+      setStatus('error');
+      toast({
+        title: 'Missing Information',
+        description: 'User ID and username are required for registration',
+        variant: 'destructive'
+      });
       return;
     }
 
     try {
       setStatus('processing');
-      setMessage('Initializing registration process...');
       setProgress(10);
-
-      // 1. Get registration options from the server
-      const optionsResponse = await axios.post('/api/webauthn/register-options', {
-        userId,
-        username
+      
+      // Get registration options from server
+      const optionsResponse = await fetch(`${serverUrl}/register/options`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, username, displayName }),
+        credentials: 'include'
       });
       
-      const publicKeyOptions = optionsResponse.data;
+      if (!optionsResponse.ok) {
+        throw new Error('Failed to get registration options from server');
+      }
+      
+      const options: WebAuthnRegistrationOptions = await optionsResponse.json();
       setProgress(30);
-      setMessage('Asking for your biometric verification...');
+      
+      // Convert base64url strings to ArrayBuffer as required by the WebAuthn API
+      options.challenge = Uint8Array.from(
+        atob(options.challenge), c => c.charCodeAt(0)
+      ).buffer;
+      
+      options.user.id = Uint8Array.from(
+        atob(options.user.id), c => c.charCodeAt(0)
+      ).buffer;
+      
+      if (options.excludeCredentials) {
+        options.excludeCredentials = options.excludeCredentials.map(cred => ({
+          ...cred,
+          id: Uint8Array.from(atob(cred.id), c => c.charCodeAt(0)).buffer
+        }));
+      }
 
-      // 2. Convert base64 options to ArrayBuffer
-      const convertedOptions = {
-        ...publicKeyOptions,
-        challenge: _base64UrlToArrayBuffer(publicKeyOptions.challenge),
-        user: {
-          ...publicKeyOptions.user,
-          id: typeof publicKeyOptions.user.id === 'string' 
-            ? _base64UrlToArrayBuffer(publicKeyOptions.user.id)
-            : new Uint8Array([publicKeyOptions.user.id]).buffer
-        },
-        excludeCredentials: publicKeyOptions.excludeCredentials?.map((credential: any) => ({
-          ...credential,
-          id: _base64UrlToArrayBuffer(credential.id)
-        }))
-      };
-
-      // 3. Request the browser to create a credential
       setProgress(50);
+      
+      // Create credentials using WebAuthn API
       const credential = await navigator.credentials.create({
-        publicKey: convertedOptions
-      }) as PublicKeyCredential;
-
+        publicKey: options as any
+      });
+      
       setProgress(70);
-      setMessage('Processing your verification...');
+      
+      if (!credential) {
+        throw new Error('No credentials returned from authenticator');
+      }
 
-      // 4. Convert the credential to a format suitable for the server
+      // Prepare the attestation response for the server
+      const attestation = credential as any;
+      const clientData = attestation.response.clientDataJSON;
+      const attestationObject = attestation.response.attestationObject;
+      
+      // Convert ArrayBuffer to base64url string for sending to server
       const attestationResponse: WebAuthnAttestationResponse = {
-        id: credential.id,
-        rawId: _arrayBufferToBase64Url(credential.rawId),
-        type: 'public-key',
+        id: attestation.id,
+        rawId: arrayBufferToBase64url(attestation.rawId),
+        type: attestation.type,
         response: {
-          attestationObject: _arrayBufferToBase64Url(
-            (credential.response as AuthenticatorAttestationResponse).attestationObject
-          ),
-          clientDataJSON: _arrayBufferToBase64Url(
-            credential.response.clientDataJSON
-          )
-        }
+          clientDataJSON: arrayBufferToBase64url(clientData),
+          attestationObject: arrayBufferToBase64url(attestationObject)
+        },
+        authenticatorAttachment: attestation.authenticatorAttachment
       };
-
-      // 5. Send the attestation to the server for verification
-      const endpoint = withCamera 
-        ? '/api/webauthn/register-hybrid' 
-        : '/api/webauthn/register-verify';
       
-      const verificationData = withCamera && webcamImage
-        ? { attestationResponse, faceImage: webcamImage }
-        : { attestationResponse };
+      setProgress(80);
       
-      const verificationResponse = await axios.post(endpoint, verificationData);
+      // Send attestation to server for verification
+      const verificationResponse = await fetch(`${serverUrl}/register/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(attestationResponse),
+        credentials: 'include'
+      });
       
-      const result = verificationResponse.data as WebAuthnRegistrationResponse;
+      if (!verificationResponse.ok) {
+        const errorData = await verificationResponse.json();
+        throw new Error(errorData.error || 'Failed to verify registration');
+      }
       
+      const verificationResult = await verificationResponse.json();
       setProgress(100);
       
-      if (result.success) {
-        setStatus('success');
-        setMessage(result.message || 'Registration successful');
-        toast({
-          title: 'Registration Successful',
-          description: result.message || 'Your biometric credential has been registered'
-        });
-        if (onSuccess) onSuccess(result);
-      } else {
-        throw new Error(result.error || 'Registration failed');
+      // Success!
+      setStatus('success');
+      toast({
+        title: 'Registration Successful',
+        description: `Your ${platformName} has been successfully registered`,
+        variant: 'default'
+      });
+      
+      if (onSuccess) {
+        onSuccess(verificationResult);
       }
-    } catch (error) {
-      console.error('Registration error:', error);
+      
+    } catch (err: any) {
+      console.error('WebAuthn Registration Error:', err);
       setStatus('error');
-      setErrorMessage(error instanceof Error ? error.message : 'An unknown error occurred');
-      if (onError) onError(error instanceof Error ? error : new Error('Registration failed'));
+      setError(err.message || 'Failed to register device');
+      
+      toast({
+        title: 'Registration Failed',
+        description: err.message || 'Failed to register device',
+        variant: 'destructive'
+      });
+      
+      if (onError) {
+        onError(err);
+      }
     }
+  }, [userId, username, displayName, serverUrl, toast, onSuccess, onError, platformName]);
+
+  /**
+   * Start the WebAuthn authentication process
+   */
+  const startAuthentication = useCallback(async () => {
+    try {
+      setStatus('processing');
+      setProgress(10);
+      
+      // Get authentication options from server
+      const optionsResponse = await fetch(`${serverUrl}/authenticate/options`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+        credentials: 'include'
+      });
+      
+      if (!optionsResponse.ok) {
+        throw new Error('Failed to get authentication options from server');
+      }
+      
+      const options: WebAuthnAuthenticationOptions = await optionsResponse.json();
+      setProgress(30);
+      
+      // Convert base64url strings to ArrayBuffer as required by the WebAuthn API
+      options.challenge = Uint8Array.from(
+        atob(options.challenge), c => c.charCodeAt(0)
+      ).buffer;
+      
+      if (options.allowCredentials) {
+        options.allowCredentials = options.allowCredentials.map(cred => ({
+          ...cred,
+          id: Uint8Array.from(atob(cred.id), c => c.charCodeAt(0)).buffer
+        }));
+      }
+
+      setProgress(50);
+      
+      // Get credentials using WebAuthn API
+      const credential = await navigator.credentials.get({
+        publicKey: options as any
+      });
+      
+      setProgress(70);
+      
+      if (!credential) {
+        throw new Error('No credentials returned from authenticator');
+      }
+
+      // Prepare the assertion response for the server
+      const assertion = credential as any;
+      const authenticatorData = assertion.response.authenticatorData;
+      const clientDataJSON = assertion.response.clientDataJSON;
+      const signature = assertion.response.signature;
+      const userHandle = assertion.response.userHandle;
+      
+      // Convert ArrayBuffer to base64url string for sending to server
+      const authenticationResponse: WebAuthnAuthenticationResponse = {
+        id: assertion.id,
+        rawId: arrayBufferToBase64url(assertion.rawId),
+        type: assertion.type,
+        response: {
+          authenticatorData: arrayBufferToBase64url(authenticatorData),
+          clientDataJSON: arrayBufferToBase64url(clientDataJSON),
+          signature: arrayBufferToBase64url(signature),
+          userHandle: userHandle ? arrayBufferToBase64url(userHandle) : undefined
+        }
+      };
+      
+      setProgress(80);
+      
+      // Send assertion to server for verification
+      const verificationResponse = await fetch(`${serverUrl}/authenticate/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(authenticationResponse),
+        credentials: 'include'
+      });
+      
+      if (!verificationResponse.ok) {
+        const errorData = await verificationResponse.json();
+        throw new Error(errorData.error || 'Failed to verify authentication');
+      }
+      
+      const verificationResult = await verificationResponse.json();
+      setProgress(100);
+      
+      // Success!
+      setStatus('success');
+      toast({
+        title: 'Authentication Successful',
+        description: `You've been successfully authenticated using ${platformName}`,
+        variant: 'default'
+      });
+      
+      if (onSuccess) {
+        onSuccess(verificationResult);
+      }
+      
+    } catch (err: any) {
+      console.error('WebAuthn Authentication Error:', err);
+      setStatus('error');
+      setError(err.message || 'Failed to authenticate');
+      
+      toast({
+        title: 'Authentication Failed',
+        description: err.message || 'Failed to authenticate using device biometrics',
+        variant: 'destructive'
+      });
+      
+      if (onError) {
+        onError(err);
+      }
+    }
+  }, [userId, serverUrl, toast, onSuccess, onError, platformName]);
+
+  // Auto-initiate the WebAuthn flow if requested
+  useEffect(() => {
+    if (autoInitiate && status === 'idle') {
+      if (mode === 'register') {
+        startRegistration();
+      } else {
+        startAuthentication();
+      }
+    }
+  }, [autoInitiate, mode, status, startRegistration, startAuthentication]);
+
+  // Reset component if key props change
+  useEffect(() => {
+    setStatus('idle');
+    setError(null);
+    setProgress(0);
+  }, [mode, userId, username]);
+
+  // Determine button text based on mode and status
+  const getButtonText = () => {
+    if (status === 'processing') {
+      return mode === 'register' 
+        ? `Registering with ${platformName}...` 
+        : `Authenticating with ${platformName}...`;
+    }
+    
+    if (status === 'error') {
+      return 'Try Again';
+    }
+    
+    return mode === 'register' 
+      ? `Register with ${platformName}` 
+      : `Authenticate with ${platformName}`;
   };
 
-  // Authentication process
-  const startAuthentication = async () => {
-    if (!isWebAuthnSupported) {
-      setErrorMessage('WebAuthn is not supported in this browser');
-      return;
-    }
+  // Determine card title based on mode
+  const getCardTitle = () => {
+    return mode === 'register' 
+      ? `Register ${platformName}` 
+      : `Authenticate with ${platformName}`;
+  };
 
-    try {
-      setStatus('processing');
-      setMessage('Initializing authentication process...');
-      setProgress(10);
+  // Determine card description based on mode
+  const getCardDescription = () => {
+    return mode === 'register'
+      ? `Add your ${platformName} to your account for secure biometric authentication.`
+      : `Use your ${platformName} to securely authenticate to your account.`;
+  };
 
-      // 1. Get authentication options from the server
-      const optionsResponse = await axios.post('/api/webauthn/auth-options', {
-        userId
-      });
-      
-      const publicKeyOptions = optionsResponse.data;
-      setProgress(30);
-      setMessage('Asking for your biometric verification...');
-
-      // 2. Convert base64 options to ArrayBuffer
-      const convertedOptions = {
-        ...publicKeyOptions,
-        challenge: _base64UrlToArrayBuffer(publicKeyOptions.challenge),
-        allowCredentials: publicKeyOptions.allowCredentials.map((credential: any) => ({
-          ...credential,
-          id: _base64UrlToArrayBuffer(credential.id)
-        })),
-      };
-
-      // 3. Request the browser to get a credential
-      setProgress(50);
-      const credential = await navigator.credentials.get({
-        publicKey: convertedOptions
-      }) as PublicKeyCredential;
-
-      setProgress(70);
-      setMessage('Verifying your identity...');
-
-      // 4. Convert the credential to a format suitable for the server
-      const assertionResponse: WebAuthnAssertionResponse = {
-        id: credential.id,
-        rawId: _arrayBufferToBase64Url(credential.rawId),
-        type: 'public-key',
-        response: {
-          authenticatorData: _arrayBufferToBase64Url(
-            (credential.response as AuthenticatorAssertionResponse).authenticatorData
-          ),
-          clientDataJSON: _arrayBufferToBase64Url(
-            credential.response.clientDataJSON
-          ),
-          signature: _arrayBufferToBase64Url(
-            (credential.response as AuthenticatorAssertionResponse).signature
-          ),
-          userHandle: (credential.response as AuthenticatorAssertionResponse).userHandle 
-            ? _arrayBufferToBase64Url((credential.response as AuthenticatorAssertionResponse).userHandle!)
-            : undefined
-        }
-      };
-
-      // 5. Send the assertion to the server for verification
-      const endpoint = withCamera 
-        ? '/api/webauthn/verify-hybrid' 
-        : '/api/webauthn/verify';
-      
-      const verificationData = withCamera && webcamImage
-        ? { assertionResponse, faceImage: webcamImage }
-        : { assertionResponse };
-      
-      const verificationResponse = await axios.post(endpoint, verificationData);
-      
-      const result = verificationResponse.data as WebAuthnAuthenticationResponse;
-      
-      setProgress(100);
-      
-      if (result.success) {
-        setStatus('success');
-        setMessage(result.message || 'Authentication successful');
-        toast({
-          title: 'Authentication Successful',
-          description: result.message || 'You have been authenticated successfully'
-        });
-        if (onSuccess) onSuccess(result);
-      } else {
-        throw new Error(result.error || 'Authentication failed');
-      }
-    } catch (error) {
-      console.error('Authentication error:', error);
-      setStatus('error');
-      setErrorMessage(error instanceof Error ? error.message : 'An unknown error occurred');
-      if (onError) onError(error instanceof Error ? error : new Error('Authentication failed'));
+  // Handle button click based on status
+  const handleButtonClick = () => {
+    if (status === 'processing') return;
+    
+    setError(null);
+    
+    if (mode === 'register') {
+      startRegistration();
+    } else {
+      startAuthentication();
     }
   };
 
   // Helper function to convert ArrayBuffer to base64url string
-  function _arrayBufferToBase64Url(buffer: ArrayBuffer): string {
+  function arrayBufferToBase64url(buffer: ArrayBuffer): string {
     const bytes = new Uint8Array(buffer);
-    let base64 = '';
+    let str = '';
     for (let i = 0; i < bytes.byteLength; i++) {
-      base64 += String.fromCharCode(bytes[i]);
+      str += String.fromCharCode(bytes[i]);
     }
-    return btoa(base64)
+    return btoa(str)
       .replace(/\+/g, '-')
       .replace(/\//g, '_')
-      .replace(/=/g, '');
+      .replace(/=+$/, '');
   }
-
-  // Helper function to convert base64url string to ArrayBuffer
-  function _base64UrlToArrayBuffer(base64Url: string): ArrayBuffer {
-    const padding = '='.repeat((4 - (base64Url.length % 4)) % 4);
-    const base64 = base64Url
-      .replace(/-/g, '+')
-      .replace(/_/g, '/') + padding;
-    const rawData = atob(base64);
-    const buffer = new Uint8Array(rawData.length);
-    for (let i = 0; i < rawData.length; i++) {
-      buffer[i] = rawData.charCodeAt(i);
-    }
-    return buffer.buffer;
-  }
-
-  // Function to handle the verification action
-  const handleVerification = () => {
-    setErrorMessage(null);
-    
-    if (withCamera) {
-      setCameraActive(true);
-    } else {
-      mode === 'register' ? startRegistration() : startAuthentication();
-    }
-  };
-
-  // Function to capture webcam image as base64
-  const captureImage = (imageData: string) => {
-    setWebcamImage(imageData);
-    setCameraActive(false);
-    mode === 'register' ? startRegistration() : startAuthentication();
-  };
 
   return (
-    <Card className="w-full max-w-md mx-auto shadow-lg">
+    <Card className="w-full max-w-md mx-auto">
       <CardHeader>
-        <CardTitle>{title || defaultTitle}</CardTitle>
-        <CardDescription>{description || defaultDescription}</CardDescription>
+        <CardTitle>{getCardTitle()}</CardTitle>
+        <CardDescription>{getCardDescription()}</CardDescription>
       </CardHeader>
-      <CardContent>
-        {!isWebAuthnSupported && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertDescription>
-              Your browser does not support WebAuthn, which is required for biometric authentication.
-              Please use a modern browser like Chrome, Firefox, Safari, or Edge.
-            </AlertDescription>
-          </Alert>
-        )}
-        
-        {errorMessage && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertDescription>{errorMessage}</AlertDescription>
-          </Alert>
-        )}
-        
+      
+      <CardContent className="space-y-4">
         {status === 'processing' && (
           <div className="space-y-2">
-            <Progress value={progress} className="w-full" />
-            <p className="text-sm text-center text-muted-foreground">{message}</p>
+            <Progress value={progress} />
+            <p className="text-sm text-center text-muted-foreground">
+              {progress < 30 && 'Preparing verification options...'}
+              {progress >= 30 && progress < 60 && `Waiting for ${platformName} response...`}
+              {progress >= 60 && progress < 90 && 'Verifying with server...'}
+              {progress >= 90 && 'Completing verification...'}
+            </p>
           </div>
         )}
         
         {status === 'success' && (
-          <Alert className="mb-4 bg-green-50 border-green-200">
-            <AlertDescription className="text-green-700">{message}</AlertDescription>
+          <Alert variant="success">
+            <AlertTitle>Success!</AlertTitle>
+            <AlertDescription>
+              {mode === 'register' 
+                ? `Your ${platformName} has been successfully registered.` 
+                : `You've been successfully authenticated using ${platformName}.`}
+            </AlertDescription>
           </Alert>
         )}
         
-        {/* WebCam component would go here when camera is active */}
-        {cameraActive && (
-          <div className="my-4 text-center">
-            <p className="mb-2">Camera placeholder - would capture image here</p>
-            {/* For actual implementation, replace with a proper webcam component */}
-            <Button onClick={() => captureImage('data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD')}>
-              Capture Image
-            </Button>
-          </div>
+        {status === 'error' && error && (
+          <Alert variant="destructive">
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+        
+        {!navigator.credentials && (
+          <Alert variant="destructive">
+            <AlertTitle>Browser Not Supported</AlertTitle>
+            <AlertDescription>
+              Your browser doesn't support WebAuthn. Please use a modern browser like Chrome, Firefox, Safari, or Edge.
+            </AlertDescription>
+          </Alert>
         )}
       </CardContent>
+      
       <CardFooter>
-        {status !== 'processing' && (
-          <Button 
-            className="w-full"
-            onClick={handleVerification}
-            disabled={!isWebAuthnSupported || status === 'processing'}
-          >
-            {buttonText || defaultButtonText}
-          </Button>
-        )}
+        <Button 
+          className="w-full" 
+          onClick={handleButtonClick}
+          disabled={status === 'processing' || !navigator.credentials}
+        >
+          {getButtonText()}
+        </Button>
       </CardFooter>
     </Card>
   );
