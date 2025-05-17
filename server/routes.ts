@@ -336,7 +336,7 @@ export async function registerRoutes(app: express.Application): Promise<Server> 
       
       // Save credential to database
       const credential = await storage.createBiometricCredential({
-        userId,
+        userId: Number(userId),
         credentialId: id,
         biometricType,
         deviceType,
@@ -349,7 +349,7 @@ export async function registerRoutes(app: express.Application): Promise<Server> 
       
       // Log activity
       await storage.createActivity({
-        userId,
+        userId: Number(userId),
         type: "biometric_registered",
         description: `${biometricType} biometric registered`,
         metadata: JSON.stringify({ 
@@ -387,20 +387,21 @@ export async function registerRoutes(app: express.Application): Promise<Server> 
       req.session!.verifyChallenge = challengeBase64;
       
       // Get user's biometric credentials
-      let allowCredentials = [];
+      type CredentialDescriptor = { id: string; type: "public-key" };
+      let allowCredentials: CredentialDescriptor[] = [];
       
       if (credentialId) {
         // If specific credential ID provided, use only that
         const credential = await storage.getBiometricCredentialByCredentialId(credentialId);
-        if (credential && credential.userId === userId && credential.isActive) {
+        if (credential && credential.userId === Number(userId) && credential.isActive) {
           allowCredentials = [{
             id: credential.credentialId,
-            type: "public-key"
+            type: "public-key" as const
           }];
         }
       } else {
         // Otherwise, use all active credentials
-        const credentials = await storage.getBiometricCredentialsByUserId(userId);
+        const credentials = await storage.getBiometricCredentialsByUserId(Number(userId));
         allowCredentials = credentials.map(cred => ({
           id: cred.credentialId,
           type: "public-key" as const
@@ -558,7 +559,7 @@ export async function registerRoutes(app: express.Application): Promise<Server> 
       
       // Log activity
       await storage.createActivity({
-        userId,
+        userId: Number(userId),
         type: "biometric_removed",
         description: `${credential.biometricType} biometric removed`,
         metadata: JSON.stringify({ 

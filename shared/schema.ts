@@ -97,7 +97,7 @@ export const activities = pgTable("activities", {
   userId: integer("user_id").references(() => users.id).notNull(),
   type: text("type").notNull(),
   description: text("description").notNull(),
-  metadata: text("metadata"), // Store JSON as string
+  metadata: json("metadata").$type<Record<string, any>>(), // Keep as JSON
   createdAt: timestamp("created_at").defaultNow().notNull()
 });
 
