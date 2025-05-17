@@ -1,394 +1,383 @@
-import React, { useState, useEffect, useRef } from 'react';
-import {
-  startRegistration,
-  startAuthentication,
-  registerHybrid,
-  authenticateHybrid,
-  getDeviceType
-} from '../../shared/webauthn';
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { CheckCircle, XCircle, Fingerprint, Shield } from 'lucide-react';
 
-interface WebAuthnVerifierProps {
-  userId: string;
-  onVerified?: (result: any) => void;
-  onError?: (error: string) => void;
-  mode?: 'register' | 'authenticate' | 'hybrid';
-}
-
-/**
- * WebAuthnVerifier component
- * 
- * This component provides a user interface for device-based biometric authentication.
- * It supports both standard WebAuthn registration/authentication and a hybrid approach
- * that combines device biometrics with facial recognition.
- */
-export default function WebAuthnVerifier({
-  userId,
-  onVerified,
-  onError,
-  mode = 'authenticate'
-}: WebAuthnVerifierProps) {
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [deviceInfo, setDeviceInfo] = useState<any>(null);
-  const [status, setStatus] = useState<string>('');
+const WebAuthnVerifier: React.FC = () => {
+  const [status, setStatus] = useState<'idle' | 'registering' | 'authenticating' | 'success' | 'error'>('idle');
+  const [message, setMessage] = useState<string>('');
+  const [isHybrid, setIsHybrid] = useState<boolean>(true);
   const [faceImage, setFaceImage] = useState<string | null>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Check device capabilities on mount
-  useEffect(() => {
+  // Function to start WebAuthn registration
+  const startRegistration = async () => {
     try {
-      const deviceType = getDeviceType();
-      setDeviceInfo(deviceType);
-
+      setStatus('registering');
+      setMessage('Starting registration...');
+      
       // Check if WebAuthn is supported
       if (!window.PublicKeyCredential) {
-        setStatus('WebAuthn is not supported in this browser');
-        onError?.('WebAuthn is not supported in this browser');
+        throw new Error('WebAuthn is not supported in this browser');
       }
-    } catch (error) {
-      console.error('Error checking device capabilities:', error);
-      setStatus('Error checking device capabilities');
-      onError?.(error instanceof Error ? error.message : 'Unknown error');
-    }
-  }, [onError]);
 
-  // Handle capture face image for hybrid authentication
-  const captureFace = () => {
-    if (!videoRef.current || !canvasRef.current) return null;
-    
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    const context = canvas.getContext('2d');
-    
-    if (!context) return null;
-    
-    // Set canvas dimensions to match video
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    
-    // Draw current video frame to canvas
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-    
-    // Convert to base64
-    const imageData = canvas.toDataURL('image/jpeg', 0.8);
-    setFaceImage(imageData);
-    return imageData;
-  };
-
-  // Start device camera for face capture
-  const startCamera = async () => {
-    try {
-      if (!videoRef.current) return;
-      
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'user' }
+      // Get registration options from the server
+      const optionsResponse = await fetch('/api/webauthn/register/options', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username: 'testuser' }),
       });
       
-      videoRef.current.srcObject = stream;
-      videoRef.current.play();
-      
-      setStatus('Camera started. Position your face in the frame');
-    } catch (error) {
-      console.error('Error accessing camera:', error);
-      setStatus('Error accessing camera');
-      onError?.(error instanceof Error ? error.message : 'Camera access denied');
-    }
-  };
-
-  // Stop device camera
-  const stopCamera = () => {
-    if (!videoRef.current?.srcObject) return;
-    
-    const stream = videoRef.current.srcObject as MediaStream;
-    const tracks = stream.getTracks();
-    
-    tracks.forEach(track => track.stop());
-    videoRef.current.srcObject = null;
-  };
-
-  // Handle WebAuthn registration
-  const handleRegister = async () => {
-    try {
-      setIsProcessing(true);
-      setStatus('Starting registration...');
-      
-      const result = await startRegistration(userId);
-      
-      if (result.success) {
-        setStatus('Registration successful!');
-        onVerified?.(result);
-      } else {
-        setStatus(`Registration failed: ${result.error}`);
-        onError?.(result.error);
+      if (!optionsResponse.ok) {
+        const error = await optionsResponse.text();
+        throw new Error(`Failed to get registration options: ${error}`);
       }
+      
+      const options = await optionsResponse.json();
+      
+      // Convert base64 challenge to ArrayBuffer
+      options.publicKey.challenge = Uint8Array.from(
+        atob(options.publicKey.challenge), c => c.charCodeAt(0)
+      );
+      
+      // Convert user ID to ArrayBuffer
+      options.publicKey.user.id = Uint8Array.from(
+        atob(options.publicKey.user.id), c => c.charCodeAt(0)
+      );
+      
+      // Create credentials
+      const credential = await navigator.credentials.create({
+        publicKey: options.publicKey
+      }) as PublicKeyCredential;
+      
+      // Prepare the attestation for sending to the server
+      const attestationObj = credential.response as AuthenticatorAttestationResponse;
+      const clientDataJSON = arrayBufferToBase64(attestationObj.clientDataJSON);
+      const attestationObject = arrayBufferToBase64(attestationObj.attestationObject);
+      
+      // Verify the attestation with the server
+      const verifyResponse = await fetch('/api/webauthn/register/verify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: credential.id,
+          rawId: arrayBufferToBase64(credential.rawId),
+          response: {
+            clientDataJSON,
+            attestationObject,
+          },
+          type: credential.type,
+        }),
+      });
+      
+      if (!verifyResponse.ok) {
+        const error = await verifyResponse.text();
+        throw new Error(`Failed to verify registration: ${error}`);
+      }
+      
+      const verifyResult = await verifyResponse.json();
+      setStatus('success');
+      setMessage(`Registration successful! ${verifyResult.message || ''}`);
     } catch (error) {
       console.error('Registration error:', error);
-      setStatus('Registration error');
-      onError?.(error instanceof Error ? error.message : 'Unknown registration error');
-    } finally {
-      setIsProcessing(false);
+      setStatus('error');
+      setMessage(`Registration failed: ${error instanceof Error ? error.message : String(error)}`);
     }
   };
 
-  // Handle WebAuthn authentication
-  const handleAuthenticate = async () => {
+  // Function to start hybrid registration (WebAuthn + Face)
+  const startHybridRegistration = async () => {
     try {
-      setIsProcessing(true);
-      setStatus('Starting authentication...');
+      setStatus('registering');
+      setMessage('Starting hybrid registration with Face ID...');
       
-      const result = await startAuthentication(userId);
-      
-      if (result.success) {
-        setStatus('Authentication successful!');
-        onVerified?.(result);
-      } else {
-        setStatus(`Authentication failed: ${result.error}`);
-        onError?.(result.error);
-      }
-    } catch (error) {
-      console.error('Authentication error:', error);
-      setStatus('Authentication error');
-      onError?.(error instanceof Error ? error.message : 'Unknown authentication error');
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  // Handle hybrid registration (WebAuthn + face recognition)
-  const handleHybridRegister = async () => {
-    try {
-      // Start camera first
-      await startCamera();
-      setStatus('Position your face in the frame and click "Capture & Register"');
-    } catch (error) {
-      console.error('Hybrid registration setup error:', error);
-      setStatus('Failed to start camera');
-      onError?.(error instanceof Error ? error.message : 'Camera setup failed');
-    }
-  };
-
-  // Complete hybrid registration with captured face
-  const completeHybridRegister = async () => {
-    try {
-      setIsProcessing(true);
-      
-      // Capture face image
-      const capturedImage = captureFace();
-      if (!capturedImage) {
-        setStatus('Failed to capture face image');
-        onError?.('Failed to capture face image');
-        setIsProcessing(false);
-        return;
+      // Check if webcam is available
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Camera access is not supported in this browser');
       }
       
-      setStatus('Processing registration...');
+      // Capture face image from webcam
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      const video = document.createElement('video');
+      video.srcObject = stream;
+      await video.play();
       
-      // Extract base64 data part (remove data:image/jpeg;base64, prefix)
-      const base64Image = capturedImage.split(',')[1];
+      // Create a canvas to capture the image
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
       
-      // Register with hybrid approach
-      const result = await registerHybrid(userId, undefined, base64Image);
-      
-      if (result.success) {
-        setStatus('Hybrid registration successful!');
-        onVerified?.(result);
-        // Stop camera after successful registration
-        stopCamera();
-      } else {
-        setStatus(`Hybrid registration failed: ${result.error}`);
-        onError?.(result.error);
+      if (!ctx) {
+        throw new Error('Failed to create canvas context');
       }
+      
+      // Draw the current video frame to the canvas
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      
+      // Stop the video stream
+      stream.getTracks().forEach(track => track.stop());
+      
+      // Convert the canvas to a data URL (base64 image)
+      const faceImageData = canvas.toDataURL('image/jpeg');
+      setFaceImage(faceImageData);
+      
+      // Remove the data:image/jpeg;base64, prefix
+      const base64Image = faceImageData.split(',')[1];
+      
+      // Send the face image and register with WebAuthn
+      const response = await fetch('/api/webauthn/hybrid/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: 'testuser',
+          faceImage: base64Image
+        }),
+      });
+      
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`Failed to register with hybrid auth: ${error}`);
+      }
+      
+      const result = await response.json();
+      setStatus('success');
+      setMessage(`Hybrid registration successful! ${result.message || ''}`);
     } catch (error) {
       console.error('Hybrid registration error:', error);
-      setStatus('Hybrid registration error');
-      onError?.(error instanceof Error ? error.message : 'Unknown registration error');
-    } finally {
-      setIsProcessing(false);
+      setStatus('error');
+      setMessage(`Hybrid registration failed: ${error instanceof Error ? error.message : String(error)}`);
     }
   };
 
-  // Handle hybrid authentication
-  const handleHybridAuthenticate = async () => {
+  // Function to authenticate with WebAuthn
+  const startAuthentication = async () => {
     try {
-      // Start camera first
-      await startCamera();
-      setStatus('Position your face in the frame and click "Capture & Verify"');
-    } catch (error) {
-      console.error('Hybrid authentication setup error:', error);
-      setStatus('Failed to start camera');
-      onError?.(error instanceof Error ? error.message : 'Camera setup failed');
-    }
-  };
-
-  // Complete hybrid authentication with captured face
-  const completeHybridAuthenticate = async () => {
-    try {
-      setIsProcessing(true);
+      setStatus('authenticating');
+      setMessage('Starting authentication...');
       
-      // Capture face image
-      const capturedImage = captureFace();
-      if (!capturedImage) {
-        setStatus('Failed to capture face image');
-        onError?.('Failed to capture face image');
-        setIsProcessing(false);
-        return;
+      // Check if WebAuthn is supported
+      if (!window.PublicKeyCredential) {
+        throw new Error('WebAuthn is not supported in this browser');
+      }
+
+      // Get authentication options from the server
+      const optionsResponse = await fetch('/api/webauthn/authenticate/options', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username: 'testuser' }),
+      });
+      
+      if (!optionsResponse.ok) {
+        const error = await optionsResponse.text();
+        throw new Error(`Failed to get authentication options: ${error}`);
       }
       
-      setStatus('Processing authentication...');
+      const options = await optionsResponse.json();
       
-      // Extract base64 data part (remove data:image/jpeg;base64, prefix)
-      const base64Image = capturedImage.split(',')[1];
+      // Convert base64 challenge to ArrayBuffer
+      options.publicKey.challenge = Uint8Array.from(
+        atob(options.publicKey.challenge), c => c.charCodeAt(0)
+      );
       
-      // Authenticate with hybrid approach
-      const result = await authenticateHybrid(userId, base64Image);
-      
-      if (result.success) {
-        setStatus('Hybrid authentication successful!');
-        onVerified?.(result);
-        // Stop camera after successful authentication
-        stopCamera();
-      } else {
-        setStatus(`Hybrid authentication failed: ${result.error}`);
-        onError?.(result.error);
+      // Convert allowed credentials to proper format
+      if (options.publicKey.allowCredentials) {
+        options.publicKey.allowCredentials = options.publicKey.allowCredentials.map((cred: any) => {
+          return {
+            ...cred,
+            id: Uint8Array.from(atob(cred.id), c => c.charCodeAt(0)),
+          };
+        });
       }
+      
+      // Get credentials
+      const credential = await navigator.credentials.get({
+        publicKey: options.publicKey
+      }) as PublicKeyCredential;
+      
+      // Prepare the assertion for sending to the server
+      const assertionResponse = credential.response as AuthenticatorAssertionResponse;
+      const clientDataJSON = arrayBufferToBase64(assertionResponse.clientDataJSON);
+      const authenticatorData = arrayBufferToBase64(assertionResponse.authenticatorData);
+      const signature = arrayBufferToBase64(assertionResponse.signature);
+      const userHandle = assertionResponse.userHandle 
+        ? arrayBufferToBase64(assertionResponse.userHandle) 
+        : null;
+      
+      // Verify the assertion with the server
+      const endpoint = isHybrid ? '/api/webauthn/hybrid/verify' : '/api/webauthn/authenticate/verify';
+      
+      // If using hybrid auth and we have a face image, include it
+      const requestBody: any = {
+        id: credential.id,
+        rawId: arrayBufferToBase64(credential.rawId),
+        response: {
+          clientDataJSON,
+          authenticatorData,
+          signature,
+          userHandle,
+        },
+        type: credential.type,
+      };
+      
+      // For hybrid auth, we would also send a face image, but we'll capture it when needed
+      if (isHybrid) {
+        try {
+          // Capture face image from webcam
+          const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+          const video = document.createElement('video');
+          video.srcObject = stream;
+          await video.play();
+          
+          // Create a canvas to capture the image
+          const canvas = document.createElement('canvas');
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          const ctx = canvas.getContext('2d');
+          
+          if (!ctx) {
+            throw new Error('Failed to create canvas context');
+          }
+          
+          // Draw the current video frame to the canvas
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          
+          // Stop the video stream
+          stream.getTracks().forEach(track => track.stop());
+          
+          // Convert the canvas to a data URL (base64 image)
+          const faceImageData = canvas.toDataURL('image/jpeg');
+          setFaceImage(faceImageData);
+          
+          // Remove the data:image/jpeg;base64, prefix
+          const base64Image = faceImageData.split(',')[1];
+          requestBody.faceImage = base64Image;
+        } catch (error) {
+          console.error('Failed to capture face image:', error);
+          throw new Error('Failed to capture face image for hybrid verification');
+        }
+      }
+      
+      const verifyResponse = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+      
+      if (!verifyResponse.ok) {
+        const error = await verifyResponse.text();
+        throw new Error(`Failed to verify authentication: ${error}`);
+      }
+      
+      const verifyResult = await verifyResponse.json();
+      setStatus('success');
+      setMessage(`Authentication successful! ${verifyResult.message || ''}`);
     } catch (error) {
-      console.error('Hybrid authentication error:', error);
-      setStatus('Hybrid authentication error');
-      onError?.(error instanceof Error ? error.message : 'Unknown authentication error');
-    } finally {
-      setIsProcessing(false);
+      console.error('Authentication error:', error);
+      setStatus('error');
+      setMessage(`Authentication failed: ${error instanceof Error ? error.message : String(error)}`);
     }
   };
 
-  // Clean up on unmount
-  useEffect(() => {
-    return () => {
-      stopCamera();
-    };
-  }, []);
-
-  // Render appropriate UI based on mode
-  const renderContent = () => {
-    // Display device info
-    const deviceInfoText = deviceInfo ? 
-      `Device: ${deviceInfo.os || 'Unknown'}, Authenticator: ${deviceInfo.authenticatorType || 'Unknown'}` : 
-      'Checking device capabilities...';
-
-    // Standard registration mode
-    if (mode === 'register') {
-      return (
-        <div className="flex flex-col items-center space-y-4">
-          <p className="text-sm text-gray-500">{deviceInfoText}</p>
-          <button
-            onClick={handleRegister}
-            disabled={isProcessing || !window.PublicKeyCredential}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md disabled:bg-gray-400 hover:bg-blue-700 transition-colors"
-          >
-            {isProcessing ? 'Registering...' : 'Register Device'}
-          </button>
-        </div>
-      );
+  // Helper function to convert ArrayBuffer to base64
+  const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+      binary += String.fromCharCode(bytes[i]);
     }
-    
-    // Standard authentication mode
-    if (mode === 'authenticate') {
-      return (
-        <div className="flex flex-col items-center space-y-4">
-          <p className="text-sm text-gray-500">{deviceInfoText}</p>
-          <button
-            onClick={handleAuthenticate}
-            disabled={isProcessing || !window.PublicKeyCredential}
-            className="px-4 py-2 bg-green-600 text-white rounded-md disabled:bg-gray-400 hover:bg-green-700 transition-colors"
-          >
-            {isProcessing ? 'Verifying...' : 'Verify with Device'}
-          </button>
-        </div>
-      );
-    }
-    
-    // Hybrid mode (both device and face)
-    if (mode === 'hybrid') {
-      return (
-        <div className="flex flex-col items-center space-y-4">
-          <p className="text-sm text-gray-500">{deviceInfoText}</p>
-          
-          {/* Video display for face capture */}
-          <div className="relative border-2 border-gray-300 rounded-lg overflow-hidden">
-            <video 
-              ref={videoRef} 
-              className="w-full max-w-sm h-auto"
-              autoPlay 
-              playsInline 
-              muted
-            />
-            <canvas ref={canvasRef} className="hidden" />
-          </div>
-          
-          {/* Action buttons */}
-          <div className="flex space-x-2">
-            {!videoRef.current?.srcObject ? (
-              <>
-                <button
-                  onClick={handleHybridRegister}
-                  disabled={isProcessing || !window.PublicKeyCredential}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md disabled:bg-gray-400 hover:bg-blue-700 transition-colors"
-                >
-                  Register with Face + Device
-                </button>
-                <button
-                  onClick={handleHybridAuthenticate}
-                  disabled={isProcessing || !window.PublicKeyCredential}
-                  className="px-4 py-2 bg-green-600 text-white rounded-md disabled:bg-gray-400 hover:bg-green-700 transition-colors"
-                >
-                  Verify with Face + Device
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  onClick={completeHybridRegister}
-                  disabled={isProcessing}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md disabled:bg-gray-400 hover:bg-blue-700 transition-colors"
-                >
-                  Capture & Register
-                </button>
-                <button
-                  onClick={completeHybridAuthenticate}
-                  disabled={isProcessing}
-                  className="px-4 py-2 bg-green-600 text-white rounded-md disabled:bg-gray-400 hover:bg-green-700 transition-colors"
-                >
-                  Capture & Verify
-                </button>
-                <button
-                  onClick={stopCamera}
-                  disabled={isProcessing}
-                  className="px-4 py-2 bg-red-600 text-white rounded-md disabled:bg-gray-400 hover:bg-red-700 transition-colors"
-                >
-                  Cancel
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      );
-    }
-    
-    return null;
+    return btoa(binary);
   };
 
   return (
-    <div className="p-4 border rounded-lg shadow-md">
-      <h2 className="text-xl font-semibold mb-4">Biometric Verification</h2>
+    <Card className="w-full max-w-md mx-auto">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Shield className="h-6 w-6" />
+          WebAuthn Face ID Tester
+        </CardTitle>
+        <CardDescription>
+          Test Face ID integration with WebAuthn on your MacBook
+        </CardDescription>
+      </CardHeader>
       
-      {/* Status message */}
-      {status && (
-        <div className="mb-4 p-2 bg-gray-100 rounded text-center">
-          {status}
+      <CardContent className="space-y-4">
+        <div className="flex items-center space-x-2">
+          <input
+            type="checkbox"
+            id="hybrid-toggle"
+            checked={isHybrid}
+            onChange={(e) => setIsHybrid(e.target.checked)}
+            className="rounded border-gray-300"
+          />
+          <label htmlFor="hybrid-toggle">
+            Use hybrid authentication (Face ID + WebAuthn)
+          </label>
         </div>
-      )}
+        
+        {status !== 'idle' && (
+          <Alert variant={status === 'error' ? 'destructive' : status === 'success' ? 'default' : 'outline'}>
+            <div className="flex items-center gap-2">
+              {status === 'success' ? (
+                <CheckCircle className="h-4 w-4" />
+              ) : status === 'error' ? (
+                <XCircle className="h-4 w-4" />
+              ) : (
+                <Fingerprint className="h-4 w-4 animate-pulse" />
+              )}
+              <AlertTitle>
+                {status === 'registering' ? 'Registering...' : 
+                 status === 'authenticating' ? 'Authenticating...' :
+                 status === 'success' ? 'Success!' : 'Error'}
+              </AlertTitle>
+            </div>
+            <AlertDescription>{message}</AlertDescription>
+          </Alert>
+        )}
+        
+        {faceImage && (
+          <div className="mt-4">
+            <h3 className="text-sm font-medium mb-2">Captured Face Image:</h3>
+            <img 
+              src={faceImage} 
+              alt="Captured face" 
+              className="w-full max-w-xs mx-auto rounded-md border border-gray-300"
+            />
+          </div>
+        )}
+      </CardContent>
       
-      {/* Main content */}
-      {renderContent()}
-    </div>
+      <CardFooter className="flex flex-col sm:flex-row gap-2">
+        <Button 
+          onClick={isHybrid ? startHybridRegistration : startRegistration}
+          disabled={status === 'registering' || status === 'authenticating'}
+          variant="outline"
+          className="w-full sm:w-auto"
+        >
+          Register {isHybrid ? 'with Face ID' : 'Device'}
+        </Button>
+        
+        <Button 
+          onClick={startAuthentication}
+          disabled={status === 'registering' || status === 'authenticating'}
+          variant="default"
+          className="w-full sm:w-auto"
+        >
+          Authenticate {isHybrid ? 'with Face ID' : ''}
+        </Button>
+      </CardFooter>
+    </Card>
   );
-}
+};
+
+export default WebAuthnVerifier;
