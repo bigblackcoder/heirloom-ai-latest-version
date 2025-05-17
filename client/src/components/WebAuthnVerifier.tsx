@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { CheckCircle, XCircle, Fingerprint, Shield, AlertCircle } from 'lucide-react';
+import { CheckCircle, XCircle, Fingerprint, Shield, AlertCircle, Loader2, Lock } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
 
 const WebAuthnVerifier: React.FC = () => {
   const [status, setStatus] = useState<'idle' | 'registering' | 'authenticating' | 'success' | 'error'>('idle');
@@ -11,6 +12,39 @@ const WebAuthnVerifier: React.FC = () => {
   const [faceImage, setFaceImage] = useState<string | null>(null);
   const [isWebAuthnSupported, setIsWebAuthnSupported] = useState<boolean>(true);
   const [isPlatformAuthenticatorAvailable, setIsPlatformAuthenticatorAvailable] = useState<boolean>(true);
+  const [authProgress, setAuthProgress] = useState<number>(0);
+  const [deviceType, setDeviceType] = useState<'ios' | 'mac' | 'android' | 'windows' | 'other'>('other');
+  
+  // Detect device type for better UX messaging
+  useEffect(() => {
+    const userAgent = navigator.userAgent.toLowerCase();
+    
+    if (userAgent.indexOf('iphone') !== -1 || userAgent.indexOf('ipad') !== -1) {
+      setDeviceType('ios');
+    } else if (userAgent.indexOf('mac') !== -1) {
+      setDeviceType('mac');
+    } else if (userAgent.indexOf('android') !== -1) {
+      setDeviceType('android');
+    } else if (userAgent.indexOf('windows') !== -1) {
+      setDeviceType('windows');
+    }
+  }, []);
+  
+  // Get friendly biometric system name based on detected device
+  const getBiometricName = () => {
+    switch (deviceType) {
+      case 'ios':
+        return 'Face ID/Touch ID';
+      case 'mac':
+        return 'Touch ID';
+      case 'android':
+        return 'Fingerprint/Face Unlock';
+      case 'windows':
+        return 'Windows Hello';
+      default:
+        return 'Biometric Authentication';
+    }
+  };
   
   // Check if WebAuthn and platform authenticator (Touch ID/Face ID) are available
   useEffect(() => {
@@ -23,27 +57,38 @@ const WebAuthnVerifier: React.FC = () => {
     // Check if platform authenticator is available
     if ("PublicKeyCredential" in window) {
       try {
-        (navigator.credentials as any).create({
-          publicKey: {
-            challenge: new Uint8Array(32),
-            rp: { name: "Heirloom Identity" },
-            user: {
-              id: new Uint8Array(16),
-              name: "test",
-              displayName: "Test User",
-            },
-            pubKeyCredParams: [{ type: "public-key", alg: -7 }],
-            authenticatorSelection: {
-              authenticatorAttachment: "platform",
-              userVerification: "preferred",
-            },
-            timeout: 60000,
-          },
-        }).catch(err => {
-          if (err.name === "NotSupportedError") {
+        // Check if the browser supports publicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
+        if (typeof (window.PublicKeyCredential as any).isUserVerifyingPlatformAuthenticatorAvailable === 'function') {
+          (window.PublicKeyCredential as any).isUserVerifyingPlatformAuthenticatorAvailable().then((available: boolean) => {
+            setIsPlatformAuthenticatorAvailable(available);
+          }).catch((error: Error) => {
+            console.error('Error checking platform authenticator availability:', error);
             setIsPlatformAuthenticatorAvailable(false);
-          }
-        });
+          });
+        } else {
+          // Fallback for browsers that don't support the availability check API
+          (navigator.credentials as any).create({
+            publicKey: {
+              challenge: new Uint8Array(32),
+              rp: { name: "Heirloom Identity" },
+              user: {
+                id: new Uint8Array(16),
+                name: "test",
+                displayName: "Test User",
+              },
+              pubKeyCredParams: [{ type: "public-key", alg: -7 }],
+              authenticatorSelection: {
+                authenticatorAttachment: "platform",
+                userVerification: "preferred",
+              },
+              timeout: 60000,
+            },
+          }).catch((err: Error) => {
+            if (err.name === "NotSupportedError") {
+              setIsPlatformAuthenticatorAvailable(false);
+            }
+          });
+        }
       } catch (e) {
         console.error("Error checking platform authenticator:", e);
         setIsPlatformAuthenticatorAvailable(false);
@@ -57,13 +102,15 @@ const WebAuthnVerifier: React.FC = () => {
   const startRegistration = async () => {
     try {
       setStatus('registering');
-      setMessage('Starting registration...');
+      setMessage(`Activating ${getBiometricName()}...`);
+      setAuthProgress(10);
       
       // Check if WebAuthn is supported
       if (!window.PublicKeyCredential) {
-        throw new Error('WebAuthn is not supported in this browser');
+        throw new Error(`Your browser doesn't support biometric authentication`);
       }
 
+      setAuthProgress(20);
       // Get registration options from the server
       const optionsResponse = await fetch('/api/webauthn/register/options', {
         method: 'POST',
@@ -75,10 +122,11 @@ const WebAuthnVerifier: React.FC = () => {
       
       if (!optionsResponse.ok) {
         const error = await optionsResponse.text();
-        throw new Error(`Failed to get registration options: ${error}`);
+        throw new Error(`Server error: ${error}`);
       }
       
       const options = await optionsResponse.json();
+      setAuthProgress(30);
       
       // Convert base64 challenge to ArrayBuffer
       options.publicKey.challenge = Uint8Array.from(
@@ -90,10 +138,23 @@ const WebAuthnVerifier: React.FC = () => {
         atob(options.publicKey.user.id), c => c.charCodeAt(0)
       );
       
+      // Ensure we request platform authenticator
+      if (!options.publicKey.authenticatorSelection) {
+        options.publicKey.authenticatorSelection = {};
+      }
+      options.publicKey.authenticatorSelection.authenticatorAttachment = "platform";
+      options.publicKey.authenticatorSelection.userVerification = "preferred";
+      
+      setMessage(`Please use ${getBiometricName()} when prompted`);
+      setAuthProgress(40);
+      
       // Create credentials
       const credential = await navigator.credentials.create({
         publicKey: options.publicKey
       }) as PublicKeyCredential;
+      
+      setMessage(`${getBiometricName()} verification successful`);
+      setAuthProgress(70);
       
       // Prepare the attestation for sending to the server
       const attestationObj = credential.response as AuthenticatorAttestationResponse;
@@ -117,30 +178,105 @@ const WebAuthnVerifier: React.FC = () => {
         }),
       });
       
+      setAuthProgress(90);
+      
       if (!verifyResponse.ok) {
         const error = await verifyResponse.text();
-        throw new Error(`Failed to verify registration: ${error}`);
+        throw new Error(`Server verification failed: ${error}`);
       }
       
       const verifyResult = await verifyResponse.json();
+      setAuthProgress(100);
       setStatus('success');
-      setMessage(`Registration successful! ${verifyResult.message || ''}`);
+      setMessage(`${getBiometricName()} successfully registered!`);
+      
+      // Reset progress after a moment
+      setTimeout(() => {
+        setAuthProgress(0);
+      }, 2000);
+      
     } catch (error) {
       console.error('Registration error:', error);
       setStatus('error');
-      setMessage(`Registration failed: ${error instanceof Error ? error.message : String(error)}`);
+      
+      // Provide more user-friendly error messages
+      let errorMessage = error instanceof Error ? error.message : String(error);
+      
+      if (errorMessage.includes('already registered')) {
+        errorMessage = `This ${getBiometricName()} has already been registered`;
+      } else if (errorMessage.includes('aborted')) {
+        errorMessage = `${getBiometricName()} registration was cancelled`;
+      } else if (errorMessage.includes('timeout')) {
+        errorMessage = `${getBiometricName()} didn't respond in time`;
+      }
+      
+      setMessage(errorMessage);
+      setAuthProgress(0);
     }
   };
 
-  // Function to start hybrid registration (WebAuthn + Face)
+  // Function to start hybrid registration (Device biometrics + Face)
   const startHybridRegistration = async () => {
     try {
       setStatus('registering');
-      setMessage('Starting hybrid registration with Face ID...');
+      setMessage(`Preparing two-factor registration...`);
+      setAuthProgress(10);
       
+      // First step: WebAuthn/Biometric registration
+      // Check if WebAuthn is supported
+      if (!window.PublicKeyCredential) {
+        throw new Error(`Your browser doesn't support ${getBiometricName()}`);
+      }
+      
+      setMessage(`Step 1: Activating ${getBiometricName()}...`);
+      setAuthProgress(20);
+      
+      // Get registration options from the server
+      const optionsResponse = await fetch('/api/webauthn/register/options', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: 'testuser' }),
+      });
+      
+      if (!optionsResponse.ok) {
+        const error = await optionsResponse.text();
+        throw new Error(`Server error: ${error}`);
+      }
+      
+      const options = await optionsResponse.json();
+      
+      // Convert base64 challenge to ArrayBuffer
+      options.publicKey.challenge = Uint8Array.from(
+        atob(options.publicKey.challenge), c => c.charCodeAt(0)
+      );
+      
+      // Convert user ID to ArrayBuffer
+      options.publicKey.user.id = Uint8Array.from(
+        atob(options.publicKey.user.id), c => c.charCodeAt(0)
+      );
+      
+      // Ensure we request platform authenticator
+      if (!options.publicKey.authenticatorSelection) {
+        options.publicKey.authenticatorSelection = {};
+      }
+      options.publicKey.authenticatorSelection.authenticatorAttachment = "platform";
+      options.publicKey.authenticatorSelection.userVerification = "preferred";
+      
+      setMessage(`Please use ${getBiometricName()} when prompted`);
+      setAuthProgress(30);
+      
+      // Create credentials - this triggers the native biometric prompt
+      const credential = await navigator.credentials.create({
+        publicKey: options.publicKey
+      }) as PublicKeyCredential;
+      
+      setMessage(`${getBiometricName()} verified! Now capturing face for server-side recognition...`);
+      setAuthProgress(50);
+      
+      // Second step: Capture face for server-side verification
       // Check if webcam is available
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error('Camera access is not supported in this browser');
+        throw new Error('Camera access is required for the second step');
       }
       
       // Capture face image from webcam
@@ -172,30 +308,67 @@ const WebAuthnVerifier: React.FC = () => {
       // Remove the data:image/jpeg;base64, prefix
       const base64Image = faceImageData.split(',')[1];
       
-      // Send the face image and register with WebAuthn
+      setMessage(`Face captured, verifying with server...`);
+      setAuthProgress(70);
+      
+      // Prepare the attestation data from WebAuthn
+      const attestationObj = credential.response as AuthenticatorAttestationResponse;
+      const clientDataJSON = arrayBufferToBase64(attestationObj.clientDataJSON);
+      const attestationObject = arrayBufferToBase64(attestationObj.attestationObject);
+      
+      // Send both WebAuthn credentials and face image for hybrid verification
       const response = await fetch('/api/webauthn/hybrid/register', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           username: 'testuser',
-          faceImage: base64Image
+          faceImage: base64Image,
+          credential: {
+            id: credential.id,
+            rawId: arrayBufferToBase64(credential.rawId),
+            response: {
+              clientDataJSON,
+              attestationObject,
+            },
+            type: credential.type,
+          }
         }),
       });
       
+      setAuthProgress(90);
+      
       if (!response.ok) {
         const error = await response.text();
-        throw new Error(`Failed to register with hybrid auth: ${error}`);
+        throw new Error(`Server verification failed: ${error}`);
       }
       
       const result = await response.json();
+      setAuthProgress(100);
       setStatus('success');
-      setMessage(`Hybrid registration successful! ${result.message || ''}`);
+      setMessage(`Two-factor registration complete! Your device biometrics and facial features are now registered.`);
+      
+      // Reset progress after a moment
+      setTimeout(() => {
+        setAuthProgress(0);
+      }, 2000);
+      
     } catch (error) {
       console.error('Hybrid registration error:', error);
       setStatus('error');
-      setMessage(`Hybrid registration failed: ${error instanceof Error ? error.message : String(error)}`);
+      
+      // Provide more user-friendly error messages
+      let errorMessage = error instanceof Error ? error.message : String(error);
+      
+      if (errorMessage.includes('Permission denied')) {
+        errorMessage = 'Camera access was denied. Please allow camera access for facial verification.';
+      } else if (errorMessage.includes('aborted')) {
+        errorMessage = `Registration was cancelled`;
+      } else if (errorMessage.includes('NotAllowedError')) {
+        errorMessage = 'Permission to use camera or biometric sensor was denied';
+      }
+      
+      setMessage(errorMessage);
+      setAuthProgress(0);
     }
   };
 
@@ -203,13 +376,15 @@ const WebAuthnVerifier: React.FC = () => {
   const startAuthentication = async () => {
     try {
       setStatus('authenticating');
-      setMessage('Starting authentication...');
+      setMessage(`Initiating ${getBiometricName()} verification...`);
+      setAuthProgress(10);
       
       // Check if WebAuthn is supported
       if (!window.PublicKeyCredential) {
-        throw new Error('WebAuthn is not supported in this browser');
+        throw new Error(`Your browser doesn't support biometric authentication`);
       }
 
+      setAuthProgress(20);
       // Get authentication options from the server
       const optionsResponse = await fetch('/api/webauthn/authenticate/options', {
         method: 'POST',
@@ -221,9 +396,10 @@ const WebAuthnVerifier: React.FC = () => {
       
       if (!optionsResponse.ok) {
         const error = await optionsResponse.text();
-        throw new Error(`Failed to get authentication options: ${error}`);
+        throw new Error(`Server error: ${error}`);
       }
       
+      setAuthProgress(30);
       const options = await optionsResponse.json();
       
       // Convert base64 challenge to ArrayBuffer
@@ -241,10 +417,19 @@ const WebAuthnVerifier: React.FC = () => {
         });
       }
       
-      // Get credentials
+      // Set user verification preference
+      options.publicKey.userVerification = "preferred";
+      
+      setMessage(`Please use ${getBiometricName()} when prompted`);
+      setAuthProgress(40);
+      
+      // Get credentials - this triggers the native biometric prompt
       const credential = await navigator.credentials.get({
         publicKey: options.publicKey
       }) as PublicKeyCredential;
+      
+      setMessage(`${getBiometricName()} verified`);
+      setAuthProgress(60);
       
       // Prepare the assertion for sending to the server
       const assertionResponse = credential.response as AuthenticatorAssertionResponse;
@@ -255,10 +440,7 @@ const WebAuthnVerifier: React.FC = () => {
         ? arrayBufferToBase64(assertionResponse.userHandle) 
         : null;
       
-      // Verify the assertion with the server
-      const endpoint = isHybrid ? '/api/webauthn/hybrid/verify' : '/api/webauthn/authenticate/verify';
-      
-      // If using hybrid auth and we have a face image, include it
+      // Create base request body with device verification
       const requestBody: any = {
         id: credential.id,
         rawId: arrayBufferToBase64(credential.rawId),
@@ -271,8 +453,14 @@ const WebAuthnVerifier: React.FC = () => {
         type: credential.type,
       };
       
-      // For hybrid auth, we would also send a face image, but we'll capture it when needed
+      // Determine if we need to add server-side facial verification
+      let endpoint = '/api/webauthn/authenticate/verify';
+      
+      // If hybrid mode is enabled, add facial recognition as a second factor
       if (isHybrid) {
+        endpoint = '/api/webauthn/hybrid/verify';
+        setMessage(`${getBiometricName()} verified! Now capturing face for additional security...`);
+        
         try {
           // Capture face image from webcam
           const stream = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -303,12 +491,17 @@ const WebAuthnVerifier: React.FC = () => {
           // Remove the data:image/jpeg;base64, prefix
           const base64Image = faceImageData.split(',')[1];
           requestBody.faceImage = base64Image;
+          
+          setMessage(`Face image captured, verifying with server...`);
         } catch (error) {
           console.error('Failed to capture face image:', error);
-          throw new Error('Failed to capture face image for hybrid verification');
+          throw new Error('Camera access is required for two-factor authentication');
         }
       }
       
+      setAuthProgress(80);
+      
+      // Send verification data to server
       const verifyResponse = await fetch(endpoint, {
         method: 'POST',
         headers: {
@@ -319,16 +512,44 @@ const WebAuthnVerifier: React.FC = () => {
       
       if (!verifyResponse.ok) {
         const error = await verifyResponse.text();
-        throw new Error(`Failed to verify authentication: ${error}`);
+        throw new Error(`Verification failed: ${error}`);
       }
       
       const verifyResult = await verifyResponse.json();
+      setAuthProgress(100);
       setStatus('success');
-      setMessage(`Authentication successful! ${verifyResult.message || ''}`);
+      
+      // Set appropriate success message based on authentication type
+      if (isHybrid) {
+        setMessage(`Two-factor authentication successful! Both your device biometrics and facial features were verified.`);
+      } else {
+        setMessage(`${getBiometricName()} authentication successful!`);
+      }
+      
+      // Reset progress after a moment
+      setTimeout(() => {
+        setAuthProgress(0);
+      }, 2000);
+      
     } catch (error) {
       console.error('Authentication error:', error);
       setStatus('error');
-      setMessage(`Authentication failed: ${error instanceof Error ? error.message : String(error)}`);
+      
+      // Provide more user-friendly error messages
+      let errorMessage = error instanceof Error ? error.message : String(error);
+      
+      if (errorMessage.includes('Permission denied')) {
+        errorMessage = 'Camera access was denied. Please allow camera access for facial verification.';
+      } else if (errorMessage.includes('aborted')) {
+        errorMessage = `Authentication was cancelled`;
+      } else if (errorMessage.includes('NotAllowedError')) {
+        errorMessage = 'Permission to use camera or biometric sensor was denied';
+      } else if (errorMessage.includes('no matching credential')) {
+        errorMessage = `No registered ${getBiometricName()} found. Please register first.`;
+      }
+      
+      setMessage(errorMessage);
+      setAuthProgress(0);
     }
   };
 
