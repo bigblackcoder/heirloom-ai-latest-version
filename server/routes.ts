@@ -12,9 +12,9 @@ export async function registerRoutes(app: express.Application): Promise<Server> 
   // Apply session middleware
   app.use(createSessionConfig());
   
-  // Serve static HTML page for immediate preview visibility
+  // Serve the main application
   app.get("/", (_req: Request, res: Response) => {
-    res.sendFile(path.resolve(process.cwd(), "server", "static-page.html"));
+    res.redirect('/app');
   });
   
   // Basic routes
