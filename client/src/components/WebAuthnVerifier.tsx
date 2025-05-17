@@ -1,14 +1,57 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { CheckCircle, XCircle, Fingerprint, Shield } from 'lucide-react';
+import { CheckCircle, XCircle, Fingerprint, Shield, AlertCircle } from 'lucide-react';
 
 const WebAuthnVerifier: React.FC = () => {
   const [status, setStatus] = useState<'idle' | 'registering' | 'authenticating' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState<string>('');
   const [isHybrid, setIsHybrid] = useState<boolean>(true);
   const [faceImage, setFaceImage] = useState<string | null>(null);
+  const [isWebAuthnSupported, setIsWebAuthnSupported] = useState<boolean>(true);
+  const [isPlatformAuthenticatorAvailable, setIsPlatformAuthenticatorAvailable] = useState<boolean>(true);
+  
+  // Check if WebAuthn and platform authenticator (Touch ID/Face ID) are available
+  useEffect(() => {
+    // Check if WebAuthn is supported
+    if (!window.PublicKeyCredential) {
+      setIsWebAuthnSupported(false);
+      return;
+    }
+    
+    // Check if platform authenticator is available
+    if ("PublicKeyCredential" in window) {
+      try {
+        (navigator.credentials as any).create({
+          publicKey: {
+            challenge: new Uint8Array(32),
+            rp: { name: "Heirloom Identity" },
+            user: {
+              id: new Uint8Array(16),
+              name: "test",
+              displayName: "Test User",
+            },
+            pubKeyCredParams: [{ type: "public-key", alg: -7 }],
+            authenticatorSelection: {
+              authenticatorAttachment: "platform",
+              userVerification: "preferred",
+            },
+            timeout: 60000,
+          },
+        }).catch(err => {
+          if (err.name === "NotSupportedError") {
+            setIsPlatformAuthenticatorAvailable(false);
+          }
+        });
+      } catch (e) {
+        console.error("Error checking platform authenticator:", e);
+        setIsPlatformAuthenticatorAvailable(false);
+      }
+    } else {
+      setIsWebAuthnSupported(false);
+    }
+  }, []);
 
   // Function to start WebAuthn registration
   const startRegistration = async () => {
@@ -312,6 +355,26 @@ const WebAuthnVerifier: React.FC = () => {
       </CardHeader>
       
       <CardContent className="space-y-4">
+        {!isWebAuthnSupported && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>WebAuthn Not Supported</AlertTitle>
+            <AlertDescription>
+              Your browser does not support WebAuthn, which is required for biometric authentication.
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        {isWebAuthnSupported && !isPlatformAuthenticatorAvailable && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Face ID/Touch ID Not Available</AlertTitle>
+            <AlertDescription>
+              Your device does not have Face ID or Touch ID configured, or doesn't support platform authenticators.
+            </AlertDescription>
+          </Alert>
+        )}
+        
         <div className="flex items-center space-x-2">
           <input
             type="checkbox"
@@ -321,7 +384,7 @@ const WebAuthnVerifier: React.FC = () => {
             className="rounded border-gray-300"
           />
           <label htmlFor="hybrid-toggle">
-            Use hybrid authentication (Face ID + WebAuthn)
+            Use hybrid authentication (Device biometrics + server verification)
           </label>
         </div>
         
@@ -360,20 +423,20 @@ const WebAuthnVerifier: React.FC = () => {
       <CardFooter className="flex flex-col sm:flex-row gap-2">
         <Button 
           onClick={isHybrid ? startHybridRegistration : startRegistration}
-          disabled={status === 'registering' || status === 'authenticating'}
+          disabled={status === 'registering' || status === 'authenticating' || !isWebAuthnSupported}
           variant="outline"
           className="w-full sm:w-auto"
         >
-          Register {isHybrid ? 'with Face ID' : 'Device'}
+          Register with {isHybrid ? 'Face ID/Touch ID' : 'Device'}
         </Button>
         
         <Button 
           onClick={startAuthentication}
-          disabled={status === 'registering' || status === 'authenticating'}
+          disabled={status === 'registering' || status === 'authenticating' || !isWebAuthnSupported}
           variant="default"
           className="w-full sm:w-auto"
         >
-          Authenticate {isHybrid ? 'with Face ID' : ''}
+          Authenticate with {isHybrid ? 'Face ID/Touch ID' : 'Device'}
         </Button>
       </CardFooter>
     </Card>
