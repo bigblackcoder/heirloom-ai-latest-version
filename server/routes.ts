@@ -12,10 +12,8 @@ export async function registerRoutes(app: express.Application): Promise<Server> 
   // Apply session middleware
   app.use(createSessionConfig());
   
-  // Direct display of static page for demonstration purposes
-  app.get("/", (_req: Request, res: Response) => {
-    res.sendFile(path.resolve(process.cwd(), "server", "static-page.html"));
-  });
+  // No need to handle the root path explicitly
+  // The vite middleware will handle it
   
   // Basic routes
   app.get("/api/health", (_req: Request, res: Response) => {
