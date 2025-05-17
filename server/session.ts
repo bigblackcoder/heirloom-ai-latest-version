@@ -31,7 +31,7 @@ export function createSessionConfig() {
 }
 
 // Middleware to check if user is authenticated
-export function isAuthenticated(req, res, next) {
+export function isAuthenticated(req: any, res: any, next: any) {
   if (req.session && req.session.userId) {
     return next();
   }
@@ -42,7 +42,7 @@ export function isAuthenticated(req, res, next) {
 }
 
 // Middleware to check if user has verified their identity using biometrics
-export function isVerifiedIdentity(req, res, next) {
+export function isVerifiedIdentity(req: any, res: any, next: any) {
   if (req.session && req.session.userId && req.session.identityVerified) {
     return next();
   }

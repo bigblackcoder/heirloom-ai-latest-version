@@ -186,7 +186,13 @@ export async function registerRoutes(app: express.Application): Promise<Server> 
   // Biometric routes
   app.get("/api/biometrics/status", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const userId = req.session!.userId;
+      const userId = req.session!.userId as number;
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: "User ID not found in session"
+        });
+      }
       
       // Get user's biometric credentials
       const credentials = await storage.getBiometricCredentialsByUserId(userId);
@@ -238,7 +244,7 @@ export async function registerRoutes(app: express.Application): Promise<Server> 
           },
           // User info
           user: {
-            id: userId.toString(),
+            id: Buffer.from(userId.toString(), 'utf-8'),
             name: username,
             displayName: username
           },
