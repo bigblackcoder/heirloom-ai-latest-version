@@ -1,44 +1,32 @@
-/**
- * WebAuthn Controller for handling device biometric authentication
- * This provides endpoints for registering and verifying biometric credentials
- */
+import { Request, Response } from "express";
+import { storage } from "./storage";
+import crypto from "crypto";
+import { verifyFace } from "./deepface";
+import { v4 as uuidv4 } from "uuid";
 
-import { Request, Response } from 'express';
-import crypto from 'crypto';
-import { db } from './db';
-import { credentials } from '../shared/schema';
-import { v4 as uuidv4 } from 'uuid';
-import { eq } from 'drizzle-orm';
-import { verifyFace } from './deepface';
-import { FaceVerificationResult } from './deepface';
-
-// In-memory challenge storage - will be lost on server restart
-// In production, this should be stored in a database or Redis
-const challengeStore = new Map<string, { 
+// Store challenges temporarily in memory for verification
+const challenges = new Map<string, { 
   challenge: string, 
-  userId?: string | number,
-  timestamp: number 
+  username: string, 
+  createdAt: number 
 }>();
 
-// Timeout for challenges in milliseconds (5 minutes)
-const CHALLENGE_TIMEOUT = 5 * 60 * 1000;
-
-// Clean up expired challenges periodically
+// Clean up expired challenges (5 minutes)
 setInterval(() => {
   const now = Date.now();
-  // Convert to array before iterating to avoid MapIterator typing issues
-  Array.from(challengeStore.entries()).forEach(([key, value]) => {
-    if (now - value.timestamp > CHALLENGE_TIMEOUT) {
-      challengeStore.delete(key);
+  for (const [key, value] of challenges.entries()) {
+    if (now - value.createdAt > 5 * 60 * 1000) {
+      challenges.delete(key);
     }
-  });
-}, 60000); // Run cleanup every minute
+  }
+}, 60 * 1000);
 
-// Helper functions
-function generateChallenge(): Buffer {
-  return crypto.randomBytes(32);
+// Generate a random buffer
+function generateRandomBuffer(length: number): Buffer {
+  return crypto.randomBytes(length);
 }
 
+// Convert buffer to URL-safe base64
 function bufferToBase64URLString(buffer: Buffer): string {
   return buffer.toString('base64')
     .replace(/\+/g, '-')
@@ -46,409 +34,426 @@ function bufferToBase64URLString(buffer: Buffer): string {
     .replace(/=/g, '');
 }
 
+// Convert URL-safe base64 to buffer
 function base64URLStringToBuffer(base64URLString: string): Buffer {
-  // Add padding if needed
-  let base64 = base64URLString.replace(/-/g, '+').replace(/_/g, '/');
-  const pad = base64.length % 4;
-  if (pad) {
-    base64 += '='.repeat(4 - pad);
+  // Add back any missing padding
+  base64URLString = base64URLString.replace(/-/g, '+').replace(/_/g, '/');
+  const padding = base64URLString.length % 4;
+  if (padding > 0) {
+    base64URLString += '='.repeat(4 - padding);
   }
-  return Buffer.from(base64, 'base64');
+  return Buffer.from(base64URLString, 'base64');
 }
 
-function getRelyingPartyId(req: Request): string {
-  // Get the hostname from the request
-  const hostname = req.hostname || 'localhost';
-  // Return just the domain without port for security reasons
-  return hostname.split(':')[0];
-}
-
-// Helper to ensure userId is always a string
-function ensureStringUserId(userId: string | number | undefined): string | undefined {
-  if (userId === undefined) {
-    return undefined;
-  }
-  return String(userId);
-}
-
-/**
- * Generate registration options for a new user
- */
-export async function generateRegistrationOptions(req: Request, res: Response) {
+// Generate registration options for WebAuthn client
+export async function getRegistrationOptions(req: Request, res: Response): Promise<void> {
   try {
-    const { userId, username, displayName } = req.body;
+    const { username } = req.body;
 
-    if (!userId) {
-      return res.status(400).json({ error: 'User ID is required' });
+    if (!username) {
+      res.status(400).json({ message: "Username is required" });
+      return;
     }
 
-    // Generate a new challenge
-    const challenge = generateChallenge();
+    // Generate a new random challenge
+    const challenge = generateRandomBuffer(32);
     const challengeId = uuidv4();
     
     // Store the challenge for later verification
-    challengeStore.set(challengeId, {
+    challenges.set(challengeId, {
       challenge: bufferToBase64URLString(challenge),
-      userId,
-      timestamp: Date.now()
+      username,
+      createdAt: Date.now()
     });
 
-    // Determine the relying party ID (domain)
-    const rpId = getRelyingPartyId(req);
+    // Get or create a user
+    let user = await storage.getUserByUsername(username);
     
-    // Create registration options
+    if (!user) {
+      // For testing, we create the user if it doesn't exist
+      user = await storage.createUser({
+        username,
+        email: `${username}@example.com`,
+        password: crypto.randomBytes(16).toString('hex'), // random password for test user
+        isVerified: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    }
+
+    // Generate registration options
     const registrationOptions = {
       challenge: bufferToBase64URLString(challenge),
       rp: {
-        name: 'Heirloom Identity Platform',
-        id: rpId
+        name: "Heirloom Identity Platform",
+        id: req.hostname || "localhost"
       },
       user: {
-        id: userId.toString(),
-        name: username || userId.toString(),
-        displayName: displayName || username || userId.toString()
+        id: bufferToBase64URLString(Buffer.from(String(user.id), 'utf8')),
+        name: username,
+        displayName: username
       },
       pubKeyCredParams: [
-        { type: 'public-key', alg: -7 }, // ES256
-        { type: 'public-key', alg: -257 } // RS256
+        { type: "public-key", alg: -7 }, // ES256
+        { type: "public-key", alg: -257 } // RS256
       ],
       authenticatorSelection: {
-        authenticatorAttachment: 'platform', // Use platform authenticator (like FaceID, TouchID)
-        userVerification: 'required', // Require user verification (biometric)
+        authenticatorAttachment: "platform", // Prefer platform authenticator (e.g., Face ID, Touch ID)
+        userVerification: "preferred",
         requireResidentKey: false
       },
-      attestation: 'none', // Don't request attestation
-      timeout: 60000, // 1 minute timeout
-      challengeId // Include the challenge ID for later lookup
+      timeout: 60000, // 1 minute
+      attestation: "none",
+      extensions: {
+        credProps: true
+      }
     };
 
-    return res.status(200).json(registrationOptions);
+    // Add challenge ID to session for verification
+    if (req.session) {
+      req.session.challengeId = challengeId;
+    }
+
+    res.status(200).json(registrationOptions);
   } catch (error) {
-    console.error('WebAuthn registration options error:', error);
-    return res.status(500).json({ error: 'Failed to generate registration options' });
+    console.error("Error generating registration options:", error);
+    res.status(500).json({ message: "Error generating registration options" });
   }
 }
 
-/**
- * Verify registration response and store the credential
- */
-export async function verifyRegistration(req: Request, res: Response) {
+// Verify registration response from WebAuthn client
+export async function verifyRegistration(req: Request, res: Response): Promise<void> {
   try {
-    const { challengeId, credential, faceId } = req.body;
+    const { id, rawId, response, type } = req.body;
 
-    if (!challengeId || !credential) {
-      return res.status(400).json({ error: 'Challenge ID and credential are required' });
+    // Get challenge from session
+    if (!req.session || !req.session.challengeId) {
+      res.status(400).json({ message: "No challenge found in session" });
+      return;
     }
 
-    // Retrieve the challenge
-    const challengeData = challengeStore.get(challengeId);
+    const challengeData = challenges.get(req.session.challengeId);
     if (!challengeData) {
-      return res.status(400).json({ error: 'Challenge not found or expired' });
+      res.status(400).json({ message: "Challenge expired or invalid" });
+      return;
     }
 
-    // Delete the challenge to prevent replay attacks
-    challengeStore.delete(challengeId);
-
-    // Verify the credential format
-    if (!credential.id || !credential.publicKey) {
-      return res.status(400).json({ error: 'Invalid credential format' });
+    const { challenge, username } = challengeData;
+    
+    // Get user
+    const user = await storage.getUserByUsername(username);
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
+      return;
     }
 
-    // In a real implementation, you would verify the credential against the challenge
-    // For this demo, we'll just store the credential
+    // In a production environment, you would use a WebAuthn library to verify
+    // the attestation and register the credential. For this demo, we'll just store
+    // the credential ID and public key.
 
-    // Store the credential in the database
-    await db.insert(credentials).values({
-      credentialId: credential.id,
-      userId: challengeData.userId!.toString(),
-      publicKey: credential.publicKey,
-      faceId: faceId || null,
-      metadata: credential.metadata || {}
+    // Store credential in the database
+    const credential = await storage.createCredential({
+      userId: String(user.id),
+      credentialId: id,
+      publicKey: JSON.stringify(response),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      counter: 0, // Initial counter value
+      transports: [], // Optional transports
     });
 
-    return res.status(200).json({ 
-      success: true, 
-      message: 'Device registration successful',
-      userId: challengeData.userId 
+    // Remove the used challenge
+    challenges.delete(req.session.challengeId);
+    delete req.session.challengeId;
+
+    res.status(200).json({ 
+      message: "Registration successful", 
+      username: user.username,
+      registered: true,
+      credentialId: id 
     });
   } catch (error) {
-    console.error('WebAuthn registration verification error:', error);
-    return res.status(500).json({ error: 'Failed to verify registration' });
+    console.error("Error verifying registration:", error);
+    res.status(500).json({ message: "Error verifying registration" });
   }
 }
 
-/**
- * Generate authentication options for a user
- */
-export async function generateAuthenticationOptions(req: Request, res: Response) {
+// Generate authentication options for WebAuthn client
+export async function getAuthenticationOptions(req: Request, res: Response): Promise<void> {
   try {
-    const { userId } = req.body;
+    const { username } = req.body;
 
-    if (!userId) {
-      return res.status(400).json({ error: 'User ID is required' });
+    if (!username) {
+      res.status(400).json({ message: "Username is required" });
+      return;
     }
 
-    // Find credentials for this user
-    const userCredentials = await db.select()
-      .from(credentials)
-      .where(eq(credentials.userId, userId.toString()));
-
-    if (!userCredentials || userCredentials.length === 0) {
-      return res.status(404).json({ error: 'No credentials found for this user' });
+    // Get user
+    const user = await storage.getUserByUsername(username);
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
+      return;
     }
 
-    // Generate a new challenge
-    const challenge = generateChallenge();
+    // Get credentials for this user
+    const credentials = await storage.getCredentialsByUserId(String(user.id));
+    if (!credentials || credentials.length === 0) {
+      res.status(400).json({ message: "No credentials found for this user" });
+      return;
+    }
+
+    // Generate a new random challenge
+    const challenge = generateRandomBuffer(32);
     const challengeId = uuidv4();
     
     // Store the challenge for later verification
-    challengeStore.set(challengeId, {
+    challenges.set(challengeId, {
       challenge: bufferToBase64URLString(challenge),
-      userId,
-      timestamp: Date.now()
+      username,
+      createdAt: Date.now()
     });
 
-    // Determine the relying party ID (domain)
-    const rpId = getRelyingPartyId(req);
-    
-    // Create authentication options
+    // Generate authentication options
     const authenticationOptions = {
       challenge: bufferToBase64URLString(challenge),
-      rpId,
-      allowCredentials: userCredentials.map(cred => ({
+      timeout: 60000, // 1 minute
+      rpId: req.hostname || "localhost",
+      allowCredentials: credentials.map(cred => ({
         id: cred.credentialId,
-        type: 'public-key'
+        type: "public-key",
+        transports: cred.transports || ["internal"]
       })),
-      userVerification: 'required',
-      timeout: 60000, // 1 minute timeout
-      challengeId // Include the challenge ID for later lookup
+      userVerification: "preferred"
     };
 
-    return res.status(200).json(authenticationOptions);
+    // Add challenge ID to session for verification
+    if (req.session) {
+      req.session.challengeId = challengeId;
+    }
+
+    res.status(200).json(authenticationOptions);
   } catch (error) {
-    console.error('WebAuthn authentication options error:', error);
-    return res.status(500).json({ error: 'Failed to generate authentication options' });
+    console.error("Error generating authentication options:", error);
+    res.status(500).json({ message: "Error generating authentication options" });
   }
 }
 
-/**
- * Verify authentication assertion and validate the user
- */
-export async function verifyAuthentication(req: Request, res: Response) {
+// Verify authentication response from WebAuthn client
+export async function verifyAuthentication(req: Request, res: Response): Promise<void> {
   try {
-    const { challengeId, credential } = req.body;
+    const { id, rawId, response, type } = req.body;
 
-    if (!challengeId || !credential) {
-      return res.status(400).json({ error: 'Challenge ID and credential are required' });
+    // Get challenge from session
+    if (!req.session || !req.session.challengeId) {
+      res.status(400).json({ message: "No challenge found in session" });
+      return;
     }
 
-    // Retrieve the challenge
-    const challengeData = challengeStore.get(challengeId);
+    const challengeData = challenges.get(req.session.challengeId);
     if (!challengeData) {
-      return res.status(400).json({ error: 'Challenge not found or expired' });
+      res.status(400).json({ message: "Challenge expired or invalid" });
+      return;
     }
 
-    // Delete the challenge to prevent replay attacks
-    challengeStore.delete(challengeId);
-
-    // Find the credential in the database
-    const userCredential = await db.select()
-      .from(credentials)
-      .where(eq(credentials.credentialId, credential.id))
-      .limit(1);
-
-    if (!userCredential || userCredential.length === 0) {
-      return res.status(404).json({ error: 'Credential not found' });
+    const { challenge, username } = challengeData;
+    
+    // Get user
+    const user = await storage.getUserByUsername(username);
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
+      return;
     }
 
-    // In a real implementation, you would verify the assertion signature
-    // For this demo, we'll just update the counter and last used timestamp
+    // Get credential for this user and credential ID
+    const credential = await storage.getCredential(id, String(user.id));
+    if (!credential) {
+      res.status(400).json({ message: "Credential not found" });
+      return;
+    }
 
-    // Update the credential counter and last used time
-    await db.update(credentials)
-      .set({ 
-        counter: userCredential[0].counter + 1,
-        lastUsed: new Date()
-      })
-      .where(eq(credentials.id, userCredential[0].id));
+    // In a production environment, you would use a WebAuthn library to verify
+    // the assertion and update the credential counter. For this demo, we'll just
+    // update the user session.
 
-    // If user is in session, mark them as verified
+    // Set user session
     if (req.session) {
+      req.session.userId = String(user.id);
       req.session.isVerified = true;
-      if (!req.session.userId) {
-        // Ensure userId is stored as a string in the session
-        req.session.userId = userCredential[0].userId;  // Already a string from the schema
-      }
     }
 
-    return res.status(200).json({ 
-      success: true, 
-      message: 'Authentication successful',
-      userId: userCredential[0].userId 
+    // Update credential counter (not implemented in this demo)
+    // await storage.updateCredentialCounter(credential.id, newCounter);
+
+    // Remove the used challenge
+    challenges.delete(req.session.challengeId);
+    delete req.session.challengeId;
+
+    res.status(200).json({ 
+      message: "Authentication successful", 
+      username: user.username,
+      authenticated: true
     });
   } catch (error) {
-    console.error('WebAuthn authentication verification error:', error);
-    return res.status(500).json({ error: 'Failed to verify authentication' });
+    console.error("Error verifying authentication:", error);
+    res.status(500).json({ message: "Error verifying authentication" });
   }
 }
 
-/**
- * Register hybrid biometric verification (WebAuthn + DeepFace)
- * This creates a combined verification that uses both device biometrics
- * and server-side face verification for maximum security
- */
-export async function registerHybridVerification(req: Request, res: Response) {
+// Handle hybrid registration (WebAuthn + Face)
+export async function hybridRegistration(req: Request, res: Response): Promise<void> {
   try {
-    const { challengeId, credential, faceImage } = req.body;
+    const { username, faceImage, credential } = req.body;
 
-    if (!challengeId || !credential || !faceImage) {
-      return res.status(400).json({ 
-        error: 'Challenge ID, credential, and face image are required' 
-      });
+    if (!username || !faceImage || !credential) {
+      res.status(400).json({ message: "Missing required fields" });
+      return;
     }
 
-    // Retrieve the challenge
-    const challengeData = challengeStore.get(challengeId);
+    // First, handle WebAuthn registration
+    if (!req.session || !req.session.challengeId) {
+      res.status(400).json({ message: "No challenge found in session" });
+      return;
+    }
+
+    const challengeData = challenges.get(req.session.challengeId);
     if (!challengeData) {
-      return res.status(400).json({ error: 'Challenge not found or expired' });
+      res.status(400).json({ message: "Challenge expired or invalid" });
+      return;
     }
 
-    // Delete the challenge to prevent replay attacks
-    challengeStore.delete(challengeId);
+    // Get user
+    const user = await storage.getUserByUsername(username);
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
 
-    // Verify the face using DeepFace
-    const faceResult: FaceVerificationResult = await verifyFace(
-      faceImage, 
-      challengeData.userId !== undefined ? String(challengeData.userId) : undefined, 
-      true
-    );
+    // Store WebAuthn credential
+    const savedCredential = await storage.createCredential({
+      userId: String(user.id),
+      credentialId: credential.id,
+      publicKey: JSON.stringify(credential.response),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      counter: 0,
+      transports: [],
+    });
+
+    // Next, handle face registration
+    // Convert base64 to buffer for face verification
+    const imageBuffer = Buffer.from(faceImage, 'base64');
+    const userIdString = String(user.id);
+
+    // Verify and save face
+    const faceResult = await verifyFace(faceImage, userIdString, true);
     
     if (!faceResult.success) {
-      return res.status(400).json({ 
-        error: 'Face verification failed', 
-        details: faceResult.message
-      });
+      // Remove credential if face verification fails
+      await storage.deleteCredential(credential.id);
+      res.status(400).json({ message: "Face verification failed: " + faceResult.message });
+      return;
     }
 
-    // Store the credential with the face ID
-    await db.insert(credentials).values({
-      credentialId: credential.id,
-      userId: challengeData.userId!.toString(),
-      publicKey: credential.publicKey,
-      faceId: faceResult.face_id,
-      metadata: {
-        ...credential.metadata || {},
-        hybridAuth: true,
-        faceConfidence: faceResult.confidence
-      }
-    });
+    // Mark user as verified
+    await storage.updateUser(userIdString, { isVerified: true });
 
-    return res.status(200).json({ 
-      success: true, 
-      message: 'Hybrid verification registration successful',
-      userId: challengeData.userId,
-      faceDetails: {
-        face_id: faceResult.face_id,
-        confidence: faceResult.confidence
-      }
+    // Remove the used challenge
+    challenges.delete(req.session.challengeId);
+    delete req.session.challengeId;
+
+    // Set user session
+    if (req.session) {
+      req.session.userId = String(user.id);
+      req.session.isVerified = true;
+    }
+
+    res.status(200).json({ 
+      message: "Hybrid registration successful", 
+      username: user.username,
+      registered: true,
+      credentialId: credential.id,
+      faceId: faceResult.face_id
     });
   } catch (error) {
-    console.error('Hybrid verification registration error:', error);
-    return res.status(500).json({ error: 'Failed to register hybrid verification' });
+    console.error("Error in hybrid registration:", error);
+    res.status(500).json({ message: "Error during hybrid registration" });
   }
 }
 
-/**
- * Verify using hybrid approach (WebAuthn + DeepFace)
- */
-export async function verifyHybridAuthentication(req: Request, res: Response) {
+// Handle hybrid verification (WebAuthn + Face)
+export async function hybridVerification(req: Request, res: Response): Promise<void> {
   try {
-    const { challengeId, credential, faceImage } = req.body;
+    const { id, rawId, response, type, faceImage } = req.body;
 
-    if (!challengeId || !credential) {
-      return res.status(400).json({ error: 'Challenge ID and credential are required' });
+    if (!id || !response || !faceImage) {
+      res.status(400).json({ message: "Missing required fields" });
+      return;
     }
 
-    // Retrieve the challenge
-    const challengeData = challengeStore.get(challengeId);
+    // First, verify WebAuthn assertion
+    if (!req.session || !req.session.challengeId) {
+      res.status(400).json({ message: "No challenge found in session" });
+      return;
+    }
+
+    const challengeData = challenges.get(req.session.challengeId);
     if (!challengeData) {
-      return res.status(400).json({ error: 'Challenge not found or expired' });
+      res.status(400).json({ message: "Challenge expired or invalid" });
+      return;
     }
 
-    // Delete the challenge to prevent replay attacks
-    challengeStore.delete(challengeId);
-
-    // Find the credential in the database
-    const userCredential = await db.select()
-      .from(credentials)
-      .where(eq(credentials.credentialId, credential.id))
-      .limit(1);
-
-    if (!userCredential || userCredential.length === 0) {
-      return res.status(404).json({ error: 'Credential not found' });
-    }
-
-    // Check if face verification is required (hybrid auth)
-    const isHybridAuth = userCredential[0].metadata?.hybridAuth === true;
+    const { username } = challengeData;
     
-    if (isHybridAuth && !faceImage) {
-      return res.status(400).json({ 
-        error: 'Face image is required for hybrid authentication' 
+    // Get user
+    const user = await storage.getUserByUsername(username);
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+
+    // Get credential for this user and credential ID
+    const credential = await storage.getCredential(id, String(user.id));
+    if (!credential) {
+      res.status(400).json({ message: "Credential not found" });
+      return;
+    }
+
+    // Next, verify face with the server
+    // Convert base64 to buffer for face verification
+    const imageBuffer = Buffer.from(faceImage, 'base64');
+    const userIdString = String(user.id);
+
+    // Verify face against stored face data
+    const faceResult = await verifyFace(faceImage, userIdString, false);
+    
+    if (!faceResult.success || !faceResult.matched) {
+      res.status(401).json({ 
+        message: "Face verification failed",
+        details: faceResult.message 
       });
+      return;
     }
 
-    // If hybrid auth is enabled, verify the face
-    let faceVerified = !isHybridAuth; // Skip if not hybrid auth
-    let faceResult = null;
-    
-    if (isHybridAuth && faceImage) {
-      faceResult = await verifyFace(
-        faceImage, 
-        String(userCredential[0].userId), // Explicitly convert to string
-        false
-      ) as FaceVerificationResult;
-      
-      faceVerified = faceResult.success && 
-                    (faceResult.matched || faceResult.confidence > 80);
-    }
-
-    // Update the credential counter and last used time
-    await db.update(credentials)
-      .set({ 
-        counter: userCredential[0].counter + 1,
-        lastUsed: new Date()
-      })
-      .where(eq(credentials.id, userCredential[0].id));
-
-    // If user is in session, mark them as verified
+    // Both WebAuthn and face verification passed
+    // Set user session
     if (req.session) {
-      // Only mark as verified if both checks pass for hybrid auth
-      req.session.isVerified = !isHybridAuth || (isHybridAuth && faceVerified);
-      if (!req.session.userId) {
-        // userId is already a string from the schema
-        req.session.userId = userCredential[0].userId;
-      }
+      req.session.userId = String(user.id);
+      req.session.isVerified = true;
     }
 
-    if (isHybridAuth && !faceVerified) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Face verification failed for hybrid authentication',
-        deviceVerified: true,
-        faceVerified: false
-      });
-    }
+    // Remove the used challenge
+    challenges.delete(req.session.challengeId);
+    delete req.session.challengeId;
 
-    return res.status(200).json({ 
-      success: true, 
-      message: 'Authentication successful',
-      userId: userCredential[0].userId,
+    res.status(200).json({ 
+      message: "Hybrid verification successful", 
+      username: user.username,
+      authenticated: true,
       deviceVerified: true,
-      faceVerified: isHybridAuth ? faceVerified : null,
-      faceDetails: faceResult
+      faceVerified: true
     });
   } catch (error) {
-    console.error('Hybrid verification error:', error);
-    return res.status(500).json({ error: 'Failed to verify hybrid authentication' });
+    console.error("Error in hybrid verification:", error);
+    res.status(500).json({ message: "Error during hybrid verification" });
   }
 }

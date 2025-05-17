@@ -11,7 +11,8 @@ import {
   json,
   uuid,
   index,
-  jsonb
+  jsonb,
+  primaryKey
 } from "drizzle-orm/pg-core";
 
 // Session storage for authentication
