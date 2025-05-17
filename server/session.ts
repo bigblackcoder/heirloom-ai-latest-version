@@ -33,7 +33,7 @@ export const sessionMiddleware = session(sessionConfig);
 // Types for session data
 declare module 'express-session' {
   interface SessionData {
-    userId?: number;
+    userId?: string | number;
     isVerified?: boolean;
   }
 }

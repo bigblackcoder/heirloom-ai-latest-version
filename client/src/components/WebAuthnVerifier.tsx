@@ -564,100 +564,146 @@ const WebAuthnVerifier: React.FC = () => {
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader>
+    <Card className="w-full max-w-md mx-auto shadow-lg">
+      <CardHeader className="border-b pb-4">
         <CardTitle className="flex items-center gap-2">
-          <Shield className="h-6 w-6" />
-          WebAuthn Face ID Tester
+          <Fingerprint className="h-6 w-6 text-primary" />
+          {getBiometricName()} Authentication
         </CardTitle>
         <CardDescription>
-          Test Face ID integration with WebAuthn on your MacBook
+          Secure identity verification using your device's biometric system
         </CardDescription>
       </CardHeader>
       
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 pt-6">
+        {/* Device compatibility warnings */}
         {!isWebAuthnSupported && (
           <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>WebAuthn Not Supported</AlertTitle>
-            <AlertDescription>
-              Your browser does not support WebAuthn, which is required for biometric authentication.
-            </AlertDescription>
+            <AlertCircle className="h-5 w-5 mr-2" />
+            <div>
+              <AlertTitle>Biometric Authentication Not Supported</AlertTitle>
+              <AlertDescription>
+                Your browser doesn't support biometric authentication. Please use a modern browser like Chrome, Firefox, or Safari.
+              </AlertDescription>
+            </div>
           </Alert>
         )}
         
         {isWebAuthnSupported && !isPlatformAuthenticatorAvailable && (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Face ID/Touch ID Not Available</AlertTitle>
-            <AlertDescription>
-              Your device does not have Face ID or Touch ID configured, or doesn't support platform authenticators.
-            </AlertDescription>
+          <Alert>
+            <AlertCircle className="h-5 w-5 mr-2" />
+            <div>
+              <AlertTitle>{getBiometricName()} Not Available</AlertTitle>
+              <AlertDescription>
+                Your device doesn't appear to have {getBiometricName()} configured. You can still use a security key if available.
+              </AlertDescription>
+            </div>
           </Alert>
         )}
         
-        <div className="flex items-center space-x-2">
-          <input
-            type="checkbox"
-            id="hybrid-toggle"
-            checked={isHybrid}
-            onChange={(e) => setIsHybrid(e.target.checked)}
-            className="rounded border-gray-300"
-          />
-          <label htmlFor="hybrid-toggle">
-            Use hybrid authentication (Device biometrics + server verification)
-          </label>
+        {/* Authentication progress */}
+        {authProgress > 0 && (
+          <div className="my-4">
+            <div className="flex justify-between text-sm mb-1">
+              <span>Verification in progress...</span>
+              <span>{authProgress}%</span>
+            </div>
+            <Progress value={authProgress} className="h-2" />
+          </div>
+        )}
+        
+        {/* Authentication mode selection */}
+        <div className="p-4 rounded-lg bg-muted/50">
+          <h4 className="font-medium mb-2 text-sm">Authentication Mode</h4>
+          <div className="flex items-start gap-3">
+            <input
+              type="checkbox"
+              id="hybrid-toggle"
+              checked={isHybrid}
+              onChange={(e) => setIsHybrid(e.target.checked)}
+              className="rounded border-gray-300 mt-0.5"
+            />
+            <div>
+              <label htmlFor="hybrid-toggle" className="font-medium text-sm flex items-center gap-1 cursor-pointer">
+                Two-factor biometric verification
+                <div className="relative group">
+                  <AlertCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 p-2 w-64 bg-black text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity z-50">
+                    Combines device biometrics ({getBiometricName()}) with server-side facial recognition for enhanced security.
+                  </div>
+                </div>
+              </label>
+              <p className="text-xs text-muted-foreground mt-1">
+                {isHybrid 
+                  ? `Using both ${getBiometricName()} and facial recognition for enhanced security` 
+                  : `Using only ${getBiometricName()} for faster authentication`}
+              </p>
+            </div>
+          </div>
         </div>
         
+        {/* Status message */}
         {status !== 'idle' && (
-          <Alert variant={status === 'error' ? 'destructive' : status === 'success' ? 'default' : 'outline'}>
-            <div className="flex items-center gap-2">
+          <Alert variant={status === 'error' ? 'destructive' : status === 'success' ? 'default' : 'default'}>
+            <div className="flex gap-2">
               {status === 'success' ? (
-                <CheckCircle className="h-4 w-4" />
+                <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
               ) : status === 'error' ? (
-                <XCircle className="h-4 w-4" />
+                <XCircle className="h-5 w-5 text-red-500 flex-shrink-0" />
               ) : (
-                <Fingerprint className="h-4 w-4 animate-pulse" />
+                <Loader2 className="h-5 w-5 animate-spin flex-shrink-0" />
               )}
-              <AlertTitle>
-                {status === 'registering' ? 'Registering...' : 
-                 status === 'authenticating' ? 'Authenticating...' :
-                 status === 'success' ? 'Success!' : 'Error'}
-              </AlertTitle>
+              <div>
+                <AlertTitle>
+                  {status === 'registering' ? 'Registration in Progress' : 
+                  status === 'authenticating' ? 'Authentication in Progress' :
+                  status === 'success' ? 'Success!' : 'Error'}
+                </AlertTitle>
+                <AlertDescription>{message}</AlertDescription>
+              </div>
             </div>
-            <AlertDescription>{message}</AlertDescription>
           </Alert>
         )}
         
-        {faceImage && (
-          <div className="mt-4">
-            <h3 className="text-sm font-medium mb-2">Captured Face Image:</h3>
-            <img 
-              src={faceImage} 
-              alt="Captured face" 
-              className="w-full max-w-xs mx-auto rounded-md border border-gray-300"
-            />
+        {/* Face image preview (if captured in hybrid mode) */}
+        {faceImage && isHybrid && (
+          <div className="mt-2 p-3 border rounded-md bg-muted/50">
+            <h4 className="text-sm font-medium mb-2">Captured Face Image:</h4>
+            <div className="relative">
+              <img 
+                src={faceImage} 
+                alt="Captured face" 
+                className="w-full max-w-xs mx-auto object-cover border rounded-md" 
+              />
+              {status === 'success' && (
+                <div className="absolute top-2 right-2 bg-green-500 text-white rounded-full p-1">
+                  <CheckCircle className="h-5 w-5" />
+                </div>
+              )}
+            </div>
           </div>
         )}
       </CardContent>
       
-      <CardFooter className="flex flex-col sm:flex-row gap-2">
+      <CardFooter className="flex flex-col sm:flex-row gap-3 pt-2 border-t">
         <Button 
           onClick={isHybrid ? startHybridRegistration : startRegistration}
           disabled={status === 'registering' || status === 'authenticating' || !isWebAuthnSupported}
           variant="outline"
-          className="w-full sm:w-auto"
+          className="w-full sm:flex-1 gap-2"
         >
-          Register with {isHybrid ? 'Face ID/Touch ID' : 'Device'}
+          <Fingerprint className="h-4 w-4" />
+          Register {getBiometricName()}
         </Button>
         
         <Button 
           onClick={startAuthentication}
           disabled={status === 'registering' || status === 'authenticating' || !isWebAuthnSupported}
           variant="default"
-          className="w-full sm:w-auto"
+          className="w-full sm:flex-1 gap-2"
         >
-          Authenticate with {isHybrid ? 'Face ID/Touch ID' : 'Device'}
+          <Shield className="h-4 w-4" />
+          Verify with {getBiometricName()}
         </Button>
       </CardFooter>
     </Card>
