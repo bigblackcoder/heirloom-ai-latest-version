@@ -1,39 +1,53 @@
-import session from 'express-session';
-import connectPgSimple from 'connect-pg-simple';
-import { pool } from './db';
+import session from "express-session";
+import connectPg from "connect-pg-simple";
+import { pool } from "./db";
 
-// Create a PostgreSQL session store
-const PgStore = connectPgSimple(session);
+// Initialize PostgreSQL session store
+const PgSession = connectPg(session);
 
-// Generate a random session secret if none is provided
-const SESSION_SECRET = process.env.SESSION_SECRET || Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-
-// Configure session options
-export const sessionConfig = {
-  store: new PgStore({
+// Create session configuration
+export function createSessionConfig() {
+  const ONE_WEEK = 7 * 24 * 60 * 60 * 1000; // 1 week in milliseconds
+  
+  // Create session store
+  const sessionStore = new PgSession({
     pool,
-    tableName: 'sessions', // Uses the 'sessions' table from our schema
-    createTableIfMissing: false, // Table is already created by our schema
-  }),
-  name: 'heirloom.sid',
-  secret: SESSION_SECRET,
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 1 week
-    httpOnly: true,
-    sameSite: 'lax' as const,
-    secure: false // Allow non-HTTPS for development
-  }
-};
+    tableName: "sessions",
+    createTableIfMissing: true,
+  });
 
-// Export session middleware
-export const sessionMiddleware = session(sessionConfig);
+  // Configure session middleware
+  return session({
+    secret: process.env.SESSION_SECRET || "heirloom-dev-secret-key",
+    resave: false,
+    saveUninitialized: false,
+    store: sessionStore,
+    cookie: {
+      secure: process.env.NODE_ENV === "production",
+      httpOnly: true,
+      maxAge: ONE_WEEK,
+    },
+  });
+}
 
-// Types for session data
-declare module 'express-session' {
-  interface SessionData {
-    userId?: number;
-    isVerified?: boolean;
+// Middleware to check if user is authenticated
+export function isAuthenticated(req, res, next) {
+  if (req.session && req.session.userId) {
+    return next();
   }
+  return res.status(401).json({ 
+    success: false, 
+    message: "You must be logged in to access this resource" 
+  });
+}
+
+// Middleware to check if user has verified their identity using biometrics
+export function isVerifiedIdentity(req, res, next) {
+  if (req.session && req.session.userId && req.session.identityVerified) {
+    return next();
+  }
+  return res.status(403).json({ 
+    success: false, 
+    message: "You must verify your identity with biometrics to access this resource" 
+  });
 }
