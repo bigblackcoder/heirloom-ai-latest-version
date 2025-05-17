@@ -434,7 +434,7 @@ const BiometricAuth = () => {
         }
         setStep(1);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Biometric authentication error:', err);
       setCustomError(err.message || 'Authentication failed. Please try again.');
       setStep(1);

@@ -82,7 +82,7 @@ export function useBiometricAuth(): BiometricAuthHook {
       console.log(`Registered credential ID: ${result.credentialId}`);
       
       return true;
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error registering biometric:', err);
       setError(err.message || 'Failed to register biometric credential');
       return false;
@@ -119,7 +119,7 @@ export function useBiometricAuth(): BiometricAuthHook {
       console.log(`Authenticated user: ${result.userId}`);
       
       return true;
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error authenticating with biometric:', err);
       setError(err.message || 'Biometric verification failed');
       return false;

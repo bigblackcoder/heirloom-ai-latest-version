@@ -13,8 +13,9 @@ function bufferToBase64URLString(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer);
   let str = '';
   
-  for (const byte of bytes) {
-    str += String.fromCharCode(byte);
+  // Use traditional for loop instead of for..of for compatibility
+  for (let i = 0; i < bytes.length; i++) {
+    str += String.fromCharCode(bytes[i]);
   }
   
   return btoa(str)
@@ -178,7 +179,7 @@ export async function registerBiometricCredential(
       success: true,
       credentialId
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error registering biometric credential:', error);
     return {
       success: false,
@@ -281,7 +282,7 @@ export async function authenticateWithBiometric(
       success: true,
       userId
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error authenticating with biometric:', error);
     return {
       success: false,
