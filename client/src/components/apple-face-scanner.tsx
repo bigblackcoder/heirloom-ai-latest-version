@@ -22,6 +22,10 @@ interface FaceScannerProps {
   isComplete: boolean;
 }
 
+/**
+ * Apple FaceID-style face scanner component that integrates with DeepFace
+ * backend technology for secure identity verification
+ */
 export default function AppleFaceScanner({ onProgress, onComplete, isComplete }: FaceScannerProps) {
   const webcamRef = useRef<Webcam>(null);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);

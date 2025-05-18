@@ -283,24 +283,65 @@ export default function Verification() {
           )}
           
           <TabsContent value="face" className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 mt-4">
-            <AppleFaceScanner 
-              onProgress={handleVerificationProgress} 
-              onComplete={handleVerificationComplete}
-              isComplete={isVerificationComplete}
-            />
+            {/* Face Scan Section Title */}
+            <div className="w-full max-w-md text-center mb-4">
+              <h3 className="text-xl font-medium text-white/90">Face Scan</h3>
+              <p className="text-white/60 text-sm">Position your face in the frame</p>
+            </div>
             
-            <div className="text-[#d4a166] text-2xl sm:text-3xl font-bold mt-4 sm:mt-6">
+            {/* Status Indicator */}
+            <div className="bg-blue-500/20 text-blue-300 font-medium py-2 px-4 rounded-full flex items-center mb-6">
+              <div className="w-3 h-3 bg-blue-400 rounded-full mr-2 animate-pulse"></div>
+              <span>Finding face...</span>
+            </div>
+            
+            {/* Apple FaceScanner Component */}
+            <div className="relative mb-8">
+              <div className="absolute -inset-2 rounded-full border-2 border-white/10"></div>
+              <AppleFaceScanner 
+                onProgress={handleVerificationProgress} 
+                onComplete={handleVerificationComplete}
+                isComplete={isVerificationComplete}
+              />
+            </div>
+            
+            {/* Percentage Indicator */}
+            <div className="text-[#d4a166] text-3xl font-bold my-4">
               {verificationProgress.toFixed(0)}%
             </div>
-            <p className="text-white/80 text-center text-sm sm:text-base mt-1 mb-3 max-w-[280px] sm:max-w-xs">
+            
+            <p className="text-white/80 text-center text-sm sm:text-base mb-3 max-w-[280px] sm:max-w-xs">
               Follow the guidance and move your head slowly to complete the verification.
             </p>
             
-            {/* Step indicators */}
-            <div className="flex justify-center items-center gap-2 mt-2 sm:mt-3 mb-4 sm:mb-6">
-              <div className="w-10 sm:w-12 h-1.5 rounded-full bg-[#d4a166]"></div>
-              <div className="w-2.5 sm:w-3 h-1.5 rounded-full bg-white/30"></div>
-              <div className="w-2.5 sm:w-3 h-1.5 rounded-full bg-white/30"></div>
+            {/* Step indicators - Apple style dots */}
+            <div className="flex justify-center items-center gap-3 my-6">
+              <div className="w-8 h-1.5 rounded-full bg-[#d4a166]"></div>
+              <div className="w-2 h-1.5 rounded-full bg-white/30"></div>
+              <div className="w-2 h-1.5 rounded-full bg-white/30"></div>
+            </div>
+            
+            {/* Verification Tips */}
+            <div className="w-full max-w-md space-y-4 mt-2">
+              <div className="flex items-center">
+                <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center mr-3">
+                  <svg className="w-5 h-5 text-white/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                </div>
+                <p className="text-white/70 text-sm">Make sure your face is clearly visible</p>
+              </div>
+              
+              <div className="flex items-center">
+                <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center mr-3">
+                  <svg className="w-5 h-5 text-white/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 22V12h6v10" />
+                  </svg>
+                </div>
+                <p className="text-white/70 text-sm">Hold your device at eye level</p>
+              </div>
             </div>
           </TabsContent>
           
