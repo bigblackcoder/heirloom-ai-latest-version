@@ -1,16 +1,25 @@
-import { Router } from 'express';
-import * as WebAuthnController from '../webauthn-controller';
+/**
+ * WebAuthn API Routes
+ * Handles registration and authentication using the WebAuthn protocol
+ */
 
-const router = Router();
+import express from 'express';
+import * as controller from '../webauthn-controller';
 
-// Registration routes
-router.post('/register/start', WebAuthnController.startRegistration);
-router.post('/register/complete', WebAuthnController.completeRegistration);
-router.post('/register/status', WebAuthnController.getRegistrationStatus);
+const router = express.Router();
 
-// Authentication routes
-router.post('/authenticate/start', WebAuthnController.startAuthentication);
-router.post('/authenticate/complete', WebAuthnController.completeAuthentication);
-router.post('/authenticate/status', WebAuthnController.getAuthenticationStatus);
+/**
+ * Registration endpoints
+ */
+router.post('/registration/start', controller.startRegistration);
+router.post('/registration/complete', controller.completeRegistration);
+router.get('/registration/status', controller.getRegistrationStatus);
+
+/**
+ * Authentication endpoints
+ */
+router.post('/authentication/start', controller.startAuthentication);
+router.post('/authentication/complete', controller.completeAuthentication);
+router.get('/authentication/status', controller.getAuthenticationStatus);
 
 export default router;
