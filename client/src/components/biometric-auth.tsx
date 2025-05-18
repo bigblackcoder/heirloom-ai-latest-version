@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { startRegistration, startAuthentication } from '@/lib/webauthn';
+// Importing WebAuthn utilities
+import { startRegistration, startAuthentication } from '../lib/webauthn';
 import { useToast } from "@/hooks/use-toast";
 
 interface BiometricAuthProps {

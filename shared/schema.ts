@@ -149,6 +149,6 @@ export const credentials = pgTable("credentials", {
   metadata: json("metadata").$type<Record<string, any>>()
 });
 
-export const insertCredentialSchema = createInsertSchema(credentials).omit({ id: true, counter: true, createdAt: true, lastUsed: true });
+export const insertCredentialSchema = createInsertSchema(credentials).omit({ counter: true, createdAt: true, lastUsed: true });
 export type InsertCredential = z.infer<typeof insertCredentialSchema>;
 export type Credential = typeof credentials.$inferSelect;

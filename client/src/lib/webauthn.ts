@@ -1,19 +1,28 @@
 /**
- * WebAuthn utility functions for the client side
- * This file contains functions for registering and authenticating with device biometrics
+ * WebAuthn client utility functions
+ * Handles communication with the WebAuthn API endpoints
  */
 
-// Base64 encoding/decoding utilities
-function base64ToBuffer(base64: string): ArrayBuffer {
+/**
+ * Converts a base64 string to a Uint8Array
+ * @param base64 Base64 encoded string
+ * @returns Uint8Array representation
+ */
+export function base64ToArrayBuffer(base64: string): Uint8Array {
   const binaryString = atob(base64.replace(/-/g, '+').replace(/_/g, '/'));
   const bytes = new Uint8Array(binaryString.length);
   for (let i = 0; i < binaryString.length; i++) {
     bytes[i] = binaryString.charCodeAt(i);
   }
-  return bytes.buffer;
+  return bytes;
 }
 
-function bufferToBase64(buffer: ArrayBuffer): string {
+/**
+ * Converts an ArrayBuffer to a base64 string
+ * @param buffer ArrayBuffer to convert
+ * @returns Base64 encoded string
+ */
+export function arrayBufferToBase64(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer);
   let binary = '';
   for (let i = 0; i < bytes.byteLength; i++) {
@@ -23,182 +32,160 @@ function bufferToBase64(buffer: ArrayBuffer): string {
 }
 
 /**
- * Start the registration process for WebAuthn
- * 
- * @param userId - User ID to associate with the credential
- * @param username - Optional username for the credential
- * @returns Promise with the registration result
+ * Starts the WebAuthn registration process
+ * @param userId User ID for registration
+ * @param username Optional username
+ * @returns Promise resolving to registration result
  */
 export async function startRegistration(userId: string, username?: string): Promise<any> {
   try {
-    // 1. Get the challenge from the server
-    const challengeResponse = await fetch(`/api/webauthn/register/start`, {
+    // Step 1: Get registration options from server
+    const response = await fetch('/api/webauthn/registration/start', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, username: username || 'user' })
+      body: JSON.stringify({ userId, username })
     });
     
-    if (!challengeResponse.ok) {
-      const error = await challengeResponse.json();
+    if (!response.ok) {
+      const error = await response.json();
       throw new Error(error.message || 'Failed to start registration');
     }
     
-    const challengeData = await challengeResponse.json();
+    const options = await response.json();
     
-    // 2. Prepare the credential creation options
-    const publicKeyCredentialCreationOptions = {
-      challenge: base64ToBuffer(challengeData.challenge),
-      rp: {
-        name: 'Heirloom Identity Platform',
-        id: window.location.hostname
-      },
-      user: {
-        id: base64ToBuffer(btoa(userId.toString())),
-        name: username || 'user',
-        displayName: username || 'User'
-      },
-      pubKeyCredParams: [
-        { type: 'public-key', alg: -7 }, // ES256
-        { type: 'public-key', alg: -257 } // RS256
-      ],
-      timeout: 60000,
-      attestation: 'direct',
-      authenticatorSelection: {
-        authenticatorAttachment: 'platform',
-        userVerification: 'preferred',
-        requireResidentKey: false
-      }
-    };
+    // Convert base64 challenge to ArrayBuffer
+    options.publicKey.challenge = base64ToArrayBuffer(options.publicKey.challenge);
     
-    // 3. Create the credential using WebAuthn API
-    const credential = await navigator.credentials.create({
-      publicKey: publicKeyCredentialCreationOptions as PublicKeyCredentialCreationOptions
-    }) as PublicKeyCredential;
-    
-    if (!credential) {
-      throw new Error('Failed to create credential');
+    // Convert base64 user ID to ArrayBuffer
+    if (options.publicKey.user && options.publicKey.user.id) {
+      options.publicKey.user.id = base64ToArrayBuffer(options.publicKey.user.id);
     }
     
-    // 4. Format the response to send back to server
+    // Step 2: Create credentials with browser's WebAuthn API
+    const credential = await navigator.credentials.create({
+      publicKey: options.publicKey
+    }) as PublicKeyCredential;
+    
+    // Step 3: Get attestation response for sending to server
     const attestationResponse = credential.response as AuthenticatorAttestationResponse;
     
-    const registrationResult = {
+    // Prepare response data
+    const registrationResponse = {
       id: credential.id,
-      rawId: bufferToBase64(credential.rawId),
-      type: credential.type,
+      rawId: arrayBufferToBase64(credential.rawId),
       response: {
-        attestationObject: bufferToBase64(attestationResponse.attestationObject),
-        clientDataJSON: bufferToBase64(attestationResponse.clientDataJSON)
+        clientDataJSON: arrayBufferToBase64(attestationResponse.clientDataJSON),
+        attestationObject: arrayBufferToBase64(attestationResponse.attestationObject),
       },
-      challengeId: challengeData.id,
-      faceImage: null // This will be set by the verification component if face image is captured
+      type: credential.type
     };
     
-    // 5. Complete registration with the server
-    const completeResponse = await fetch(`/api/webauthn/register/complete`, {
+    // Step 4: Send attestation to server
+    const verificationResponse = await fetch('/api/webauthn/registration/complete', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(registrationResult)
+      body: JSON.stringify({
+        userId,
+        credential: registrationResponse
+      })
     });
     
-    if (!completeResponse.ok) {
-      const error = await completeResponse.json();
+    if (!verificationResponse.ok) {
+      const error = await verificationResponse.json();
       throw new Error(error.message || 'Failed to complete registration');
     }
     
-    const completeData = await completeResponse.json();
-    return { success: true, ...completeData };
+    // Return server response
+    return await verificationResponse.json();
     
-  } catch (error) {
+  } catch (error: any) {
     console.error('WebAuthn registration error:', error);
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Registration failed' 
+    return {
+      success: false,
+      message: error.message || 'Failed to complete registration'
     };
   }
 }
 
 /**
- * Start the authentication process for WebAuthn
- * 
- * @param userId - User ID to authenticate
- * @returns Promise with the authentication result
+ * Starts the WebAuthn authentication process
+ * @param userId User ID for authentication
+ * @returns Promise resolving to authentication result
  */
 export async function startAuthentication(userId: string): Promise<any> {
   try {
-    // 1. Get the challenge from the server
-    const challengeResponse = await fetch(`/api/webauthn/authenticate/start`, {
+    // Step 1: Get authentication options from server
+    const response = await fetch('/api/webauthn/authentication/start', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId })
     });
     
-    if (!challengeResponse.ok) {
-      const error = await challengeResponse.json();
+    if (!response.ok) {
+      const error = await response.json();
       throw new Error(error.message || 'Failed to start authentication');
     }
     
-    const challengeData = await challengeResponse.json();
+    const options = await response.json();
     
-    // 2. Prepare the credential request options
-    const publicKeyCredentialRequestOptions = {
-      challenge: base64ToBuffer(challengeData.challenge),
-      rpId: window.location.hostname,
-      timeout: 60000,
-      userVerification: 'preferred',
-      allowCredentials: challengeData.allowCredentials?.map((credential: any) => ({
-        id: base64ToBuffer(credential.id),
-        type: 'public-key',
-        transports: ['internal']
-      })) || []
-    };
+    // Convert base64 challenge to ArrayBuffer
+    options.publicKey.challenge = base64ToArrayBuffer(options.publicKey.challenge);
     
-    // 3. Get the credential using WebAuthn API
-    const credential = await navigator.credentials.get({
-      publicKey: publicKeyCredentialRequestOptions as PublicKeyCredentialRequestOptions
-    }) as PublicKeyCredential;
-    
-    if (!credential) {
-      throw new Error('Failed to get credential');
+    // Convert credential IDs from base64 to ArrayBuffer
+    if (options.publicKey.allowCredentials) {
+      options.publicKey.allowCredentials = options.publicKey.allowCredentials.map((credential: any) => {
+        return {
+          ...credential,
+          id: base64ToArrayBuffer(credential.id)
+        };
+      });
     }
     
-    // 4. Format the response to send back to server
+    // Step 2: Get credentials with browser's WebAuthn API
+    const credential = await navigator.credentials.get({
+      publicKey: options.publicKey
+    }) as PublicKeyCredential;
+    
+    // Step 3: Get assertion response for sending to server
     const assertionResponse = credential.response as AuthenticatorAssertionResponse;
     
-    const authenticationResult = {
+    // Prepare response data
+    const authenticationResponse = {
       id: credential.id,
-      rawId: bufferToBase64(credential.rawId),
-      type: credential.type,
+      rawId: arrayBufferToBase64(credential.rawId),
       response: {
-        authenticatorData: bufferToBase64(assertionResponse.authenticatorData),
-        clientDataJSON: bufferToBase64(assertionResponse.clientDataJSON),
-        signature: bufferToBase64(assertionResponse.signature),
-        userHandle: assertionResponse.userHandle ? bufferToBase64(assertionResponse.userHandle) : null
+        clientDataJSON: arrayBufferToBase64(assertionResponse.clientDataJSON),
+        authenticatorData: arrayBufferToBase64(assertionResponse.authenticatorData),
+        signature: arrayBufferToBase64(assertionResponse.signature),
+        userHandle: assertionResponse.userHandle ? 
+          arrayBufferToBase64(assertionResponse.userHandle) : null,
       },
-      challengeId: challengeData.id,
-      faceImage: null // This will be set by the verification component if face image is captured
+      type: credential.type
     };
     
-    // 5. Complete authentication with the server
-    const completeResponse = await fetch(`/api/webauthn/authenticate/complete`, {
+    // Step 4: Send assertion to server
+    const verificationResponse = await fetch('/api/webauthn/authentication/complete', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(authenticationResult)
+      body: JSON.stringify({
+        userId,
+        credential: authenticationResponse
+      })
     });
     
-    if (!completeResponse.ok) {
-      const error = await completeResponse.json();
+    if (!verificationResponse.ok) {
+      const error = await verificationResponse.json();
       throw new Error(error.message || 'Failed to complete authentication');
     }
     
-    const completeData = await completeResponse.json();
-    return { success: true, ...completeData };
+    // Return server response
+    return await verificationResponse.json();
     
-  } catch (error) {
+  } catch (error: any) {
     console.error('WebAuthn authentication error:', error);
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Authentication failed' 
+    return {
+      success: false,
+      message: error.message || 'Failed to complete authentication'
     };
   }
 }
