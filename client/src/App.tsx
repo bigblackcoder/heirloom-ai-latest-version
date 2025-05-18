@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Route, Switch, useLocation } from 'wouter';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
@@ -10,7 +10,6 @@ import { Toaster } from '@/components/ui/toaster';
 import HomePage from './pages/HomePage';
 import AuthenticationPage from './pages/AuthenticationPage';
 import WebAuthnTest from './pages/WebAuthnTest';
-import Dashboard from './pages/dashboard';
 import FaceIDTest from './pages/FaceIDTest';
 import DataOwnershipPage from './pages/DataOwnershipPage';
 import AIPermissionsPage from './pages/AIPermissionsPage';
@@ -18,8 +17,10 @@ import NotificationsPage from './pages/notifications';
 import SettingsPage from './pages/settings';
 import ProfilePage from './pages/profile';
 import VerificationPage from './pages/verification';
+import Dashboard from './pages/dashboard';
 import VerificationOptionsPage from './pages/verification-options';
 import CapsulePage from './pages/capsule';
+import Home from './pages/Home';
 
 // Import providers and hooks
 import { AuthProvider } from './providers/auth-provider';
@@ -53,6 +54,38 @@ const NotFoundPage = () => {
 };
 
 function App() {
+  // Set up authentication state
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  
+  // Check if user is authenticated
+  useEffect(() => {
+    const checkAuth = () => {
+      // Check for authentication token
+      const userToken = localStorage.getItem('userToken');
+      setIsAuthenticated(!!userToken);
+    };
+    
+    checkAuth();
+    
+    // Listen for storage changes (for multi-tab support)
+    window.addEventListener('storage', checkAuth);
+    
+    return () => {
+      window.removeEventListener('storage', checkAuth);
+    };
+  }, []);
+  
+  // Mock login/logout functions
+  const login = (token: string) => {
+    localStorage.setItem('userToken', token);
+    setIsAuthenticated(true);
+  };
+  
+  const logout = () => {
+    localStorage.removeItem('userToken');
+    setIsAuthenticated(false);
+  };
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
@@ -60,6 +93,9 @@ function App() {
           <Route path="/" component={HomePage} />
           <Route path="/authenticate">
             <AuthenticationPage />
+          </Route>
+          <Route path="/home">
+            <Home />
           </Route>
           <Route path="/dashboard">
             <Dashboard />
