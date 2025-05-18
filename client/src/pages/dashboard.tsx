@@ -157,7 +157,7 @@ export default function Dashboard() {
           <div className="flex items-center">
             <div className="w-10 h-10 rounded-xl bg-[#8ccc5c] flex items-center justify-center shadow mr-3">
               <HeirloomLogo className="w-6 h-6 text-white" />
-            </div>
+            </div>å
             <div>
               <h1 className="text-lg font-semibold text-gray-900">
                 {getGreeting()}, {displayUser?.firstName || displayUser?.username || "User"}

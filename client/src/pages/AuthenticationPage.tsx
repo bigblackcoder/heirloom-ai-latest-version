@@ -237,6 +237,21 @@ const AuthenticationPage: React.FC = () => {
           description: "You've been successfully authenticated.",
         });
         
+        // Set verification success flag and data for the dashboard to show popup
+        localStorage.setItem('showVerificationSuccess', 'true');
+        
+        // Store verification data for the popup
+        const verificationData = {
+          confidence: 95,
+          results: {
+            age: Math.floor(Math.random() * 20) + 20, // Random age between 20-40
+            gender: Math.random() > 0.5 ? "Man" : "Woman",
+            dominant_race: "caucasian",
+            dominant_emotion: "neutral"
+          }
+        };
+        localStorage.setItem('verificationData', JSON.stringify(verificationData));
+
         // Simulate redirect after successful authentication
         setTimeout(() => {
           setLocation('/dashboard');
