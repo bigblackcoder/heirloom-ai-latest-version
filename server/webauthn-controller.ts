@@ -126,8 +126,7 @@ export async function completeRegistration(req: Request, res: Response) {
     await db.insert(credentials).values({
       id: rawId,
       userId: parseInt(userId),
-      publicKey: JSON.stringify(response),
-      createdAt: new Date()
+      publicKey: JSON.stringify(response)
     });
     
     // If face image was provided, verify it

@@ -139,9 +139,8 @@ export type Achievement = typeof achievements.$inferSelect;
 
 // WebAuthn Credentials for device-based biometric authentication
 export const credentials = pgTable("credentials", {
-  id: serial("id").primaryKey(),
-  credentialId: text("credential_id").notNull().unique(),
-  userId: text("user_id").notNull(),
+  id: text("id").primaryKey(), // Using the client-generated credential ID as primary key
+  userId: integer("user_id").references(() => users.id).notNull(),
   publicKey: text("public_key"),
   counter: integer("counter").default(0).notNull(),
   faceId: uuid("face_id").references(() => faceRecords.id),

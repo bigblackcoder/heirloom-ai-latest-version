@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import AppleFaceScanner from "@/components/apple-face-scanner";
-import BiometricAuth from "@/components/biometric-auth";
+import { BiometricAuth } from "@/components/biometric-auth";
 import SuccessModal from "@/components/success-modal";
 
 export default function Verification() {

@@ -66,7 +66,7 @@ export function BiometricAuth({
         toast({
           title: "Registration Successful",
           description: "Your device has been registered for biometric authentication",
-          variant: "success"
+          variant: "default"
         });
         onSuccess(result);
       } else {
@@ -104,7 +104,7 @@ export function BiometricAuth({
         toast({
           title: "Authentication Successful",
           description: "Your identity has been verified",
-          variant: "success"
+          variant: "default"
         });
         onSuccess(result);
       } else {
