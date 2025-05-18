@@ -1,6 +1,6 @@
 import React, { ReactNode } from 'react';
 import { useLocation } from 'wouter';
-import { useAuth } from '@/providers/auth-provider';
+import { useAuth } from '@/hooks/use-unified-auth';
 
 interface ProtectedRouteProps {
   children: ReactNode;
