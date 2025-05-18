@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth } from "@/hooks/use-unified-auth";
 import { getGreeting } from "@/lib/identity";
 import { apiRequest } from "@/lib/queryClient";
 import { ProtectedRoute } from "@/components/protected-route";
