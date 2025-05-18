@@ -3,6 +3,7 @@ import Webcam from 'react-webcam';
 import { useFaceVerification } from '@/hooks/use-face-verification';
 import { useIsMobile } from '@/hooks/use-is-mobile';
 import { DebugSession } from './debug-session';
+import { CheckCircle2, Scan } from 'lucide-react';
 
 // Type for face positioning instructions
 type FacePositionType = 'center' | 'moving' | 'unstable' | 'detecting' | 'aligned';
@@ -47,7 +48,7 @@ export default function AppleFaceScanner({ onProgress, onComplete, isComplete }:
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const lastImageDataRef = useRef<ImageData | null>(null);
   
-  const { startDetection, stopDetection, verificationProgress, verificationResult, simulateVerification } = useFaceVerification();
+  const { startDetection, stopDetection, verificationProgress, verificationResult, simulateVerification, verifyFace } = useFaceVerification();
   const isMobile = useIsMobile();
   const demoSimulationRef = useRef<(() => void) | null>(null);
   
