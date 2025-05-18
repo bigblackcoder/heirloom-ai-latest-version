@@ -127,21 +127,8 @@ export async function generateRegistrationOptions(
       });
     }
 
-    // Convert userId to number if it's a string, with improved validation
-    let numUserId: number;
-    if (typeof userId === 'string') {
-      const parsed = parseInt(userId, 10);
-      numUserId = isNaN(parsed) ? 0 : parsed;
-    } else if (typeof userId === 'number') {
-      numUserId = userId;
-    } else {
-      numUserId = 0;
-    }
-    
-    // Safety check for valid userId
-    if (numUserId <= 0) {
-      return res.status(400).json({ message: 'Invalid user ID' });
-    }
+    // Convert userId to number if it's a string
+    const numUserId = typeof userId === 'string' ? parseInt(userId, 10) : userId;
 
     // Check for existing credentials to exclude
     const existingCredentials = await db.select()
@@ -322,21 +309,8 @@ export async function generateAuthenticationOptions(
       return res.status(400).json({ message: 'User ID is required' });
     }
 
-    // Convert userId to number if it's a string, with improved validation
-    let numUserId: number;
-    if (typeof userId === 'string') {
-      const parsed = parseInt(userId, 10);
-      numUserId = isNaN(parsed) ? 0 : parsed;
-    } else if (typeof userId === 'number') {
-      numUserId = userId;
-    } else {
-      numUserId = 0;
-    }
-    
-    // Safety check for valid userId
-    if (numUserId <= 0) {
-      return res.status(400).json({ message: 'Invalid user ID' });
-    }
+    // Convert userId to number if it's a string
+    const numUserId = typeof userId === 'string' ? parseInt(userId, 10) : userId;
 
     // Get user's registered credentials
     const credentials = await db.select()

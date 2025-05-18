@@ -1,187 +1,170 @@
 import React, { useState } from 'react';
-import { useLocation } from 'wouter';
+import { WebAuthnVerifier, WebAuthnAuthenticationResponse } from '@/components/WebAuthnVerifier';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-// Import UI components
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-
+/**
+ * WebAuthn Test Page
+ * 
+ * This page provides a testing interface for the WebAuthn authentication system.
+ * It allows users to test both registration and authentication flows.
+ */
 const WebAuthnTest: React.FC = () => {
-  // State
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [credentialId, setCredentialId] = useState<string | null>(null);
+  // User information for testing
+  const [userId, setUserId] = useState<number>(1);
+  const [username, setUsername] = useState<string>('testuser');
+  const [displayName, setDisplayName] = useState<string>('Test User');
   
-  // Navigation
-  const [, setLocation] = useLocation();
+  // Authentication state
+  const [activeTab, setActiveTab] = useState<string>('register');
+  const [authResult, setAuthResult] = useState<WebAuthnAuthenticationResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  // Handle WebAuthn registration
-  const handleRegister = async () => {
-    try {
-      setIsProcessing(true);
-      setError(null);
-      setSuccess(null);
+  // Handle successful authentication
+  const handleSuccess = (response: WebAuthnAuthenticationResponse) => {
+    setAuthResult(response);
+    setError(null);
 
-      // Generate random user ID for testing
-      const userId = Math.floor(Math.random() * 10000);
-      const username = `user_${userId}`;
-
-      // Create challenge
-      const challenge = new Uint8Array(32);
-      window.crypto.getRandomValues(challenge);
-
-      // Create credential creation options
-      const publicKeyCredentialCreationOptions: CredentialCreationOptions = {
-        publicKey: {
-          challenge,
-          rp: {
-            name: 'Heirloom Identity Platform',
-            id: window.location.hostname
-          },
-          user: {
-            id: new TextEncoder().encode(userId.toString()),
-            name: username,
-            displayName: `Test User ${userId}`,
-          },
-          pubKeyCredParams: [
-            { type: 'public-key', alg: -7 },  // ES256
-            { type: 'public-key', alg: -257 } // RS256
-          ],
-          authenticatorSelection: {
-            authenticatorAttachment: 'platform',
-            userVerification: 'required',
-            residentKey: 'preferred'
-          },
-          timeout: 60000,
-          attestation: 'none'
-        }
-      };
-
-      // Create WebAuthn credential
-      const credential = await navigator.credentials.create(publicKeyCredentialCreationOptions);
-      
-      if (credential) {
-        setCredentialId((credential as PublicKeyCredential).id);
-        setSuccess('Registration successful! Your device is now registered for biometric authentication.');
-      }
-    } catch (err: any) {
-      console.error('WebAuthn registration error:', err);
-      setError(`Registration failed: ${err.message}`);
-    } finally {
-      setIsProcessing(false);
+    // If registration was successful, switch to authenticate tab
+    if (activeTab === 'register' && response.verified) {
+      setTimeout(() => setActiveTab('authenticate'), 2000);
     }
   };
 
-  // Handle WebAuthn authentication
-  const handleAuthenticate = async () => {
-    try {
-      setIsProcessing(true);
-      setError(null);
-      setSuccess(null);
+  // Handle authentication errors
+  const handleError = (err: Error) => {
+    setError(err.message);
+    setAuthResult(null);
+  };
 
-      // Create challenge
-      const challenge = new Uint8Array(32);
-      window.crypto.getRandomValues(challenge);
-
-      // Create credential request options
-      const publicKeyCredentialRequestOptions: CredentialRequestOptions = {
-        publicKey: {
-          challenge,
-          rpId: window.location.hostname,
-          allowCredentials: credentialId ? [{
-            id: Uint8Array.from(
-              atob(credentialId.replace(/-/g, '+').replace(/_/g, '/')), 
-              c => c.charCodeAt(0)
-            ),
-            type: 'public-key',
-            transports: ['internal']
-          }] : undefined,
-          userVerification: 'required',
-          timeout: 60000
-        }
-      };
-
-      // Get credentials
-      const assertion = await navigator.credentials.get(publicKeyCredentialRequestOptions);
-      
-      if (assertion) {
-        setSuccess('Authentication successful! Your identity has been verified by your device.');
-        
-        // In a real app, we would store an auth token
-        localStorage.setItem('userToken', 'mock-auth-token-' + Date.now());
-      }
-    } catch (err: any) {
-      console.error('WebAuthn authentication error:', err);
-      setError(`Authentication failed: ${err.message}`);
-    } finally {
-      setIsProcessing(false);
-    }
+  // Reset the test
+  const resetTest = () => {
+    setAuthResult(null);
+    setError(null);
   };
 
   return (
-    <div className="webauthn-test-page min-h-screen flex items-center justify-center py-12 px-4 bg-gradient-to-b from-[#273414] to-[#1d2810]">
-      <Card className="w-full max-w-md border-0 shadow-lg">
-        <CardHeader className="border-b border-muted pb-4">
-          <CardTitle className="text-center text-2xl font-bold text-[#273414]">WebAuthn Biometric Test</CardTitle>
-          <CardDescription className="text-center text-muted-foreground">
-            Test your device's biometric authentication capabilities
-          </CardDescription>
-        </CardHeader>
+    <div className="container mx-auto p-4 md:p-8">
+      <div className="max-w-3xl mx-auto">
+        <h1 className="text-3xl font-bold mb-6">WebAuthn Biometric Authentication Test</h1>
         
-        <CardContent className="pt-6">
-          {error && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertTitle>Error</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Test Configuration</CardTitle>
+            <CardDescription>
+              Enter the user information to test WebAuthn authentication
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="userId">User ID</Label>
+                <Input
+                  id="userId"
+                  type="number"
+                  value={userId}
+                  onChange={(e) => setUserId(parseInt(e.target.value))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="username">Username</Label>
+                <Input
+                  id="username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="displayName">Display Name</Label>
+                <Input
+                  id="displayName"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsTrigger value="register">Register</TabsTrigger>
+            <TabsTrigger value="authenticate">Authenticate</TabsTrigger>
+          </TabsList>
           
-          {success && (
-            <Alert className="mb-4 bg-[#e9f0e6] border-[#273414]/20">
-              <AlertTitle className="text-[#273414]">Success</AlertTitle>
-              <AlertDescription className="text-[#273414]/80">{success}</AlertDescription>
-            </Alert>
-          )}
+          <TabsContent value="register" className="mb-8">
+            <WebAuthnVerifier
+              userId={userId}
+              username={username}
+              displayName={displayName}
+              mode="register"
+              onSuccess={handleSuccess}
+              onError={handleError}
+            />
+          </TabsContent>
           
-          <div className="flex flex-col gap-4 mt-4">
-            <Button
-              onClick={handleRegister}
-              disabled={isProcessing}
-              className="w-full bg-[#273414] hover:bg-[#1d2810] text-white"
-            >
-              {isProcessing ? 'Processing...' : 'Register Device'}
-            </Button>
-            
-            <Button
-              onClick={handleAuthenticate}
-              disabled={isProcessing}
-              variant={credentialId ? "default" : "outline"}
-              className={`w-full ${credentialId ? 'bg-[#273414] hover:bg-[#1d2810] text-white' : 'border-[#273414] text-[#273414] hover:bg-[#e9f0e6]'}`}
-            >
-              {isProcessing ? 'Processing...' : 'Authenticate'}
-            </Button>
-          </div>
-        </CardContent>
-        
-        <CardFooter className="flex justify-between border-t border-muted pt-4">
-          <Button 
-            variant="outline" 
-            onClick={() => setLocation('/')}
-            className="border-[#273414] text-[#273414] hover:bg-[#e9f0e6]"
-          >
-            Back to Home
-          </Button>
-          
-          <Button 
-            variant="outline" 
-            onClick={() => setLocation('/authenticate')}
-            className="border-[#273414] text-[#273414] hover:bg-[#e9f0e6]"
-          >
-            Full Authentication
-          </Button>
-        </CardFooter>
-      </Card>
+          <TabsContent value="authenticate" className="mb-8">
+            <WebAuthnVerifier
+              userId={userId}
+              username={username}
+              displayName={displayName}
+              mode="authenticate"
+              onSuccess={handleSuccess}
+              onError={handleError}
+            />
+          </TabsContent>
+        </Tabs>
+
+        {/* Show the authentication result */}
+        {authResult && (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Authentication Result</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 gap-2">
+                <div className="flex justify-between">
+                  <span className="font-medium">Status:</span>
+                  <span className={`font-bold ${authResult.verified ? 'text-green-600' : 'text-red-600'}`}>
+                    {authResult.verified ? 'Verified' : 'Failed'}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-medium">User ID:</span>
+                  <span>{authResult.userId}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-medium">Message:</span>
+                  <span>{authResult.message}</span>
+                </div>
+                {authResult.credentialId && (
+                  <div className="flex justify-between">
+                    <span className="font-medium">Credential ID:</span>
+                    <span className="font-mono text-xs truncate max-w-xs">{authResult.credentialId}</span>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Show any errors */}
+        {error && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertTitle>Authentication Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        {/* Reset button */}
+        <div className="flex justify-center">
+          <Button onClick={resetTest}>Reset Test</Button>
+        </div>
+      </div>
     </div>
   );
 };
