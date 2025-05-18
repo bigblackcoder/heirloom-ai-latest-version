@@ -2,13 +2,19 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import AppleFaceScanner from "@/components/apple-face-scanner";
+import BiometricAuth from "@/components/biometric-auth";
 import SuccessModal from "@/components/success-modal";
 
 export default function Verification() {
   const [_, navigate] = useLocation();
   const { toast } = useToast();
+  const { user, registerBiometric, authenticateBiometric } = useAuth();
+  const [verificationMethod, setVerificationMethod] = useState<'face' | 'device'>('face');
   const [verificationProgress, setVerificationProgress] = useState(0);
   const [isVerificationComplete, setIsVerificationComplete] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -48,84 +54,100 @@ export default function Verification() {
     setVerificationProgress(progress);
   };
   
+  // Handle face verification complete
   const handleVerificationComplete = async (imageData?: string) => {
-    console.log("Verification complete, progress:", verificationProgress);
+    console.log("Face verification complete, progress:", verificationProgress);
     setIsVerificationComplete(true);
     
-    // Using a separate check for demo mode
-    const isDemoMode = window.location.search.includes('demo') || !imageData?.startsWith('data:image');
-    
-    // For demo purposes - if we're in demo mode OR progress is high enough, show success
-    if (isDemoMode || verificationProgress >= 98) {
-      console.log('Using demo data, progress:', verificationProgress);
-      
-      // Use demo data for simulation mode
-      setVerificationData({
-        confidence: 0.95,
-        results: {
-          age: 28,
-          gender: "Man",
-          dominant_race: "caucasian",
-          dominant_emotion: "neutral"
+    if (verificationProgress >= 98 && imageData) {
+      try {
+        // Call backend verification endpoint with the captured image data
+        const response = await apiRequest({
+          url: "/api/verification/face",
+          method: "POST",
+          body: { image: imageData }
+        });
+        
+        if (response && response.success) {
+          // Store verification data for display in the success modal
+          setVerificationData({
+            confidence: response.confidence,
+            results: response.results
+          });
+          
+          // Show success modal
+          setShowSuccessModal(true);
+          return;
         }
-      });
-      
-      // Show success modal
-      setShowSuccessModal(true);
-      return;
+      } catch (error) {
+        console.error("Verification error:", error);
+        toast({
+          variant: "destructive",
+          title: "Verification Error",
+          description: "There was a problem with the face verification. Please try again."
+        });
+        setIsVerificationComplete(false);
+        return;
+      }
     }
     
+    // For default case, try to verify without image data, will use server-side detection
     try {
-      // Call backend verification endpoint with the captured image data if available
       const response = await apiRequest({
-        url: "/api/verification/face",
-        method: "POST",
-        body: { image: imageData }
+        url: "/api/verification/face/basic",
+        method: "POST"
       });
       
       if (response && response.success) {
-        // Store verification data for display in the success modal
         setVerificationData({
           confidence: response.confidence,
-          results: response.results
+          results: response.results || {}
         });
         
-        // Show success modal
         setShowSuccessModal(true);
       } else {
-        // Fallback to demo data in case of failure
-        console.log('API failed, using demo data');
-        setVerificationData({
-          confidence: 0.95,
-          results: {
-            age: 28,
-            gender: "Man",
-            dominant_race: "caucasian",
-            dominant_emotion: "neutral"
-          }
+        toast({
+          variant: "destructive",
+          title: "Verification Failed",
+          description: "Unable to verify your identity. Please try again or use device biometrics."
         });
-        
-        // Show success modal anyway to maintain user flow
-        setShowSuccessModal(true);
+        setIsVerificationComplete(false);
       }
     } catch (error) {
-      console.error("Verification error:", error);
-      
-      // For demo purposes, always show success even if API fails
-      console.log('API failed but showing success for demo');
-      setVerificationData({
-        confidence: 0.95,
-        results: {
-          age: 28,
-          gender: "Man",
-          dominant_race: "caucasian",
-          dominant_emotion: "neutral"
-        }
+      console.error("Basic verification error:", error);
+      toast({
+        variant: "destructive",
+        title: "Verification Failed",
+        description: "There was a problem verifying your identity. Please try again."
       });
-      
-      // Show success modal
-      setShowSuccessModal(true);
+      setIsVerificationComplete(false);
     }
+  };
+  
+  // Handle device biometric verification
+  const handleBiometricSuccess = async (result: any) => {
+    console.log("Biometric verification successful:", result);
+    
+    // Set verification data for display in success modal
+    setVerificationData({
+      confidence: 0.99, // High confidence for device biometrics
+      results: {
+        // Device biometrics don't provide detailed analysis
+        device_verified: true
+      }
+    });
+    
+    // Show success modal
+    setShowSuccessModal(true);
+  };
+  
+  const handleBiometricError = (error: string) => {
+    console.error("Biometric verification error:", error);
+    toast({
+      variant: "destructive",
+      title: "Biometric Verification Failed",
+      description: error || "There was a problem with the biometric verification."
+    });
   };
 
   return (

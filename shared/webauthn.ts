@@ -1,481 +1,204 @@
 /**
- * WebAuthn utility for handling device biometric authentication
- * This provides client-side functionality for registering and verifying with WebAuthn
+ * WebAuthn utility functions for the client side
+ * This file contains functions for registering and authenticating with device biometrics
  */
 
-/**
- * Convert a base64 string to a Uint8Array
- */
-export function base64ToArrayBuffer(base64: string): Uint8Array {
+// Base64 encoding/decoding utilities
+function base64ToBuffer(base64: string): ArrayBuffer {
   const binaryString = atob(base64.replace(/-/g, '+').replace(/_/g, '/'));
   const bytes = new Uint8Array(binaryString.length);
   for (let i = 0; i < binaryString.length; i++) {
     bytes[i] = binaryString.charCodeAt(i);
   }
-  return bytes;
+  return bytes.buffer;
 }
 
-/**
- * Convert an ArrayBuffer to a Base64 URL string
- */
-export function arrayBufferToBase64(buffer: ArrayBuffer): string {
+function bufferToBase64(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer);
   let binary = '';
   for (let i = 0; i < bytes.byteLength; i++) {
     binary += String.fromCharCode(bytes[i]);
   }
-  return btoa(binary)
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=/g, '');
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 }
 
 /**
- * Start WebAuthn registration
- * @param userId User ID to associate with this registration
- * @param username Username for display
- * @param displayName Display name for the user
+ * Start the registration process for WebAuthn
+ * 
+ * @param userId - User ID to associate with the credential
+ * @param username - Optional username for the credential
+ * @returns Promise with the registration result
  */
-export async function startRegistration(userId: string, username?: string, displayName?: string) {
+export async function startRegistration(userId: string, username?: string): Promise<any> {
   try {
-    // Check if WebAuthn is supported
-    if (!window.PublicKeyCredential) {
-      throw new Error('WebAuthn is not supported in this browser');
-    }
-
-    // Request registration options from server
-    const response = await fetch('/api/webauthn/register/options', {
+    // 1. Get the challenge from the server
+    const challengeResponse = await fetch(`/api/webauthn/register/start`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        userId,
-        username,
-        displayName
-      }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, username: username || 'user' })
     });
-
-    const options = await response.json();
     
-    if (!options || response.status !== 200) {
-      throw new Error(options.error || 'Failed to get registration options');
+    if (!challengeResponse.ok) {
+      const error = await challengeResponse.json();
+      throw new Error(error.message || 'Failed to start registration');
     }
-
-    // Convert challenge from base64 to array buffer
-    const publicKeyOptions = {
-      ...options,
-      challenge: base64ToArrayBuffer(options.challenge),
-      user: {
-        ...options.user,
-        id: new TextEncoder().encode(options.user.id),
+    
+    const challengeData = await challengeResponse.json();
+    
+    // 2. Prepare the credential creation options
+    const publicKeyCredentialCreationOptions = {
+      challenge: base64ToBuffer(challengeData.challenge),
+      rp: {
+        name: 'Heirloom Identity Platform',
+        id: window.location.hostname
       },
+      user: {
+        id: base64ToBuffer(btoa(userId.toString())),
+        name: username || 'user',
+        displayName: username || 'User'
+      },
+      pubKeyCredParams: [
+        { type: 'public-key', alg: -7 }, // ES256
+        { type: 'public-key', alg: -257 } // RS256
+      ],
+      timeout: 60000,
+      attestation: 'direct',
+      authenticatorSelection: {
+        authenticatorAttachment: 'platform',
+        userVerification: 'preferred',
+        requireResidentKey: false
+      }
     };
-
-    // Create new credential
+    
+    // 3. Create the credential using WebAuthn API
     const credential = await navigator.credentials.create({
-      publicKey: publicKeyOptions,
+      publicKey: publicKeyCredentialCreationOptions as PublicKeyCredentialCreationOptions
     }) as PublicKeyCredential;
-
-    // Prepare credential for sending to server
+    
+    if (!credential) {
+      throw new Error('Failed to create credential');
+    }
+    
+    // 4. Format the response to send back to server
     const attestationResponse = credential.response as AuthenticatorAttestationResponse;
     
-    const credentialId = arrayBufferToBase64(credential.rawId);
-    const clientDataJSON = arrayBufferToBase64(attestationResponse.clientDataJSON);
-    const attestationObject = arrayBufferToBase64(attestationResponse.attestationObject);
-
-    // Send credential to server for verification
-    const verificationResponse = await fetch('/api/webauthn/register/verify', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+    const registrationResult = {
+      id: credential.id,
+      rawId: bufferToBase64(credential.rawId),
+      type: credential.type,
+      response: {
+        attestationObject: bufferToBase64(attestationResponse.attestationObject),
+        clientDataJSON: bufferToBase64(attestationResponse.clientDataJSON)
       },
-      body: JSON.stringify({
-        challengeId: options.challengeId,
-        credential: {
-          id: credentialId,
-          type: credential.type,
-          rawId: credentialId,
-          clientDataJSON,
-          attestationObject,
-          publicKey: attestationObject, // Using attestation object as the public key for simplicity
-          metadata: {
-            // Add device information for additional security checks
-            platform: navigator.platform,
-            userAgent: navigator.userAgent,
-          }
-        },
-      }),
-    });
-
-    const verificationResult = await verificationResponse.json();
-    
-    if (!verificationResult.success) {
-      throw new Error(verificationResult.error || 'Registration verification failed');
-    }
-
-    return {
-      success: true,
-      credential: {
-        id: credentialId,
-        type: credential.type,
-        deviceType: getDeviceType()
-      },
-      ...verificationResult
+      challengeId: challengeData.id,
+      faceImage: null // This will be set by the verification component if face image is captured
     };
+    
+    // 5. Complete registration with the server
+    const completeResponse = await fetch(`/api/webauthn/register/complete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(registrationResult)
+    });
+    
+    if (!completeResponse.ok) {
+      const error = await completeResponse.json();
+      throw new Error(error.message || 'Failed to complete registration');
+    }
+    
+    const completeData = await completeResponse.json();
+    return { success: true, ...completeData };
+    
   } catch (error) {
     console.error('WebAuthn registration error:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error during registration',
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Registration failed' 
     };
   }
 }
 
 /**
- * Start WebAuthn authentication
- * @param userId User ID to authenticate
+ * Start the authentication process for WebAuthn
+ * 
+ * @param userId - User ID to authenticate
+ * @returns Promise with the authentication result
  */
-export async function startAuthentication(userId: string) {
+export async function startAuthentication(userId: string): Promise<any> {
   try {
-    // Check if WebAuthn is supported
-    if (!window.PublicKeyCredential) {
-      throw new Error('WebAuthn is not supported in this browser');
-    }
-
-    // Request authentication options from server
-    const response = await fetch('/api/webauthn/authenticate/options', {
+    // 1. Get the challenge from the server
+    const challengeResponse = await fetch(`/api/webauthn/authenticate/start`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ userId }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId })
     });
-
-    const options = await response.json();
     
-    if (!options || response.status !== 200) {
-      throw new Error(options.error || 'Failed to get authentication options');
+    if (!challengeResponse.ok) {
+      const error = await challengeResponse.json();
+      throw new Error(error.message || 'Failed to start authentication');
     }
-
-    // Convert challenge and credential IDs from base64 to array buffer
-    const publicKeyOptions = {
-      ...options,
-      challenge: base64ToArrayBuffer(options.challenge),
-      allowCredentials: options.allowCredentials.map((cred: any) => ({
-        ...cred,
-        id: base64ToArrayBuffer(cred.id),
-      })),
+    
+    const challengeData = await challengeResponse.json();
+    
+    // 2. Prepare the credential request options
+    const publicKeyCredentialRequestOptions = {
+      challenge: base64ToBuffer(challengeData.challenge),
+      rpId: window.location.hostname,
+      timeout: 60000,
+      userVerification: 'preferred',
+      allowCredentials: challengeData.allowCredentials?.map((credential: any) => ({
+        id: base64ToBuffer(credential.id),
+        type: 'public-key',
+        transports: ['internal']
+      })) || []
     };
-
-    // Request credential from authenticator
+    
+    // 3. Get the credential using WebAuthn API
     const credential = await navigator.credentials.get({
-      publicKey: publicKeyOptions,
+      publicKey: publicKeyCredentialRequestOptions as PublicKeyCredentialRequestOptions
     }) as PublicKeyCredential;
-
-    // Prepare credential for sending to server
+    
+    if (!credential) {
+      throw new Error('Failed to get credential');
+    }
+    
+    // 4. Format the response to send back to server
     const assertionResponse = credential.response as AuthenticatorAssertionResponse;
     
-    const credentialId = arrayBufferToBase64(credential.rawId);
-    const clientDataJSON = arrayBufferToBase64(assertionResponse.clientDataJSON);
-    const authenticatorData = arrayBufferToBase64(assertionResponse.authenticatorData);
-    const signature = arrayBufferToBase64(assertionResponse.signature);
-
-    // Send assertion to server for verification
-    const verificationResponse = await fetch('/api/webauthn/authenticate/verify', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+    const authenticationResult = {
+      id: credential.id,
+      rawId: bufferToBase64(credential.rawId),
+      type: credential.type,
+      response: {
+        authenticatorData: bufferToBase64(assertionResponse.authenticatorData),
+        clientDataJSON: bufferToBase64(assertionResponse.clientDataJSON),
+        signature: bufferToBase64(assertionResponse.signature),
+        userHandle: assertionResponse.userHandle ? bufferToBase64(assertionResponse.userHandle) : null
       },
-      body: JSON.stringify({
-        challengeId: options.challengeId,
-        credential: {
-          id: credentialId,
-          type: credential.type,
-          rawId: credentialId,
-          clientDataJSON,
-          authenticatorData,
-          signature,
-        },
-      }),
-    });
-
-    const verificationResult = await verificationResponse.json();
-    
-    if (!verificationResult.success) {
-      throw new Error(verificationResult.error || 'Authentication verification failed');
-    }
-
-    return {
-      success: true,
-      credential: {
-        id: credentialId,
-        type: credential.type,
-        deviceType: getDeviceType()
-      },
-      ...verificationResult
+      challengeId: challengeData.id,
+      faceImage: null // This will be set by the verification component if face image is captured
     };
+    
+    // 5. Complete authentication with the server
+    const completeResponse = await fetch(`/api/webauthn/authenticate/complete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(authenticationResult)
+    });
+    
+    if (!completeResponse.ok) {
+      const error = await completeResponse.json();
+      throw new Error(error.message || 'Failed to complete authentication');
+    }
+    
+    const completeData = await completeResponse.json();
+    return { success: true, ...completeData };
+    
   } catch (error) {
     console.error('WebAuthn authentication error:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error during authentication',
-    };
-  }
-}
-
-/**
- * Get the type of device being used
- * This is helpful for adapting the UI based on the device
- */
-export function getDeviceType() {
-  const ua = navigator.userAgent;
-  
-  // Detect operating system
-  let os = null;
-  let authenticatorType = null;
-  
-  // iOS detection
-  if (/iPhone|iPad|iPod/.test(ua)) {
-    if (/iPhone/.test(ua)) {
-      os = "iOS";
-      // iPhone X and newer use Face ID
-      authenticatorType = /iPhone X/.test(ua) || /iPhone 1[1-9]/.test(ua) ? "faceID" : "touchID";
-    } else if (/iPad/.test(ua)) {
-      os = "iPadOS";
-      authenticatorType = "touchID"; // Most iPads use Touch ID
-    }
-  } 
-  // Android detection
-  else if (/Android/.test(ua)) {
-    os = "Android";
-    authenticatorType = "fingerprint"; // Most Android devices use fingerprint
-  }
-  // macOS detection
-  else if (/Mac OS X/.test(ua)) {
-    os = "macOS";
-    authenticatorType = "touchID"; // Modern Macs use Touch ID
-  }
-  // Windows detection
-  else if (/Windows/.test(ua)) {
-    os = "Windows";
-    authenticatorType = "fingerprint"; // Windows Hello typically uses fingerprint or facial recognition
-  }
-  // Fallback
-  else {
-    os = "other";
-    authenticatorType = "other";
-  }
-  
-  return {
-    os,
-    authenticatorType,
-    isMobile: /iPhone|iPad|iPod|Android/.test(ua),
-    isDesktop: /Mac OS X|Windows|Linux/.test(ua),
-    isSafari: /Safari/.test(ua) && !/Chrome/.test(ua),
-    isChrome: /Chrome/.test(ua),
-    isFirefox: /Firefox/.test(ua)
-  };
-}
-
-/**
- * Register with hybrid authentication (WebAuthn + Face)
- * @param userId User ID to associate with this registration
- * @param username Username for display
- * @param faceImage Base64 encoded face image
- */
-export async function registerHybrid(userId: string, username?: string, faceImage?: string) {
-  try {
-    // Check if WebAuthn is supported
-    if (!window.PublicKeyCredential) {
-      throw new Error('WebAuthn is not supported in this browser');
-    }
-
-    if (!faceImage) {
-      throw new Error('Face image is required for hybrid registration');
-    }
-
-    // Request registration options from server
-    const response = await fetch('/api/webauthn/register/options', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        userId,
-        username,
-        displayName: username
-      }),
-    });
-
-    const options = await response.json();
-    
-    if (!options || response.status !== 200) {
-      throw new Error(options.error || 'Failed to get registration options');
-    }
-
-    // Convert challenge from base64 to array buffer
-    const publicKeyOptions = {
-      ...options,
-      challenge: base64ToArrayBuffer(options.challenge),
-      user: {
-        ...options.user,
-        id: new TextEncoder().encode(options.user.id),
-      },
-    };
-
-    // Create new credential
-    const credential = await navigator.credentials.create({
-      publicKey: publicKeyOptions,
-    }) as PublicKeyCredential;
-
-    // Prepare credential for sending to server
-    const attestationResponse = credential.response as AuthenticatorAttestationResponse;
-    
-    const credentialId = arrayBufferToBase64(credential.rawId);
-    const clientDataJSON = arrayBufferToBase64(attestationResponse.clientDataJSON);
-    const attestationObject = arrayBufferToBase64(attestationResponse.attestationObject);
-
-    // Send credential and face image to server for hybrid verification
-    const verificationResponse = await fetch('/api/webauthn/hybrid/register', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        challengeId: options.challengeId,
-        credential: {
-          id: credentialId,
-          type: credential.type,
-          rawId: credentialId,
-          clientDataJSON,
-          attestationObject,
-          publicKey: attestationObject,
-          metadata: {
-            platform: navigator.platform,
-            userAgent: navigator.userAgent,
-            deviceType: getDeviceType()
-          }
-        },
-        faceImage
-      }),
-    });
-
-    const verificationResult = await verificationResponse.json();
-    
-    if (!verificationResult.success) {
-      throw new Error(verificationResult.error || 'Hybrid registration failed');
-    }
-
-    return {
-      success: true,
-      credential: {
-        id: credentialId,
-        type: credential.type,
-        deviceType: getDeviceType()
-      },
-      faceDetails: verificationResult.faceDetails,
-      ...verificationResult
-    };
-  } catch (error) {
-    console.error('Hybrid registration error:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error during hybrid registration',
-    };
-  }
-}
-
-/**
- * Authenticate with hybrid verification (WebAuthn + Face)
- * @param userId User ID to authenticate
- * @param faceImage Base64 encoded face image (required for hybrid auth)
- */
-export async function authenticateHybrid(userId: string, faceImage?: string) {
-  try {
-    // Check if WebAuthn is supported
-    if (!window.PublicKeyCredential) {
-      throw new Error('WebAuthn is not supported in this browser');
-    }
-
-    // Request authentication options from server
-    const response = await fetch('/api/webauthn/authenticate/options', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ userId }),
-    });
-
-    const options = await response.json();
-    
-    if (!options || response.status !== 200) {
-      throw new Error(options.error || 'Failed to get authentication options');
-    }
-
-    // Convert challenge and credential IDs from base64 to array buffer
-    const publicKeyOptions = {
-      ...options,
-      challenge: base64ToArrayBuffer(options.challenge),
-      allowCredentials: options.allowCredentials.map((cred: any) => ({
-        ...cred,
-        id: base64ToArrayBuffer(cred.id),
-      })),
-    };
-
-    // Request credential from authenticator
-    const credential = await navigator.credentials.get({
-      publicKey: publicKeyOptions,
-    }) as PublicKeyCredential;
-
-    // Prepare credential for sending to server
-    const assertionResponse = credential.response as AuthenticatorAssertionResponse;
-    
-    const credentialId = arrayBufferToBase64(credential.rawId);
-    const clientDataJSON = arrayBufferToBase64(assertionResponse.clientDataJSON);
-    const authenticatorData = arrayBufferToBase64(assertionResponse.authenticatorData);
-    const signature = arrayBufferToBase64(assertionResponse.signature);
-
-    // Send assertion to server for hybrid verification
-    const verificationResponse = await fetch('/api/webauthn/hybrid/verify', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        challengeId: options.challengeId,
-        credential: {
-          id: credentialId,
-          type: credential.type,
-          rawId: credentialId,
-          clientDataJSON,
-          authenticatorData,
-          signature,
-        },
-        faceImage
-      }),
-    });
-
-    const verificationResult = await verificationResponse.json();
-    
-    if (!verificationResult.success) {
-      throw new Error(verificationResult.error || 'Hybrid authentication failed');
-    }
-
-    return {
-      success: true,
-      credential: {
-        id: credentialId,
-        type: credential.type,
-        deviceType: getDeviceType()
-      },
-      ...verificationResult
-    };
-  } catch (error) {
-    console.error('Hybrid authentication error:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error during hybrid authentication',
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Authentication failed' 
     };
   }
 }

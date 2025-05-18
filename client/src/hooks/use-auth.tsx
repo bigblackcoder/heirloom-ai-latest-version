@@ -25,6 +25,8 @@ type AuthContextType = {
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   signup: (username: string, email: string, password: string) => Promise<void>;
+  registerBiometric: (userId: string, username?: string) => Promise<any>;
+  authenticateBiometric: (userId: string) => Promise<any>;
 };
 
 // Create the auth context
@@ -57,17 +59,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (!data || typeof data !== 'object') return null;
       
       // Try to map the response to our User type
+      const userData = data as any;
       return {
-        id: data.id,
-        username: data.username,
-        email: data.email,
-        firstName: data.firstName || undefined,
-        lastName: data.lastName || undefined,
-        isVerified: !!data.isVerified,
-        createdAt: data.createdAt || new Date().toISOString(),
-        updatedAt: data.updatedAt || new Date().toISOString(),
-        memberSince: data.memberSince || data.createdAt,
-        avatar: data.avatar || undefined
+        id: userData.id,
+        username: userData.username,
+        email: userData.email,
+        firstName: userData.firstName || undefined,
+        lastName: userData.lastName || undefined,
+        isVerified: !!userData.isVerified,
+        createdAt: userData.createdAt || new Date().toISOString(),
+        updatedAt: userData.updatedAt || new Date().toISOString(),
+        memberSince: userData.memberSince || userData.createdAt,
+        avatar: userData.avatar || undefined
       };
     }
   });
@@ -123,6 +126,44 @@ export function AuthProvider({ children }: AuthProviderProps) {
         method: 'POST',
         body: userData
       });
+    }
+  });
+  
+  // Biometric registration mutation
+  const registerBiometricMutation = useMutation({
+    mutationFn: async ({ userId, username }: { userId: string, username?: string }) => {
+      return apiRequest({
+        url: '/api/webauthn/register/status',
+        method: 'POST',
+        body: { userId }
+      });
+    }
+  });
+  
+  // Biometric authentication mutation
+  const authenticateBiometricMutation = useMutation({
+    mutationFn: async ({ userId }: { userId: string }) => {
+      return apiRequest({
+        url: '/api/webauthn/authenticate/status',
+        method: 'POST',
+        body: { userId }
+      });
+    },
+    onSuccess: (data) => {
+      // Update user verification status
+      if (data && data.success && user) {
+        const updatedUser = { 
+          ...user, 
+          isVerified: true
+        };
+        queryClient.setQueryData(['/api/auth/me'], updatedUser);
+        
+        // Invalidate queries to refresh data
+        setTimeout(() => {
+          refetchUser();
+          queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+        }, 500);
+      }
     }
   });
   
@@ -204,8 +245,59 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
   
+  // Register biometric function
+  const registerBiometric = async (userId: string, username?: string) => {
+    try {
+      // First check if the user has registered biometrics before
+      const statusResult = await registerBiometricMutation.mutateAsync({ userId, username });
+      
+      // Return the result which can be used by the BiometricAuth component
+      return statusResult;
+    } catch (error) {
+      console.error('Biometric registration error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Biometric Registration Failed',
+        description: error instanceof Error ? error.message : 'There was an error registering your biometrics'
+      });
+      throw error;
+    }
+  };
+  
+  // Authenticate with biometrics function
+  const authenticateBiometric = async (userId: string) => {
+    try {
+      // First check if the user has biometrics registered
+      const statusResult = await authenticateBiometricMutation.mutateAsync({ userId });
+      
+      // If successful, update the user's verification status
+      if (statusResult.success) {
+        toast({
+          title: 'Identity Verified',
+          description: 'Your identity has been successfully verified'
+        });
+      }
+      
+      // Return the result which can be used by the BiometricAuth component
+      return statusResult;
+    } catch (error) {
+      console.error('Biometric authentication error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Verification Failed',
+        description: error instanceof Error ? error.message : 'There was an error verifying your identity'
+      });
+      throw error;
+    }
+  };
+  
   // Determine if we're in a loading state
-  const isLoading = isUserLoading || loginMutation.isPending || logoutMutation.isPending;
+  const isLoading = 
+    isUserLoading || 
+    loginMutation.isPending || 
+    logoutMutation.isPending || 
+    registerBiometricMutation.isPending || 
+    authenticateBiometricMutation.isPending;
   
   // Provide auth context
   return (
@@ -216,7 +308,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         isAuthenticated: !!user,
         login,
         logout,
-        signup
+        signup,
+        registerBiometric,
+        authenticateBiometric
       }}
     >
       {children}
