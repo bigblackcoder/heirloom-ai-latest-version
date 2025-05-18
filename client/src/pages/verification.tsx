@@ -9,12 +9,13 @@ import { useAuth } from "@/hooks/use-auth";
 import AppleFaceScanner from "@/components/apple-face-scanner";
 import { BiometricAuth } from "@/components/biometric-auth";
 import SuccessModal from "@/components/success-modal";
+import { ShieldCheck, Monitor } from "lucide-react";
 
 export default function Verification() {
   const [_, navigate] = useLocation();
   const { toast } = useToast();
   const { user, registerBiometric, authenticateBiometric } = useAuth();
-  const [verificationMethod, setVerificationMethod] = useState<'face' | 'device'>('face');
+  const [verificationMethod, setVerificationMethod] = useState<'face' | 'device'>('device'); // Default to device biometrics
   const [verificationProgress, setVerificationProgress] = useState(0);
   const [isVerificationComplete, setIsVerificationComplete] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -152,6 +153,10 @@ export default function Verification() {
     });
   };
 
+  const switchToFaceScan = () => {
+    setVerificationMethod('face');
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-[#143404] to-[#1e3c0d] text-white">
       {/* Status bar area */}
@@ -200,7 +205,7 @@ export default function Verification() {
       {/* Verification Options Tabs */}
       <div className="px-4 sm:px-6 pt-2">
         <Tabs 
-          defaultValue="face" 
+          defaultValue="device" 
           value={verificationMethod}
           onValueChange={(value) => setVerificationMethod(value as 'face' | 'device')}
           className="w-full"
@@ -232,33 +237,21 @@ export default function Verification() {
             </TabsTrigger>
           </TabsList>
           
-          <div className="pt-6">
-            {/* Verification info card */}
-            <div className="w-full max-w-md mx-auto bg-white/10 backdrop-blur-sm rounded-2xl px-4 py-3 sm:px-5 sm:py-4 mb-6">
-              <div className="flex items-center mb-2 sm:mb-3">
-                <div className="w-7 h-7 sm:w-8 sm:h-8 bg-[#2a5414] rounded-full flex items-center justify-center mr-3">
-                  <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#4caf50]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                  </svg>
-                </div>
+          {/* Device Biometrics Info Card */}
+          {verificationMethod === 'device' && (
+            <div className="mt-6 bg-[#2a5414]/30 backdrop-blur-sm rounded-xl p-4">
+              <div className="flex items-start">
+                <ShieldCheck className="w-5 h-5 text-green-400 mr-3 mt-0.5 flex-shrink-0" />
                 <div>
-                  <h3 className="text-white font-medium text-sm">
-                    {verificationMethod === 'face' ? 'Secure Face Scan' : 'Device Biometrics'}
-                  </h3>
-                  <p className="text-white/60 text-xs">Your biometric data stays on your device</p>
+                  <h3 className="font-medium mb-1">Device Biometrics</h3>
+                  <p className="text-white/70 text-sm">Your biometric data stays on your device</p>
                 </div>
               </div>
-              
-              <p className="text-white/80 text-xs leading-relaxed">
-                {verificationMethod === 'face' 
-                  ? "This scan verifies you're a real person and creates your secure identity record. Your face data is processed privately and securely."
-                  : "Use your device's built-in security features like Face ID, Touch ID or fingerprint scanner to verify your identity quickly and securely."
-                }
-              </p>
+              <p className="mt-3 text-white/80 text-sm">Use your device's built-in security features like Face ID, Touch ID or fingerprint scanner to verify your identity quickly and securely.</p>
             </div>
-          </div>
+          )}
           
-          <TabsContent value="face" className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6">
+          <TabsContent value="face" className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 mt-4">
             <AppleFaceScanner 
               onProgress={handleVerificationProgress} 
               onComplete={handleVerificationComplete}
@@ -280,31 +273,74 @@ export default function Verification() {
             </div>
           </TabsContent>
           
-          <TabsContent value="device" className="flex-1 flex flex-col items-center justify-center pt-2 pb-6">
-            <BiometricAuth 
-              userId={user?.id?.toString() || '1'} 
-              username={user?.username}
-              mode={user?.isVerified ? 'authenticate' : 'register'}
-              onSuccess={handleBiometricSuccess}
-              onError={handleBiometricError}
-              onCancel={() => setVerificationMethod('face')}
-            />
+          <TabsContent value="device" className="mt-6">
+            <div className="flex flex-col items-center justify-center rounded-xl bg-[#1c2c12] p-6 mb-6">
+              <div className="w-16 h-16 bg-[#2a5414] rounded-full flex items-center justify-center mb-5">
+                <Monitor className="w-8 h-8 text-green-400" />
+              </div>
+              
+              <h2 className="text-xl font-medium mb-2">Verify Your Identity</h2>
+              <p className="text-white/70 text-center text-sm mb-6">
+                Use your device's biometric authentication to verify your identity.
+              </p>
+              
+              <Button
+                variant="default"
+                className="w-full bg-[#5a7545] hover:bg-[#6c8a55] text-white font-medium py-6 rounded-xl h-auto"
+                onClick={() => {
+                  // This would trigger the device biometric authentication
+                  const bioAuth = document.querySelector('[id^="biometric-auth-button"]');
+                  if (bioAuth instanceof HTMLElement) {
+                    bioAuth.click();
+                  }
+                }}
+              >
+                Authenticate
+              </Button>
+              
+              <Button
+                variant="link"
+                className="mt-4 text-white/60 hover:text-white"
+                onClick={switchToFaceScan}
+              >
+                Use Face Scan Instead
+              </Button>
+            </div>
             
-            <p className="text-white/80 text-center text-sm mt-6 max-w-xs">
+            {/* Hidden BiometricAuth component that will be triggered by the Authenticate button */}
+            <div className="hidden">
+              <BiometricAuth 
+                userId={user?.id?.toString() || '1'} 
+                username={user?.username}
+                mode={user?.isVerified ? 'authenticate' : 'register'}
+                onSuccess={handleBiometricSuccess}
+                onError={handleBiometricError}
+                onCancel={() => setVerificationMethod('face')}
+              />
+            </div>
+            
+            <p className="text-white/60 text-center text-sm mt-4 mb-6">
               You can use your device's built-in biometric authentication for quick and secure verification.
             </p>
           </TabsContent>
         </Tabs>
       </div>
 
-      {/* Progress Bar */}
-      <div className="px-8 pb-10">
-        <div className="w-full h-1 bg-white/20 rounded-full">
-          <div 
-            className="h-full bg-[#d4a166] rounded-full transition-all duration-300 ease-out"
-            style={{ width: `${verificationProgress}%` }}
-          />
-        </div>
+      {/* Footer Info */}
+      <div className="mt-auto px-6 pb-8 text-center">
+        <p className="text-white/60 text-sm mb-4">
+          You can use your device's built-in biometric authentication for quick and secure verification.
+        </p>
+        
+        {/* Progress Bar - only show for face verification */}
+        {verificationMethod === 'face' && (
+          <div className="w-full h-1 bg-white/20 rounded-full">
+            <div 
+              className="h-full bg-[#d4a166] rounded-full transition-all duration-300 ease-out"
+              style={{ width: `${verificationProgress}%` }}
+            />
+          </div>
+        )}
       </div>
 
       {/* Success Modal - Hidden content for modal display logic */}
