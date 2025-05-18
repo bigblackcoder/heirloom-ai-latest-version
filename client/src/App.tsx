@@ -17,10 +17,9 @@ import NotificationsPage from './pages/notifications';
 import SettingsPage from './pages/settings';
 import ProfilePage from './pages/profile';
 import VerificationPage from './pages/verification';
-import Dashboard from './pages/dashboard';
+import DashboardPage from './pages/DashboardPage';
 import VerificationOptionsPage from './pages/verification-options';
 import CapsulePage from './pages/capsule';
-import Home from './pages/Home';
 
 // Import providers and hooks
 import { AuthProvider } from './hooks/use-auth';
@@ -95,10 +94,10 @@ function App() {
             <AuthenticationPage />
           </Route>
           <Route path="/home">
-            <Home />
+            <HomePage />
           </Route>
           <Route path="/dashboard">
-            <Dashboard />
+            <DashboardPage />
           </Route>
           <Route path="/webauthn-test">
             <WebAuthnTest />
