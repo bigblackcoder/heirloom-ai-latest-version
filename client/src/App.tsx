@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Route, Switch, useLocation } from 'wouter';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
@@ -10,9 +10,16 @@ import { Toaster } from '@/components/ui/toaster';
 import HomePage from './pages/HomePage';
 import AuthenticationPage from './pages/AuthenticationPage';
 import WebAuthnTest from './pages/WebAuthnTest';
-import DashboardPage from './pages/DashboardPage';
+import Dashboard from './pages/dashboard';
+import FaceIDTest from './pages/FaceIDTest';
 import DataOwnershipPage from './pages/DataOwnershipPage';
 import AIPermissionsPage from './pages/AIPermissionsPage';
+import NotificationsPage from './pages/notifications';
+import SettingsPage from './pages/settings';
+import ProfilePage from './pages/profile';
+import VerificationPage from './pages/verification';
+import VerificationOptionsPage from './pages/verification-options';
+import CapsulePage from './pages/capsule';
 
 // Import providers and hooks
 import { AuthProvider } from './providers/auth-provider';
@@ -30,6 +37,7 @@ const queryClient = new QueryClient({
   },
 });
 
+// Not Found Page Component
 const NotFoundPage = () => {
   const [, setLocation] = useLocation();
   
@@ -45,37 +53,6 @@ const NotFoundPage = () => {
 };
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  
-  // Check if user is authenticated
-  useEffect(() => {
-    const checkAuth = () => {
-      // Mock authentication check for demo purposes
-      const userToken = localStorage.getItem('userToken');
-      setIsAuthenticated(!!userToken);
-    };
-    
-    checkAuth();
-    
-    // Listen for storage changes (for multi-tab support)
-    window.addEventListener('storage', checkAuth);
-    
-    return () => {
-      window.removeEventListener('storage', checkAuth);
-    };
-  }, []);
-  
-  // Mock login/logout functions
-  const login = (token: string) => {
-    localStorage.setItem('userToken', token);
-    setIsAuthenticated(true);
-  };
-  
-  const logout = () => {
-    localStorage.removeItem('userToken');
-    setIsAuthenticated(false);
-  };
-
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
@@ -84,8 +61,14 @@ function App() {
           <Route path="/authenticate">
             <AuthenticationPage />
           </Route>
+          <Route path="/dashboard">
+            <Dashboard />
+          </Route>
           <Route path="/webauthn-test">
             <WebAuthnTest />
+          </Route>
+          <Route path="/face-id-test">
+            <FaceIDTest />
           </Route>
           <Route path="/data-ownership">
             <DataOwnershipPage />
@@ -93,10 +76,27 @@ function App() {
           <Route path="/ai-permissions">
             <AIPermissionsPage />
           </Route>
-          <Route path="/dashboard">
-            <DashboardPage onLogout={logout} />
+          <Route path="/notifications">
+            <NotificationsPage />
           </Route>
-          <Route component={NotFoundPage} />
+          <Route path="/settings">
+            <SettingsPage />
+          </Route>
+          <Route path="/profile">
+            <ProfilePage />
+          </Route>
+          <Route path="/verification">
+            <VerificationPage />
+          </Route>
+          <Route path="/verification-options">
+            <VerificationOptionsPage />
+          </Route>
+          <Route path="/capsule">
+            <CapsulePage />
+          </Route>
+          <Route>
+            <NotFoundPage />
+          </Route>
         </Switch>
         
         <Toaster />

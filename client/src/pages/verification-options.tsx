@@ -4,7 +4,7 @@ import AppleFaceScanner from '@/components/apple-face-scanner';
 import { VideoVerification } from '@/components/video-verification';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
-export function VerificationOptions() {
+export default function VerificationOptions() {
   const [activeTab, setActiveTab] = useState<string>("image");
   
   return (
