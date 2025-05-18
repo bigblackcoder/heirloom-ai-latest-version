@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebAuthn Simple Test</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f9fafb;
+      color: #1f2937;
+    }
+    h1 {
+      margin-bottom: 1.5rem;
+      color: #4f46e5;
+      text-align: center;
+    }
+    .card {
+      background-color: white;
+      border-radius: 8px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      margin-bottom: 1.5rem;
+    }
+    .buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    button {
+      background-color: #4f46e5;
+      color: white;
+      border: none;
+      padding: 0.75rem 1rem;
+      border-radius: 0.375rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    button:hover {
+      background-color: #4338ca;
+    }
+    button:disabled {
+      background-color: #9ca3af;
+      cursor: not-allowed;
+    }
+    #status {
+      margin-top: 1.5rem;
+      padding: 1rem;
+      border-radius: 0.375rem;
+      display: none;
+    }
+    #status.success {
+      background-color: #ecfdf5;
+      border: 1px solid #10b981;
+      color: #065f46;
+    }
+    #status.error {
+      background-color: #fef2f2;
+      border: 1px solid #ef4444;
+      color: #b91c1c;
+    }
+    pre {
+      background-color: #f3f4f6;
+      padding: 0.75rem;
+      border-radius: 0.375rem;
+      overflow-x: auto;
+      font-family: monospace;
+      font-size: 0.875rem;
+      margin-top: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>WebAuthn Authentication Test</h1>
+  
+  <div class="card">
+    <h2>Test Device Biometric Authentication</h2>
+    <p>This page allows you to test WebAuthn-based authentication using your device's biometric capabilities.</p>
+    
+    <div class="buttons">
+      <button id="register">Register New Device</button>
+      <button id="authenticate" disabled>Authenticate with Device</button>
+    </div>
+    
+    <div id="status"></div>
+  </div>
+  
+  <script>
+    // DOM Elements
+    const registerButton = document.getElementById('register');
+    const authenticateButton = document.getElementById('authenticate');
+    const statusElement = document.getElementById('status');
+    
+    // Store credential ID after registration
+    let credentialId = null;
+    
+    // Display status messages
+    function showStatus(message, isSuccess, details = null) {
+      statusElement.textContent = message;
+      statusElement.className = isSuccess ? 'success' : 'error';
+      statusElement.style.display = 'block';
+      
+      if (details) {
+        const pre = document.createElement('pre');
+        pre.textContent = JSON.stringify(details, null, 2);
+        statusElement.appendChild(pre);
+      }
+    }
+    
+    // Convert buffer to base64url string
+    function bufferToBase64Url(buffer) {
+      const base64 = window.btoa(String.fromCharCode(...new Uint8Array(buffer)));
+      return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+    }
+    
+    // Convert base64url to buffer
+    function base64UrlToBuffer(base64url) {
+      const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
+      const binaryString = window.atob(base64);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      return bytes.buffer;
+    }
+    
+    // Handle registration
+    async function handleRegistration() {
+      try {
+        registerButton.disabled = true;
+        showStatus('Preparing registration...', true);
+        
+        // Generate random values for testing
+        const userId = Math.floor(Math.random() * 10000);
+        const username = 'user_' + userId;
+        const displayName = 'Test User ' + userId;
+        
+        // Create challenge
+        const challenge = new Uint8Array(32);
+        window.crypto.getRandomValues(challenge);
+        
+        // Create credential creation options
+        const publicKeyCredentialCreationOptions = {
+          challenge: challenge,
+          rp: {
+            name: 'Heirloom Identity Platform',
+            id: window.location.hostname
+          },
+          user: {
+            id: new TextEncoder().encode(userId.toString()),
+            name: username,
+            displayName: displayName
+          },
+          pubKeyCredParams: [
+            { type: 'public-key', alg: -7 },  // ES256
+            { type: 'public-key', alg: -257 } // RS256
+          ],
+          authenticatorSelection: {
+            authenticatorAttachment: 'platform',
+            userVerification: 'required',
+            residentKey: 'preferred'
+          },
+          timeout: 60000,
+          attestation: 'none'
+        };
+        
+        showStatus('Please respond to the biometric prompt...', true);
+        
+        // Create WebAuthn credential
+        const credential = await navigator.credentials.create({
+          publicKey: publicKeyCredentialCreationOptions
+        });
+        
+        // Store the credential ID for authentication
+        credentialId = credential.id;
+        
+        showStatus('Registration successful! The device is now registered.', true, {
+          id: credential.id,
+          type: credential.type
+        });
+        
+        // Enable authentication button
+        authenticateButton.disabled = false;
+      } catch (error) {
+        console.error('Registration error:', error);
+        showStatus(`Registration failed: ${error.message}`, false);
+        registerButton.disabled = false;
+      }
+    }
+    
+    // Handle authentication
+    async function handleAuthentication() {
+      try {
+        authenticateButton.disabled = true;
+        showStatus('Preparing authentication...', true);
+        
+        if (!credentialId) {
+          throw new Error('No credentials available. Please register first.');
+        }
+        
+        // Create challenge
+        const challenge = new Uint8Array(32);
+        window.crypto.getRandomValues(challenge);
+        
+        // Create credential request options
+        const publicKeyCredentialRequestOptions = {
+          challenge: challenge,
+          rpId: window.location.hostname,
+          allowCredentials: [{
+            id: base64UrlToBuffer(credentialId), 
+            type: 'public-key',
+            transports: ['internal']
+          }],
+          userVerification: 'required',
+          timeout: 60000
+        };
+        
+        showStatus('Please respond to the biometric prompt...', true);
+        
+        // Get credentials
+        const assertion = await navigator.credentials.get({
+          publicKey: publicKeyCredentialRequestOptions
+        });
+        
+        showStatus('Authentication successful! Your identity is verified.', true, {
+          id: assertion.id,
+          type: assertion.type
+        });
+      } catch (error) {
+        console.error('Authentication error:', error);
+        showStatus(`Authentication failed: ${error.message}`, false);
+        authenticateButton.disabled = false;
+      }
+    }
+    
+    // Add event listeners
+    registerButton.addEventListener('click', handleRegistration);
+    authenticateButton.addEventListener('click', handleAuthentication);
+    
+    // Check if WebAuthn is supported
+    if (!window.PublicKeyCredential) {
+      showStatus('WebAuthn is not supported in this browser. Please use a modern browser like Chrome, Firefox, Safari, or Edge.', false);
+      registerButton.disabled = true;
+    }
+  </script>
+</body>
+</html>
