@@ -14,6 +14,7 @@ enum AuthStep {
   DEVICE_BIOMETRIC = 'device_biometric',
   FACE_VERIFICATION = 'face_verification',
   COMPLETE = 'complete',
+  DASHBOARD = 'dashboard',
 }
 
 const AuthenticationPage: React.FC = () => {
@@ -285,72 +286,149 @@ const AuthenticationPage: React.FC = () => {
     switch (authStep) {
       case AuthStep.INITIAL:
         return (
-          <Tabs defaultValue={activeTab} className="w-full" onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">Log In</TabsTrigger>
-              <TabsTrigger value="register">Register</TabsTrigger>
-            </TabsList>
+          <div className="identity-verification-container">
+            <div className="mb-6">
+              <h3 className="text-xl font-bold text-[#273414] mb-2">Verified Identity</h3>
+              <p className="text-[#273414]/70 text-sm">
+                Complete identity verification in two simple steps to access the platform securely.
+              </p>
+            </div>
             
-            <TabsContent value="login" className="mt-4">
-              <Button 
-                className="w-full" 
-                onClick={handleWebAuthnAuthenticate}
-                disabled={isProcessing}
-              >
-                {isProcessing ? 'Authenticating...' : 'Authenticate with Device Biometrics'}
-              </Button>
-            </TabsContent>
+            <div className="bg-[#e9f0e6] p-4 rounded-lg border border-[#273414]/10 mb-4">
+              <div className="flex items-center mb-2">
+                <div className="w-7 h-7 rounded-full bg-[#273414] text-white flex items-center justify-center mr-3">
+                  <span className="text-sm font-bold">1</span>
+                </div>
+                <h4 className="font-medium text-[#273414]">Device Authentication</h4>
+              </div>
+              <p className="text-sm text-[#273414]/70 mb-3 pl-10">
+                Use your device biometrics to verify your identity
+              </p>
+              <div className="pl-10">
+                <Button 
+                  className="w-full bg-[#273414] text-white hover:bg-[#1d2810]" 
+                  onClick={activeTab === 'login' ? handleWebAuthnAuthenticate : handleWebAuthnRegister}
+                  disabled={isProcessing}
+                >
+                  {isProcessing ? 'Processing...' : activeTab === 'login' ? 'Authenticate With Biometrics' : 'Register Device Biometrics'}
+                </Button>
+              </div>
+            </div>
             
-            <TabsContent value="register" className="mt-4">
-              <Button 
-                className="w-full" 
-                onClick={handleWebAuthnRegister}
-                disabled={isProcessing}
+            <div className="bg-[#e9f0e6]/50 p-4 rounded-lg border border-[#273414]/10 mb-6 opacity-70">
+              <div className="flex items-center mb-2">
+                <div className="w-7 h-7 rounded-full bg-[#273414]/70 text-white flex items-center justify-center mr-3">
+                  <span className="text-sm font-bold">2</span>
+                </div>
+                <h4 className="font-medium text-[#273414]">Face Verification</h4>
+              </div>
+              <p className="text-sm text-[#273414]/70 mb-3 pl-10">
+                Verify your face to complete the authentication process
+              </p>
+            </div>
+            
+            <div className="mt-4 flex justify-between">
+              <Button
+                variant="outline"
+                className="border-[#273414] text-[#273414]"
+                onClick={() => window.history.back()}
               >
-                {isProcessing ? 'Registering...' : 'Register Device Biometrics'}
+                Back
               </Button>
-            </TabsContent>
-          </Tabs>
+              
+              <div className="flex gap-2">
+                <Button
+                  variant={activeTab === 'login' ? 'outline' : 'default'}
+                  className={activeTab === 'login' ? 'border-[#273414] text-[#273414]' : 'bg-[#273414] text-white'}
+                  onClick={() => setActiveTab('register')}
+                >
+                  Register
+                </Button>
+                <Button
+                  variant={activeTab === 'register' ? 'outline' : 'default'}
+                  className={activeTab === 'register' ? 'border-[#273414] text-[#273414]' : 'bg-[#273414] text-white'}
+                  onClick={() => setActiveTab('login')}
+                >
+                  Login
+                </Button>
+              </div>
+            </div>
+          </div>
         );
         
       case AuthStep.FACE_VERIFICATION:
         return (
           <div className="face-verification-container">
-            <div className="video-container relative w-full max-w-md mx-auto my-4">
-              <video 
-                ref={videoRef} 
-                className="w-full rounded-md" 
-                autoPlay 
-                playsInline
-              />
-              <canvas 
-                ref={canvasRef} 
-                className="hidden" 
-              />
+            <div className="mb-6">
+              <h3 className="text-xl font-bold text-[#273414] mb-2">Verified Identity</h3>
+              <p className="text-[#273414]/70 text-sm">
+                Complete identity verification in two simple steps to access the platform securely.
+              </p>
             </div>
             
-            <div className="flex flex-col gap-4">
-              {!mediaStreamRef.current ? (
-                <Button 
-                  onClick={startCamera}
-                  disabled={isProcessing}
-                >
-                  {isProcessing ? 'Starting Camera...' : 'Start Camera'}
-                </Button>
-              ) : (
-                <Button 
-                  onClick={capturePhoto}
-                  disabled={isProcessing}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  {isProcessing ? 'Verifying...' : 'Capture & Verify Face'}
-                </Button>
-              )}
+            <div className="bg-[#e9f0e6]/50 p-4 rounded-lg border border-[#273414]/10 mb-4 opacity-70">
+              <div className="flex items-center mb-2">
+                <div className="w-7 h-7 rounded-full bg-[#273414]/70 text-white flex items-center justify-center mr-3">
+                  <span className="text-sm font-bold">✓</span>
+                </div>
+                <h4 className="font-medium text-[#273414]">Device Authentication</h4>
+              </div>
+              <p className="text-sm text-[#273414]/70 pl-10">
+                Authentication completed successfully
+              </p>
+            </div>
+            
+            <div className="bg-[#e9f0e6] p-4 rounded-lg border border-[#273414]/10 mb-4">
+              <div className="flex items-center mb-2">
+                <div className="w-7 h-7 rounded-full bg-[#273414] text-white flex items-center justify-center mr-3">
+                  <span className="text-sm font-bold">2</span>
+                </div>
+                <h4 className="font-medium text-[#273414]">Face Verification</h4>
+              </div>
+              <p className="text-sm text-[#273414]/70 mb-3 pl-10">
+                Use your camera to verify your face
+              </p>
               
+              <div className="video-container relative w-full mx-auto mb-4 pl-10">
+                <video 
+                  ref={videoRef} 
+                  className="w-full rounded-md border border-[#273414]/20" 
+                  autoPlay 
+                  playsInline
+                />
+                <canvas 
+                  ref={canvasRef} 
+                  className="hidden" 
+                />
+              </div>
+              
+              <div className="pl-10">
+                {!mediaStreamRef.current ? (
+                  <Button 
+                    onClick={startCamera}
+                    disabled={isProcessing}
+                    className="w-full bg-[#273414] text-white hover:bg-[#1d2810]"
+                  >
+                    {isProcessing ? 'Starting Camera...' : 'Start Camera'}
+                  </Button>
+                ) : (
+                  <Button 
+                    onClick={capturePhoto}
+                    disabled={isProcessing}
+                    className="w-full bg-[#273414] text-white hover:bg-[#1d2810]"
+                  >
+                    {isProcessing ? 'Verifying...' : 'Capture & Verify Face'}
+                  </Button>
+                )}
+              </div>
+            </div>
+            
+            <div className="mt-4">
               <Button 
                 variant="outline" 
                 onClick={resetAuthentication}
                 disabled={isProcessing}
+                className="border-[#273414] text-[#273414] w-full"
               >
                 Cancel
               </Button>
@@ -360,20 +438,58 @@ const AuthenticationPage: React.FC = () => {
         
       case AuthStep.COMPLETE:
         return (
-          <div className="complete-screen text-center">
-            <div className="p-4 mb-4 bg-green-50 rounded-md">
-              <h3 className="text-xl font-semibold text-green-800">Authentication Complete</h3>
-              <p className="text-green-700">
-                Your identity has been successfully verified using multiple factors.
+          <div className="complete-screen">
+            <div className="mb-6 text-center">
+              <div className="w-16 h-16 rounded-full bg-[#e9f0e6] flex items-center justify-center mx-auto mb-4">
+                <span className="text-[#273414] text-2xl">✓</span>
+              </div>
+              <h3 className="text-xl font-bold text-[#273414] mb-2">Verification Complete</h3>
+              <p className="text-[#273414]/70 text-sm">
+                Your identity has been successfully verified
               </p>
             </div>
             
-            <Button 
-              onClick={resetAuthentication}
-              className="mt-4"
-            >
-              Start Over
-            </Button>
+            <div className="bg-[#e9f0e6]/50 p-4 rounded-lg border border-[#273414]/10 mb-3">
+              <div className="flex items-center">
+                <div className="w-7 h-7 rounded-full bg-[#273414]/70 text-white flex items-center justify-center mr-3">
+                  <span className="text-sm">✓</span>
+                </div>
+                <div>
+                  <h4 className="font-medium text-[#273414]">Device Authentication</h4>
+                  <p className="text-xs text-[#273414]/70">
+                    Biometric verification successful
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-[#e9f0e6]/50 p-4 rounded-lg border border-[#273414]/10 mb-6">
+              <div className="flex items-center">
+                <div className="w-7 h-7 rounded-full bg-[#273414]/70 text-white flex items-center justify-center mr-3">
+                  <span className="text-sm">✓</span>
+                </div>
+                <div>
+                  <h4 className="font-medium text-[#273414]">Face Verification</h4>
+                  <p className="text-xs text-[#273414]/70">
+                    Face verification successful
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="mt-6">
+              <Button 
+                onClick={() => {
+                  // Store auth token
+                  localStorage.setItem('userToken', 'mock-auth-token-' + Date.now());
+                  // Navigate to dashboard
+                  window.location.href = '/dashboard';
+                }}
+                className="w-full bg-[#273414] text-white hover:bg-[#1d2810]"
+              >
+                Continue to Dashboard
+              </Button>
+            </div>
           </div>
         );
         
@@ -384,41 +500,41 @@ const AuthenticationPage: React.FC = () => {
 
   // Main UI
   return (
-    <div className="authentication-page min-h-screen flex items-center justify-center py-12 px-4 bg-gradient-to-b from-[#273414] to-[#1d2810]">
-      <Card className="w-full max-w-md">
-        <CardHeader className="border-b border-muted pb-4">
-          <CardTitle className="text-center text-2xl font-bold text-[#273414]">Secure Authentication</CardTitle>
-          <CardDescription className="text-center text-muted-foreground">
-            {authStep === AuthStep.INITIAL && "Verify your identity with multi-factor authentication"}
-            {authStep === AuthStep.FACE_VERIFICATION && "Please complete face verification"}
-            {authStep === AuthStep.COMPLETE && "Authentication successful"}
-          </CardDescription>
-        </CardHeader>
+    <div className="authentication-page min-h-screen bg-white">
+      {/* Header */}
+      <div className="bg-[#273414] text-white px-6 py-5">
+        <div className="flex items-center">
+          <img 
+            src="/logo-heirloom.png" 
+            alt="Heirloom Logo" 
+            className="h-8 w-auto"
+            onError={(e) => {
+              // Fallback if image isn't found
+              e.currentTarget.style.display = 'none';
+            }}
+          />
+          <span className="ml-3 text-xl font-bold">Heirloom</span>
+        </div>
+      </div>
+      
+      {/* Content */}
+      <div className="p-6">
+        {error && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
         
-        <CardContent className="pt-6">
-          {error && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertTitle>Error</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-          
-          {success && (
-            <Alert className="mb-4 bg-[#e9f0e6] border-[#273414]/20">
-              <AlertTitle className="text-[#273414]">Success</AlertTitle>
-              <AlertDescription className="text-[#273414]/80">{success}</AlertDescription>
-            </Alert>
-          )}
-          
-          {renderAuthStep()}
-        </CardContent>
+        {success && (
+          <Alert className="mb-4 bg-[#e9f0e6] border-[#273414]/20">
+            <AlertTitle className="text-[#273414]">Success</AlertTitle>
+            <AlertDescription className="text-[#273414]/80">{success}</AlertDescription>
+          </Alert>
+        )}
         
-        <CardFooter className="flex flex-col text-sm text-muted-foreground border-t border-muted pt-4">
-          <div className="text-center w-full">
-            Protected by Heirloom Identity Platform
-          </div>
-        </CardFooter>
-      </Card>
+        {renderAuthStep()}
+      </div>
     </div>
   );
 };
