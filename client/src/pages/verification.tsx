@@ -294,11 +294,11 @@ export default function Verification() {
               <div className="w-3 h-3 bg-[#d4a166] rounded-full mr-2 animate-pulse"></div>
               <span>{isVerificationComplete ? "Verification complete" : 
                      verificationProgress > 80 ? "Processing..." :
-                     verificationProgress > 40 ? "Analyzing face..." :
-                     "Finding face..."}</span>
+                     verificationProgress > 40 ? "Analyzing photo..." :
+                     "Ready to capture"}</span>
             </div>
             
-            {/* Apple FaceScanner Component - iOS Style with Green Theme */}
+            {/* Simplified Camera Component with Take Photo Button */}
             <div className="relative mb-8">
               {/* Camera frame with pulsing border effect */}
               <div className="w-64 h-64 rounded-3xl relative overflow-hidden bg-black shadow-xl">
@@ -307,47 +307,82 @@ export default function Verification() {
                 {/* FaceID middle circle */}
                 <div className="absolute -inset-1 rounded-full border-[3px] border-[#7c9861]/20"></div>
                 
-                {/* Inner scanning component */}
-                <div className="relative">
-                  <AppleFaceScanner 
-                    onProgress={handleVerificationProgress} 
-                    onComplete={handleVerificationComplete}
-                    isComplete={isVerificationComplete}
+                {/* Face guide overlay */}
+                <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                  <div className="w-40 h-40 rounded-full border-2 border-[#d4a166] border-dashed opacity-40"></div>
+                </div>
+                
+                {/* Camera View */}
+                <div className="w-full h-full relative">
+                  <video 
+                    ref={(videoElement) => {
+                      if (videoElement) {
+                        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                          navigator.mediaDevices.getUserMedia({ video: true })
+                            .then(stream => {
+                              videoElement.srcObject = stream;
+                              videoElement.play();
+                            })
+                            .catch(err => console.error("Error accessing camera:", err));
+                        }
+                      }
+                    }}
+                    className="w-full h-full object-cover"
+                    autoPlay
+                    playsInline
+                    muted
                   />
                   
-                  {/* Apple FaceID scanning animation overlay */}
-                  {verificationProgress > 10 && verificationProgress < 95 && !isVerificationComplete && (
-                    <div className="absolute inset-0 pointer-events-none">
-                      <div className="w-full h-full relative">
-                        {/* Scanning line */}
-                        <div 
-                          className="absolute left-0 right-0 h-1 bg-[#d4a166] opacity-70"
-                          style={{ 
-                            top: `${(verificationProgress/2) % 100}%`,
-                            boxShadow: '0 0 10px 2px rgba(212, 161, 102, 0.5)',
-                            transition: 'all 0.2s ease-out'
-                          }}
-                        ></div>
-                        
-                        {/* FaceID dot pattern */}
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="w-full h-full grid grid-cols-18 grid-rows-18 opacity-60">
-                            {Array.from({ length: 300 }).map((_, i) => (
-                              <div 
-                                key={i} 
-                                className={`
-                                  w-1 h-1 rounded-full bg-white
-                                  ${Math.random() > 0.5 ? 'opacity-100' : 'opacity-40'}
-                                `}
-                              />
-                            ))}
-                          </div>
+                  {/* Taken photo overlay (show when processing) */}
+                  {verificationProgress > 10 && (
+                    <div className="absolute inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center">
+                      {!isVerificationComplete ? (
+                        <div className="text-white text-center">
+                          <div className="w-12 h-12 border-4 border-t-transparent border-[#d4a166] rounded-full animate-spin mx-auto mb-3"></div>
+                          <p>Processing your photo...</p>
                         </div>
-                      </div>
+                      ) : (
+                        <div className="text-white text-center">
+                          <div className="w-16 h-16 bg-[#2a5414]/60 rounded-full flex items-center justify-center mb-2">
+                            <svg className="w-10 h-10 text-[#d4a166]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          </div>
+                          <p>Verification successful!</p>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
               </div>
+              
+              {/* Take Photo Button */}
+              {verificationProgress < 10 && (
+                <button 
+                  onClick={() => {
+                    // Simulate taking a photo and starting verification
+                    setVerificationProgress(10);
+                    
+                    // Simulate verification process
+                    let progress = 10;
+                    const interval = setInterval(() => {
+                      progress += 5;
+                      setVerificationProgress(progress);
+                      
+                      if (progress >= 100) {
+                        clearInterval(interval);
+                        handleVerificationComplete();
+                      }
+                    }, 500);
+                  }}
+                  className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 bg-[#2a5414] text-white px-6 py-3 rounded-full flex items-center justify-center shadow-lg hover:bg-[#3d7520] transition-colors"
+                >
+                  <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                  </svg>
+                  Take Photo
+                </button>
+              )}
             </div>
             
             {/* Success message or percentage indicator */}
