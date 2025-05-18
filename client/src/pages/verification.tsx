@@ -9,7 +9,7 @@ import { useAuth } from "@/hooks/use-auth";
 import AppleFaceScanner from "@/components/apple-face-scanner";
 import { BiometricAuth } from "@/components/biometric-auth";
 import SuccessModal from "@/components/success-modal";
-import { ShieldCheck, Monitor } from "lucide-react";
+import { ShieldCheck, Monitor, Fingerprint } from "lucide-react";
 
 export default function Verification() {
   const [_, navigate] = useLocation();
@@ -157,6 +157,37 @@ export default function Verification() {
     setVerificationMethod('face');
   };
 
+  // Create a simplified wrapper for biometric authentication
+  const startBiometricAuth = () => {
+    if (!user?.id) {
+      toast({
+        variant: "destructive",
+        title: "Authentication Error",
+        description: "Unable to verify your identity. Please log in first."
+      });
+      return;
+    }
+    
+    // Create a hidden BiometricAuth component and click its authentication button
+    const bioAuthComponent = document.createElement('div');
+    bioAuthComponent.style.display = 'none';
+    bioAuthComponent.id = 'hidden-biometric-auth';
+    document.body.appendChild(bioAuthComponent);
+    
+    // Render BiometricAuth component via code and trigger it
+    setTimeout(() => {
+      if (user.isVerified) {
+        authenticateBiometric(user.id!.toString())
+          .then(handleBiometricSuccess)
+          .catch((error) => handleBiometricError(error.message || "Authentication failed"));
+      } else {
+        registerBiometric(user.id!.toString(), user.username)
+          .then(handleBiometricSuccess)
+          .catch((error) => handleBiometricError(error.message || "Registration failed"));
+      }
+    }, 100);
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-[#143404] to-[#1e3c0d] text-white">
       {/* Status bar area */}
@@ -276,7 +307,7 @@ export default function Verification() {
           <TabsContent value="device" className="mt-6">
             <div className="flex flex-col items-center justify-center rounded-xl bg-[#1c2c12] p-6 mb-6">
               <div className="w-16 h-16 bg-[#2a5414] rounded-full flex items-center justify-center mb-5">
-                <Monitor className="w-8 h-8 text-green-400" />
+                <Fingerprint className="w-8 h-8 text-green-400" />
               </div>
               
               <h2 className="text-xl font-medium mb-2">Verify Your Identity</h2>
@@ -285,15 +316,10 @@ export default function Verification() {
               </p>
               
               <Button
+                id="authenticate-button"
                 variant="default"
                 className="w-full bg-[#5a7545] hover:bg-[#6c8a55] text-white font-medium py-6 rounded-xl h-auto"
-                onClick={() => {
-                  // This would trigger the device biometric authentication
-                  const bioAuth = document.querySelector('[id^="biometric-auth-button"]');
-                  if (bioAuth instanceof HTMLElement) {
-                    bioAuth.click();
-                  }
-                }}
+                onClick={startBiometricAuth}
               >
                 Authenticate
               </Button>
@@ -305,18 +331,6 @@ export default function Verification() {
               >
                 Use Face Scan Instead
               </Button>
-            </div>
-            
-            {/* Hidden BiometricAuth component that will be triggered by the Authenticate button */}
-            <div className="hidden">
-              <BiometricAuth 
-                userId={user?.id?.toString() || '1'} 
-                username={user?.username}
-                mode={user?.isVerified ? 'authenticate' : 'register'}
-                onSuccess={handleBiometricSuccess}
-                onError={handleBiometricError}
-                onCancel={() => setVerificationMethod('face')}
-              />
             </div>
             
             <p className="text-white/60 text-center text-sm mt-4 mb-6">
