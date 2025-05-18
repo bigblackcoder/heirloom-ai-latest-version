@@ -1,6 +1,14 @@
-import { users, type User, type InsertUser, faces, type Face, type InsertFace, webauthnCredentials, type WebAuthnCredential, type InsertWebAuthnCredential } from "@shared/schema";
+import { 
+  users, type User, type InsertUser,
+  identityCapsules, type IdentityCapsule, type InsertIdentityCapsule,
+  verifiedData, type VerifiedData, type InsertVerifiedData,
+  aiConnections, type AiConnection, type InsertAiConnection,
+  activities, type Activity, type InsertActivity,
+  faceRecords, type FaceRecord, type InsertFaceRecord,
+  achievements, type Achievement, type InsertAchievement
+} from "@shared/schema";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 
 // Interface for storage operations
 export interface IStorage {
@@ -8,17 +16,38 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  
-  // Face operations
-  getFace(id: number): Promise<Face | undefined>;
-  getFacesByUserId(userId: number): Promise<Face[]>;
-  createFace(face: InsertFace): Promise<Face>;
-  
-  // WebAuthn credential operations
-  getWebAuthnCredential(id: string): Promise<WebAuthnCredential | undefined>;
-  getWebAuthnCredentialsByUserId(userId: number): Promise<WebAuthnCredential[]>;
-  createWebAuthnCredential(credential: InsertWebAuthnCredential): Promise<WebAuthnCredential>;
-  updateWebAuthnCredential(id: string, updates: Partial<WebAuthnCredential>): Promise<WebAuthnCredential | undefined>;
+  updateUser(id: number, updates: Partial<User>): Promise<User | undefined>;
+
+  // Identity Capsule operations
+  getCapsule(id: number): Promise<IdentityCapsule | undefined>;
+  getCapsulesByUserId(userId: number): Promise<IdentityCapsule[]>;
+  createCapsule(capsule: InsertIdentityCapsule): Promise<IdentityCapsule>;
+
+  // Verified Data operations
+  getVerifiedData(id: number): Promise<VerifiedData | undefined>;
+  getVerifiedDataByCapsuleId(capsuleId: number): Promise<VerifiedData[]>;
+  createVerifiedData(data: InsertVerifiedData): Promise<VerifiedData>;
+
+  // AI Connection operations
+  getAiConnection(id: number): Promise<AiConnection | undefined>;
+  getAiConnectionsByUserId(userId: number): Promise<AiConnection[]>;
+  createAiConnection(connection: InsertAiConnection): Promise<AiConnection>;
+  updateAiConnection(id: number, updates: Partial<AiConnection>): Promise<AiConnection | undefined>;
+
+  // Activity operations
+  getActivity(id: number): Promise<Activity | undefined>;
+  getActivitiesByUserId(userId: number): Promise<Activity[]>;
+  createActivity(activity: InsertActivity): Promise<Activity>;
+
+  // Face Record operations
+  getFaceRecord(id: string): Promise<FaceRecord | undefined>;
+  getFaceRecordsByUserId(userId: number): Promise<FaceRecord[]>;
+  createFaceRecord(record: InsertFaceRecord): Promise<FaceRecord>;
+
+  // Achievement operations
+  getAchievement(id: number): Promise<Achievement | undefined>;
+  getAchievementsByUserId(userId: number): Promise<Achievement[]>;
+  createAchievement(achievement: InsertAchievement): Promise<Achievement>;
 }
 
 // Database storage implementation
@@ -34,51 +63,125 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db
-      .insert(users)
-      .values(insertUser)
+  async createUser(user: InsertUser): Promise<User> {
+    const [newUser] = await db.insert(users).values(user).returning();
+    return newUser;
+  }
+
+  async updateUser(id: number, updates: Partial<User>): Promise<User | undefined> {
+    const [updatedUser] = await db
+      .update(users)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(users.id, id))
       .returning();
-    return user;
+    return updatedUser;
   }
-  
-  // Face operations
-  async getFace(id: number): Promise<Face | undefined> {
-    const [face] = await db.select().from(faces).where(eq(faces.id, id));
-    return face;
+
+  // Identity Capsule operations
+  async getCapsule(id: number): Promise<IdentityCapsule | undefined> {
+    const [capsule] = await db.select().from(identityCapsules).where(eq(identityCapsules.id, id));
+    return capsule;
   }
-  
-  async getFacesByUserId(userId: number): Promise<Face[]> {
-    return await db.select().from(faces).where(eq(faces.userId, userId));
+
+  async getCapsulesByUserId(userId: number): Promise<IdentityCapsule[]> {
+    return await db.select().from(identityCapsules).where(eq(identityCapsules.userId, userId));
   }
-  
-  async createFace(face: InsertFace): Promise<Face> {
-    const [newFace] = await db.insert(faces).values(face).returning();
-    return newFace;
+
+  async createCapsule(capsule: InsertIdentityCapsule): Promise<IdentityCapsule> {
+    const [newCapsule] = await db.insert(identityCapsules).values(capsule).returning();
+    return newCapsule;
   }
-  
-  // WebAuthn credential operations
-  async getWebAuthnCredential(id: string): Promise<WebAuthnCredential | undefined> {
-    const [credential] = await db.select().from(webauthnCredentials).where(eq(webauthnCredentials.id, id));
-    return credential;
+
+  // Verified Data operations
+  async getVerifiedData(id: number): Promise<VerifiedData | undefined> {
+    const [data] = await db.select().from(verifiedData).where(eq(verifiedData.id, id));
+    return data;
   }
-  
-  async getWebAuthnCredentialsByUserId(userId: number): Promise<WebAuthnCredential[]> {
-    return await db.select().from(webauthnCredentials).where(eq(webauthnCredentials.userId, userId));
+
+  async getVerifiedDataByCapsuleId(capsuleId: number): Promise<VerifiedData[]> {
+    return await db.select().from(verifiedData).where(eq(verifiedData.capsuleId, capsuleId));
   }
-  
-  async createWebAuthnCredential(credential: InsertWebAuthnCredential): Promise<WebAuthnCredential> {
-    const [newCredential] = await db.insert(webauthnCredentials).values(credential).returning();
-    return newCredential;
+
+  async createVerifiedData(data: InsertVerifiedData): Promise<VerifiedData> {
+    const [newData] = await db.insert(verifiedData).values(data).returning();
+    return newData;
   }
-  
-  async updateWebAuthnCredential(id: string, updates: Partial<WebAuthnCredential>): Promise<WebAuthnCredential | undefined> {
-    const [updatedCredential] = await db
-      .update(webauthnCredentials)
-      .set(updates)
-      .where(eq(webauthnCredentials.id, id))
+
+  // AI Connection operations
+  async getAiConnection(id: number): Promise<AiConnection | undefined> {
+    const [connection] = await db.select().from(aiConnections).where(eq(aiConnections.id, id));
+    return connection;
+  }
+
+  async getAiConnectionsByUserId(userId: number): Promise<AiConnection[]> {
+    return await db.select().from(aiConnections).where(eq(aiConnections.userId, userId));
+  }
+
+  async createAiConnection(connection: InsertAiConnection): Promise<AiConnection> {
+    const [newConnection] = await db.insert(aiConnections).values(connection).returning();
+    return newConnection;
+  }
+
+  async updateAiConnection(id: number, updates: Partial<AiConnection>): Promise<AiConnection | undefined> {
+    const [updatedConnection] = await db
+      .update(aiConnections)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(aiConnections.id, id))
       .returning();
-    return updatedCredential;
+    return updatedConnection;
+  }
+
+  // Activity operations
+  async getActivity(id: number): Promise<Activity | undefined> {
+    const [activity] = await db.select().from(activities).where(eq(activities.id, id));
+    return activity;
+  }
+
+  async getActivitiesByUserId(userId: number): Promise<Activity[]> {
+    return await db
+      .select()
+      .from(activities)
+      .where(eq(activities.userId, userId))
+      .orderBy(desc(activities.createdAt));
+  }
+
+  async createActivity(activity: InsertActivity): Promise<Activity> {
+    const [newActivity] = await db.insert(activities).values(activity).returning();
+    return newActivity;
+  }
+
+  // Face Record operations
+  async getFaceRecord(id: string): Promise<FaceRecord | undefined> {
+    const [record] = await db.select().from(faceRecords).where(eq(faceRecords.id, id));
+    return record;
+  }
+
+  async getFaceRecordsByUserId(userId: number): Promise<FaceRecord[]> {
+    return await db.select().from(faceRecords).where(eq(faceRecords.userId, userId));
+  }
+
+  async createFaceRecord(record: InsertFaceRecord): Promise<FaceRecord> {
+    const [newRecord] = await db.insert(faceRecords).values(record).returning();
+    return newRecord;
+  }
+
+  // Achievement operations
+  async getAchievement(id: number): Promise<Achievement | undefined> {
+    const [achievement] = await db.select().from(achievements).where(eq(achievements.id, id));
+    return achievement;
+  }
+
+  async getAchievementsByUserId(userId: number): Promise<Achievement[]> {
+    return await db
+      .select()
+      .from(achievements)
+      .where(eq(achievements.userId, userId))
+      .orderBy(desc(achievements.awardedAt));
+  }
+
+  async createAchievement(achievement: InsertAchievement): Promise<Achievement> {
+    const [newAchievement] = await db.insert(achievements).values(achievement).returning();
+    return newAchievement;
   }
 }
 

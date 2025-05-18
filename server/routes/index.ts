@@ -1,9 +1,13 @@
+/**
+ * Routes index file to centralize route registration
+ */
+
 import { Router } from 'express';
-import webauthnRouter from './webauthn';
+import webauthnRoutes from './webauthn';
 
-const apiRouter = Router();
+const router = Router();
 
-// Connect WebAuthn routes
-apiRouter.use('/webauthn', webauthnRouter);
+// Mount WebAuthn routes
+router.use('/webauthn', webauthnRoutes);
 
-export default apiRouter;
+export default router;
