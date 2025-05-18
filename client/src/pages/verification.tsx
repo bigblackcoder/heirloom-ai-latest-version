@@ -190,7 +190,7 @@ export default function Verification() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-[#143404] to-[#1e3c0d] text-white">
-      {/* Status bar area */}
+      {/* Status bar area - iOS style */}
       <div className="w-full px-4 pt-6 pb-2 flex items-center">
         <div className="text-sm opacity-70">9:41</div>
         <div className="flex-1"></div>
@@ -289,60 +289,132 @@ export default function Verification() {
               <p className="text-white/60 text-sm">Position your face in the frame</p>
             </div>
             
-            {/* Status Indicator */}
+            {/* Status Indicator - Apple Style */}
             <div className="bg-blue-500/20 text-blue-300 font-medium py-2 px-4 rounded-full flex items-center mb-6">
               <div className="w-3 h-3 bg-blue-400 rounded-full mr-2 animate-pulse"></div>
-              <span>Finding face...</span>
+              <span>{isVerificationComplete ? "Verification complete" : 
+                     verificationProgress > 80 ? "Processing..." :
+                     verificationProgress > 40 ? "Analyzing face..." :
+                     "Finding face..."}</span>
             </div>
             
-            {/* Apple FaceScanner Component */}
+            {/* Apple FaceScanner Component - iOS Style */}
             <div className="relative mb-8">
-              <div className="absolute -inset-2 rounded-full border-2 border-white/10"></div>
-              <AppleFaceScanner 
-                onProgress={handleVerificationProgress} 
-                onComplete={handleVerificationComplete}
-                isComplete={isVerificationComplete}
-              />
+              {/* FaceID outer circle */}
+              <div className="absolute -inset-3 rounded-full border-2 border-white/30"></div>
+              {/* FaceID middle circle */}
+              <div className="absolute -inset-1 rounded-full border-[3px] border-white/20"></div>
+              
+              <div className="relative">
+                <AppleFaceScanner 
+                  onProgress={handleVerificationProgress} 
+                  onComplete={handleVerificationComplete}
+                  isComplete={isVerificationComplete}
+                />
+                
+                {/* Apple FaceID scanning animation overlay */}
+                {verificationProgress > 10 && verificationProgress < 95 && !isVerificationComplete && (
+                  <div className="absolute inset-0 pointer-events-none">
+                    <div className="w-full h-full relative">
+                      {/* Green scanning line */}
+                      <div 
+                        className="absolute left-0 right-0 h-1 bg-blue-400 opacity-70"
+                        style={{ 
+                          top: `${(verificationProgress/2) % 100}%`,
+                          boxShadow: '0 0 10px 2px rgba(59, 130, 246, 0.5)',
+                          transition: 'all 0.2s ease-out'
+                        }}
+                      ></div>
+                      
+                      {/* FaceID dot pattern */}
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-full h-full grid grid-cols-18 grid-rows-18 opacity-60">
+                          {Array.from({ length: 300 }).map((_, i) => (
+                            <div 
+                              key={i} 
+                              className={`
+                                w-1 h-1 rounded-full bg-white
+                                ${Math.random() > 0.5 ? 'opacity-100' : 'opacity-40'}
+                              `}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
             
-            {/* Percentage Indicator */}
-            <div className="text-[#d4a166] text-3xl font-bold my-4">
-              {verificationProgress.toFixed(0)}%
-            </div>
-            
-            <p className="text-white/80 text-center text-sm sm:text-base mb-3 max-w-[280px] sm:max-w-xs">
-              Follow the guidance and move your head slowly to complete the verification.
-            </p>
+            {/* Success message or percentage indicator */}
+            {isVerificationComplete ? (
+              <div className="flex flex-col items-center">
+                <div className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center mb-2">
+                  <svg className="w-8 h-8 text-green-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <div className="text-green-400 text-xl font-medium">Identity Verified</div>
+              </div>
+            ) : (
+              <>
+                <div className="text-[#d4a166] text-3xl font-bold my-3">
+                  {verificationProgress.toFixed(0)}%
+                </div>
+                
+                <p className="text-white/80 text-center text-sm sm:text-base mb-3 max-w-[280px] sm:max-w-xs">
+                  {verificationProgress > 80 ? "Almost done! Just a moment..." :
+                   verificationProgress > 40 ? "Keep steady while we verify your identity..." :
+                   "Follow the guidance and move your head slowly to complete the verification."}
+                </p>
+              </>
+            )}
             
             {/* Step indicators - Apple style dots */}
             <div className="flex justify-center items-center gap-3 my-6">
               <div className="w-8 h-1.5 rounded-full bg-[#d4a166]"></div>
-              <div className="w-2 h-1.5 rounded-full bg-white/30"></div>
-              <div className="w-2 h-1.5 rounded-full bg-white/30"></div>
+              <div className={`w-2 h-1.5 rounded-full ${verificationProgress > 50 ? 'bg-[#d4a166]' : 'bg-white/30'}`}></div>
+              <div className={`w-2 h-1.5 rounded-full ${isVerificationComplete ? 'bg-[#d4a166]' : 'bg-white/30'}`}></div>
             </div>
             
             {/* Verification Tips */}
-            <div className="w-full max-w-md space-y-4 mt-2">
-              <div className="flex items-center">
-                <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center mr-3">
-                  <svg className="w-5 h-5 text-white/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                  </svg>
+            {!isVerificationComplete && (
+              <div className="w-full max-w-md space-y-4 mt-2">
+                <div className="flex items-center">
+                  <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center mr-3">
+                    <svg className="w-5 h-5 text-white/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                  </div>
+                  <p className="text-white/70 text-sm">Make sure your face is clearly visible</p>
                 </div>
-                <p className="text-white/70 text-sm">Make sure your face is clearly visible</p>
-              </div>
-              
-              <div className="flex items-center">
-                <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center mr-3">
-                  <svg className="w-5 h-5 text-white/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 22V12h6v10" />
-                  </svg>
+                
+                <div className="flex items-center">
+                  <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center mr-3">
+                    <svg className="w-5 h-5 text-white/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 22V12h6v10" />
+                    </svg>
+                  </div>
+                  <p className="text-white/70 text-sm">Hold your device at eye level</p>
                 </div>
-                <p className="text-white/70 text-sm">Hold your device at eye level</p>
               </div>
-            </div>
+            )}
+            
+            {/* Complete button - only show when verification is complete */}
+            {isVerificationComplete && (
+              <button 
+                className="mt-4 px-6 py-3 bg-green-500 hover:bg-green-600 text-white font-medium rounded-xl shadow-lg transition-all transform active:scale-95"
+                onClick={() => {
+                  if (typeof window !== 'undefined') {
+                    window.location.href = '/dashboard';
+                  }
+                }}
+              >
+                Continue to Account
+              </button>
+            )}
           </TabsContent>
           
           <TabsContent value="device" className="mt-6">
