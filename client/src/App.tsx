@@ -17,15 +17,15 @@ const HomePage = () => {
   const [, setLocation] = useLocation();
 
   return (
-    <div className="home-page h-screen flex flex-col items-center justify-center bg-gradient-to-b from-green-900 to-green-700 text-white p-6">
+    <div className="home-page h-screen flex flex-col items-center justify-center bg-gradient-to-b from-[#273414] to-[#1d2810] text-white p-6">
       <div className="container max-w-4xl mx-auto text-center">
         <h1 className="text-4xl md:text-5xl font-bold mb-4">Heirloom Identity Platform</h1>
-        <p className="text-xl mb-8 text-green-100">Secure, intelligent authentication with privacy by design</p>
+        <p className="text-xl mb-8 text-[#e9f0e6]">Secure, intelligent authentication with privacy by design</p>
         
         <div className="flex flex-col sm:flex-row gap-4 justify-center mt-6">
           <Button 
             size="lg" 
-            className="bg-white text-green-900 hover:bg-green-100" 
+            className="bg-white text-[#273414] hover:bg-[#e9f0e6]" 
             onClick={() => setLocation('/authenticate')}
           >
             Authenticate
@@ -33,7 +33,7 @@ const HomePage = () => {
           <Button 
             size="lg" 
             variant="outline" 
-            className="border-white text-white hover:bg-white hover:text-green-900"
+            className="border-white text-white hover:bg-white hover:text-[#273414]"
             onClick={() => setLocation('/webauthn-test')}
           >
             Test WebAuthn

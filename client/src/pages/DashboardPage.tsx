@@ -14,16 +14,16 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onLogout }) => {
   const [, setLocation] = useLocation();
 
   return (
-    <div className="dashboard-page min-h-screen bg-gray-50">
+    <div className="dashboard-page min-h-screen bg-[#f7f9f6]">
       {/* Header */}
-      <header className="bg-green-900 text-white shadow-md">
+      <header className="bg-[#273414] text-white shadow-md">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold">Heirloom Identity Platform</h1>
           <div className="flex items-center gap-4">
             <span className="text-sm hidden md:inline">Welcome, User</span>
             <Button 
               variant="outline" 
-              className="text-white border-white hover:bg-white hover:text-green-900"
+              className="text-white border-white hover:bg-white hover:text-[#273414]"
               onClick={onLogout}
             >
               Logout
@@ -53,21 +53,21 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onLogout }) => {
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <span className="text-sm font-medium">Identity Status</span>
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-[#e9f0e6] text-[#273414]">
                       Verified
                     </span>
                   </div>
                   
                   <div className="flex justify-between items-center">
                     <span className="text-sm font-medium">Biometric Auth</span>
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-[#e9f0e6] text-[#273414]">
                       Enabled
                     </span>
                   </div>
                   
                   <div className="flex justify-between items-center">
                     <span className="text-sm font-medium">Face Recognition</span>
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-[#e9f0e6] text-[#273414]">
                       Enabled
                     </span>
                   </div>
@@ -92,24 +92,26 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onLogout }) => {
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="bg-green-50 p-4 rounded-lg">
-                        <h3 className="font-medium mb-2">Device Authentication</h3>
-                        <p className="text-sm text-gray-600 mb-4">Your device is registered for biometric authentication.</p>
+                      <div className="bg-[#e9f0e6] p-4 rounded-lg border border-[#273414]/10">
+                        <h3 className="font-medium mb-2 text-[#273414]">Device Authentication</h3>
+                        <p className="text-sm text-[#273414]/80 mb-4">Your device is registered for biometric authentication.</p>
                         <Button 
                           variant="outline" 
                           size="sm"
+                          className="border-[#273414] text-[#273414] hover:bg-[#273414] hover:text-white"
                           onClick={() => setLocation('/webauthn-test')}
                         >
                           Manage Devices
                         </Button>
                       </div>
                       
-                      <div className="bg-green-50 p-4 rounded-lg">
-                        <h3 className="font-medium mb-2">Face Verification</h3>
-                        <p className="text-sm text-gray-600 mb-4">Your face has been registered for identity verification.</p>
+                      <div className="bg-[#e9f0e6] p-4 rounded-lg border border-[#273414]/10">
+                        <h3 className="font-medium mb-2 text-[#273414]">Face Verification</h3>
+                        <p className="text-sm text-[#273414]/80 mb-4">Your face has been registered for identity verification.</p>
                         <Button 
                           variant="outline" 
                           size="sm"
+                          className="border-[#273414] text-[#273414] hover:bg-[#273414] hover:text-white"
                           onClick={() => setLocation('/authenticate')}
                         >
                           Update Face Data

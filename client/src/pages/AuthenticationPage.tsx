@@ -384,18 +384,18 @@ const AuthenticationPage: React.FC = () => {
 
   // Main UI
   return (
-    <div className="authentication-page container max-w-md mx-auto py-8 px-4">
-      <Card className="w-full">
-        <CardHeader>
-          <CardTitle className="text-center">Secure Authentication</CardTitle>
-          <CardDescription className="text-center">
+    <div className="authentication-page min-h-screen flex items-center justify-center py-12 px-4 bg-gradient-to-b from-[#273414] to-[#1d2810]">
+      <Card className="w-full max-w-md">
+        <CardHeader className="border-b border-muted pb-4">
+          <CardTitle className="text-center text-2xl font-bold text-[#273414]">Secure Authentication</CardTitle>
+          <CardDescription className="text-center text-muted-foreground">
             {authStep === AuthStep.INITIAL && "Verify your identity with multi-factor authentication"}
             {authStep === AuthStep.FACE_VERIFICATION && "Please complete face verification"}
             {authStep === AuthStep.COMPLETE && "Authentication successful"}
           </CardDescription>
         </CardHeader>
         
-        <CardContent>
+        <CardContent className="pt-6">
           {error && (
             <Alert variant="destructive" className="mb-4">
               <AlertTitle>Error</AlertTitle>
@@ -404,16 +404,16 @@ const AuthenticationPage: React.FC = () => {
           )}
           
           {success && (
-            <Alert className="mb-4 bg-green-50 border-green-200">
-              <AlertTitle>Success</AlertTitle>
-              <AlertDescription>{success}</AlertDescription>
+            <Alert className="mb-4 bg-[#e9f0e6] border-[#273414]/20">
+              <AlertTitle className="text-[#273414]">Success</AlertTitle>
+              <AlertDescription className="text-[#273414]/80">{success}</AlertDescription>
             </Alert>
           )}
           
           {renderAuthStep()}
         </CardContent>
         
-        <CardFooter className="flex flex-col text-sm text-gray-500">
+        <CardFooter className="flex flex-col text-sm text-muted-foreground border-t border-muted pt-4">
           <div className="text-center w-full">
             Protected by Heirloom Identity Platform
           </div>

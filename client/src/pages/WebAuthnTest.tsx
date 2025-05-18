@@ -120,16 +120,16 @@ const WebAuthnTest: React.FC = () => {
   };
 
   return (
-    <div className="webauthn-test-page container max-w-md mx-auto py-8 px-4">
-      <Card className="w-full">
-        <CardHeader>
-          <CardTitle>WebAuthn Biometric Test</CardTitle>
-          <CardDescription>
+    <div className="webauthn-test-page min-h-screen flex items-center justify-center py-12 px-4 bg-gradient-to-b from-[#273414] to-[#1d2810]">
+      <Card className="w-full max-w-md border-0 shadow-lg">
+        <CardHeader className="border-b border-muted pb-4">
+          <CardTitle className="text-center text-2xl font-bold text-[#273414]">WebAuthn Biometric Test</CardTitle>
+          <CardDescription className="text-center text-muted-foreground">
             Test your device's biometric authentication capabilities
           </CardDescription>
         </CardHeader>
         
-        <CardContent>
+        <CardContent className="pt-6">
           {error && (
             <Alert variant="destructive" className="mb-4">
               <AlertTitle>Error</AlertTitle>
@@ -138,17 +138,17 @@ const WebAuthnTest: React.FC = () => {
           )}
           
           {success && (
-            <Alert className="mb-4 bg-green-50 border-green-200">
-              <AlertTitle>Success</AlertTitle>
-              <AlertDescription>{success}</AlertDescription>
+            <Alert className="mb-4 bg-[#e9f0e6] border-[#273414]/20">
+              <AlertTitle className="text-[#273414]">Success</AlertTitle>
+              <AlertDescription className="text-[#273414]/80">{success}</AlertDescription>
             </Alert>
           )}
           
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4 mt-4">
             <Button
               onClick={handleRegister}
               disabled={isProcessing}
-              className="w-full"
+              className="w-full bg-[#273414] hover:bg-[#1d2810] text-white"
             >
               {isProcessing ? 'Processing...' : 'Register Device'}
             </Button>
@@ -157,17 +157,18 @@ const WebAuthnTest: React.FC = () => {
               onClick={handleAuthenticate}
               disabled={isProcessing}
               variant={credentialId ? "default" : "outline"}
-              className="w-full"
+              className={`w-full ${credentialId ? 'bg-[#273414] hover:bg-[#1d2810] text-white' : 'border-[#273414] text-[#273414] hover:bg-[#e9f0e6]'}`}
             >
               {isProcessing ? 'Processing...' : 'Authenticate'}
             </Button>
           </div>
         </CardContent>
         
-        <CardFooter className="flex justify-between">
+        <CardFooter className="flex justify-between border-t border-muted pt-4">
           <Button 
             variant="outline" 
             onClick={() => setLocation('/')}
+            className="border-[#273414] text-[#273414] hover:bg-[#e9f0e6]"
           >
             Back to Home
           </Button>
@@ -175,6 +176,7 @@ const WebAuthnTest: React.FC = () => {
           <Button 
             variant="outline" 
             onClick={() => setLocation('/authenticate')}
+            className="border-[#273414] text-[#273414] hover:bg-[#e9f0e6]"
           >
             Full Authentication
           </Button>
