@@ -18,7 +18,6 @@ import Settings from "@/pages/settings";
 import Achievements from "@/pages/achievements";
 import Demo from "@/pages/demo";
 
-import OnboardingTips from "@/components/onboarding-tips";
 import { useAnalytics } from "@/hooks/use-analytics";
 import { initGA, trackEvent } from "@/lib/analytics";
 import { SecurityAlertProvider } from "@/components/security-alert";
@@ -74,9 +73,6 @@ function App() {
           <div className={`min-h-screen bg-background ${isFullWidthPage ? 'w-full' : 'max-w-md mx-auto'} overflow-hidden relative`}>
             <Router />
             <Toaster />
-            
-            {/* Onboarding tips shown when needed */}
-            <OnboardingTips />
           </div>
         </SecurityAlertProvider>
       </AuthProvider>

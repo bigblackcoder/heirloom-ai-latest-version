@@ -60,18 +60,3 @@ export const trackEvent = (
   });
 };
 
-// Track beta-specific events
-export const trackBetaEvent = (
-  action: string,
-  details?: Record<string, any>
-) => {
-  trackEvent(action, 'beta', undefined, undefined);
-  
-  // Send additional details as custom dimensions/metrics
-  if (details && typeof window !== 'undefined' && window.gtag) {
-    window.gtag('event', action, {
-      ...details,
-      event_category: 'beta'
-    });
-  }
-};
