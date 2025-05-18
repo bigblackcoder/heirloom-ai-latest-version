@@ -217,34 +217,7 @@ export default function Dashboard() {
         isLoading={false} 
       />
 
-      {/* Test buttons - Remove in production */}
-      <div className="fixed bottom-24 right-4 z-30 flex flex-col gap-2">
-        <button 
-          className="bg-[#8ccc5c] text-white text-xs py-2 px-3 rounded-full shadow-lg"
-          onClick={() => {
-            // Set demo verification data
-            setVerificationData({
-              confidence: 0.95,
-              results: {
-                age: 28,
-                gender: "Man",
-                dominant_race: "caucasian",
-                dominant_emotion: "neutral"
-              }
-            });
-            
-            // Show verification success
-            setShowVerificationSuccess(true);
-            
-            // Show capsule setup after verification success closes
-            setTimeout(() => {
-              setShowCapsuleSetupPopup(true);
-            }, 6000); // 6 seconds (5s display + 1s transition)
-          }}
-        >
-          Test Popups
-        </button>
-      </div>
+
 
       {/* Bottom Navigation */}
       <NavigationBar currentPath="/dashboard" />
