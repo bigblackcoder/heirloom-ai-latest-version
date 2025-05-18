@@ -1,51 +1,38 @@
-import { ReactNode, useEffect } from 'react';
+import React, { ReactNode } from 'react';
 import { useLocation } from 'wouter';
-import { useAuth } from '@/hooks/use-auth';
-import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/providers/auth-provider';
 
 interface ProtectedRouteProps {
   children: ReactNode;
-  requireVerification?: boolean;
 }
 
-export function ProtectedRoute({ 
-  children, 
-  requireVerification = false 
-}: ProtectedRouteProps) {
-  const { user, isLoading, isAuthenticated } = useAuth();
-  const [location, navigate] = useLocation();
-
-  useEffect(() => {
-    // Check if the user is loaded (not loading) and not authenticated
-    if (!isLoading && !isAuthenticated) {
-      navigate('/login');
-    }
-    
-    // If verification is required, check if the user is verified
-    if (requireVerification && !isLoading && isAuthenticated && !user?.isVerified) {
-      navigate('/verification');
-    }
-  }, [isLoading, isAuthenticated, user, navigate, requireVerification]);
-
-  // Show loading state while checking authentication
+export function ProtectedRoute({ children }: ProtectedRouteProps) {
+  const { isAuthenticated, isLoading } = useAuth();
+  const [, navigate] = useLocation();
+  
+  // If auth is still loading, show a loading state
   if (isLoading) {
     return (
-      <div className="flex flex-col space-y-3 p-6">
-        <Skeleton className="h-8 w-full" />
-        <Skeleton className="h-8 w-5/6" />
-        <Skeleton className="h-8 w-4/6" />
-        <div className="pt-6">
-          <Skeleton className="h-64 w-full" />
+      <div className="min-h-screen flex items-center justify-center bg-[#f8f9fa]">
+        <div className="text-[#273414] text-center">
+          <div className="w-12 h-12 border-4 border-[#273414] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p>Loading...</p>
         </div>
       </div>
     );
   }
-
-  // If authenticated (and verified if required), render the children
-  if (isAuthenticated && (!requireVerification || user?.isVerified)) {
-    return <>{children}</>;
+  
+  // If not authenticated, redirect to the authentication page
+  if (!isAuthenticated) {
+    // Use a React effect for the redirect to avoid issues with rendering
+    React.useEffect(() => {
+      navigate('/authenticate');
+    }, [navigate]);
+    
+    // Return null to avoid flash of unprotected content
+    return null;
   }
-
-  // This should not be visible as the useEffect should navigate away
-  return null;
+  
+  // If authenticated, render the children
+  return <>{children}</>;
 }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Route, Switch, useLocation } from 'wouter';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Import UI components
 import { Button } from '@/components/ui/button';
@@ -13,8 +14,21 @@ import DashboardPage from './pages/DashboardPage';
 import DataOwnershipPage from './pages/DataOwnershipPage';
 import AIPermissionsPage from './pages/AIPermissionsPage';
 
+// Import providers and hooks
+import { AuthProvider } from './providers/auth-provider';
+
 // Import styles
 import './index.css';
+
+// Create a new QueryClient
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const NotFoundPage = () => {
   const [, setLocation] = useLocation();
@@ -63,38 +77,31 @@ function App() {
   };
 
   return (
-    <>
-      <Switch>
-        <Route path="/" component={HomePage} />
-        <Route path="/authenticate">
-          <AuthenticationPage />
-        </Route>
-        <Route path="/webauthn-test">
-          <WebAuthnTest />
-        </Route>
-        <Route path="/data-ownership">
-          <DataOwnershipPage />
-        </Route>
-        <Route path="/ai-permissions">
-          <AIPermissionsPage />
-        </Route>
-        <Route path="/dashboard">
-          {isAuthenticated ? (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <Switch>
+          <Route path="/" component={HomePage} />
+          <Route path="/authenticate">
+            <AuthenticationPage />
+          </Route>
+          <Route path="/webauthn-test">
+            <WebAuthnTest />
+          </Route>
+          <Route path="/data-ownership">
+            <DataOwnershipPage />
+          </Route>
+          <Route path="/ai-permissions">
+            <AIPermissionsPage />
+          </Route>
+          <Route path="/dashboard">
             <DashboardPage onLogout={logout} />
-          ) : (
-            <div className="redirect-container p-8 text-center">
-              <p className="mb-4">Please authenticate to access the dashboard</p>
-              <Button onClick={() => window.location.href = '/authenticate'}>
-                Go to Authentication
-              </Button>
-            </div>
-          )}
-        </Route>
-        <Route component={NotFoundPage} />
-      </Switch>
-      
-      <Toaster />
-    </>
+          </Route>
+          <Route component={NotFoundPage} />
+        </Switch>
+        
+        <Toaster />
+      </AuthProvider>
+    </QueryClientProvider>
   );
 }
 

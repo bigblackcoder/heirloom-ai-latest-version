@@ -2,40 +2,44 @@ import React from 'react';
 import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { ShieldCheck, Lock, Activity, User, Settings, LogOut } from 'lucide-react';
+import { useAuth } from '@/providers/auth-provider';
+import { ProtectedRoute } from '@/components/protected-route';
 
 interface DashboardPageProps {
-  onLogout: () => void;
+  onLogout?: () => void;
 }
 
 const DashboardPage: React.FC<DashboardPageProps> = ({ onLogout }) => {
+  const { logout: authLogout } = useAuth();
   const [, navigate] = useLocation();
 
   return (
-    <div className="min-h-screen bg-[#f8f9fa]">
-      {/* Header */}
-      <div className="bg-[#273414] text-white px-6 py-5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            <img 
-              src="/logo-heirloom.png" 
-              alt="Heirloom Logo" 
-              className="h-8 w-auto"
-              onError={(e) => {
-                // Fallback if image isn't found
-                e.currentTarget.style.display = 'none';
-              }}
-            />
-            <span className="ml-3 text-xl font-bold">Heirloom</span>
+    <ProtectedRoute>
+      <div className="min-h-screen bg-[#f8f9fa]">
+        {/* Header */}
+        <div className="bg-[#273414] text-white px-6 py-5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <img 
+                src="/logo-heirloom.png" 
+                alt="Heirloom Logo" 
+                className="h-8 w-auto"
+                onError={(e) => {
+                  // Fallback if image isn't found
+                  e.currentTarget.style.display = 'none';
+                }}
+              />
+              <span className="ml-3 text-xl font-bold">Heirloom</span>
+            </div>
+            <Button 
+              variant="ghost" 
+              className="text-white p-2 h-auto" 
+              onClick={onLogout || authLogout}
+            >
+              <LogOut className="w-5 h-5" />
+            </Button>
           </div>
-          <Button 
-            variant="ghost" 
-            className="text-white p-2 h-auto" 
-            onClick={onLogout}
-          >
-            <LogOut className="w-5 h-5" />
-          </Button>
         </div>
-      </div>
       
       {/* User Profile */}
       <div className="bg-[#273414] text-white px-6 pb-8">
