@@ -1,211 +1,170 @@
 import React from 'react';
 import { useLocation } from 'wouter';
-
-// Import UI components
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ShieldCheck, Lock, Activity, User, Settings, LogOut } from 'lucide-react';
 
 interface DashboardPageProps {
   onLogout: () => void;
 }
 
 const DashboardPage: React.FC<DashboardPageProps> = ({ onLogout }) => {
-  const [, setLocation] = useLocation();
+  const [, navigate] = useLocation();
 
   return (
-    <div className="dashboard-page min-h-screen bg-[#f7f9f6]">
+    <div className="min-h-screen bg-[#f8f9fa]">
       {/* Header */}
-      <header className="bg-[#273414] text-white shadow-md">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Heirloom Identity Platform</h1>
-          <div className="flex items-center gap-4">
-            <span className="text-sm hidden md:inline">Welcome, User</span>
-            <Button 
-              variant="outline" 
-              className="text-white border-white hover:bg-white hover:text-[#273414]"
-              onClick={onLogout}
-            >
-              Logout
-            </Button>
+      <div className="bg-[#273414] text-white px-6 py-5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <img 
+              src="/logo-heirloom.png" 
+              alt="Heirloom Logo" 
+              className="h-8 w-auto"
+              onError={(e) => {
+                // Fallback if image isn't found
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+            <span className="ml-3 text-xl font-bold">Heirloom</span>
+          </div>
+          <Button 
+            variant="ghost" 
+            className="text-white p-2 h-auto" 
+            onClick={onLogout}
+          >
+            <LogOut className="w-5 h-5" />
+          </Button>
+        </div>
+      </div>
+      
+      {/* User Profile */}
+      <div className="bg-[#273414] text-white px-6 pb-8">
+        <div className="pt-4 flex items-center">
+          <div className="w-16 h-16 rounded-full bg-[#e9f0e6] flex items-center justify-center mr-4">
+            <User className="w-8 h-8 text-[#273414]" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold">Welcome Back</h2>
+            <p className="text-[#e9f0e6]/80">Verified User</p>
           </div>
         </div>
-      </header>
-
+      </div>
+      
+      {/* Status Section */}
+      <div className="bg-white shadow-md rounded-t-xl -mt-4 px-6 py-5">
+        <h3 className="text-lg font-semibold text-[#273414] mb-4">Identity Status</h3>
+        
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center">
+            <div className="w-10 h-10 rounded-full bg-[#e9f0e6] flex items-center justify-center mr-3">
+              <ShieldCheck className="w-5 h-5 text-[#273414]" />
+            </div>
+            <div>
+              <h4 className="font-medium text-[#273414]">Identity Verified</h4>
+              <p className="text-xs text-[#273414]/70">
+                Last verified: Today
+              </p>
+            </div>
+          </div>
+          <span className="text-sm font-medium bg-[#e9f0e6] text-[#273414] px-3 py-1 rounded-full">
+            Active
+          </span>
+        </div>
+      </div>
+      
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Sidebar */}
-          <div className="lg:col-span-1">
-            <Card>
-              <CardHeader>
-                <CardTitle>Identity Profile</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-col items-center mb-6">
-                  <div className="w-24 h-24 rounded-full bg-green-100 flex items-center justify-center text-3xl mb-4">
-                    👤
-                  </div>
-                  <h3 className="text-lg font-semibold">Default User</h3>
-                  <p className="text-sm text-gray-500">Verified User</p>
-                </div>
-                
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium">Identity Status</span>
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-[#e9f0e6] text-[#273414]">
-                      Verified
-                    </span>
-                  </div>
-                  
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium">Biometric Auth</span>
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-[#e9f0e6] text-[#273414]">
-                      Enabled
-                    </span>
-                  </div>
-                  
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium">Face Recognition</span>
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-[#e9f0e6] text-[#273414]">
-                      Enabled
-                    </span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+      <div className="p-6">
+        <h3 className="text-lg font-semibold text-[#273414] mb-4">Identity Services</h3>
+        
+        {/* Service Cards */}
+        <div className="space-y-4">
+          {/* Verified Identity */}
+          <div 
+            className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-start cursor-pointer"
+            onClick={() => navigate('/authenticate')}
+          >
+            <div className="w-12 h-12 rounded-full bg-[#e9f0e6] flex items-center justify-center mr-4 flex-shrink-0">
+              <ShieldCheck className="w-6 h-6 text-[#273414]" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-[#273414] mb-1">Verified Identity</h3>
+              <p className="text-[#273414]/70 text-sm">
+                Manage your verification methods
+              </p>
+            </div>
           </div>
           
-          {/* Main Content */}
-          <div className="lg:col-span-2">
-            <Tabs defaultValue="overview">
-              <TabsList className="w-full grid grid-cols-3">
-                <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="security">Security</TabsTrigger>
-                <TabsTrigger value="activity">Activity</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="overview" className="mt-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Identity Overview</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="bg-[#e9f0e6] p-4 rounded-lg border border-[#273414]/10">
-                        <h3 className="font-medium mb-2 text-[#273414]">Device Authentication</h3>
-                        <p className="text-sm text-[#273414]/80 mb-4">Your device is registered for biometric authentication.</p>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          className="border-[#273414] text-[#273414] hover:bg-[#273414] hover:text-white"
-                          onClick={() => setLocation('/webauthn-test')}
-                        >
-                          Manage Devices
-                        </Button>
-                      </div>
-                      
-                      <div className="bg-[#e9f0e6] p-4 rounded-lg border border-[#273414]/10">
-                        <h3 className="font-medium mb-2 text-[#273414]">Face Verification</h3>
-                        <p className="text-sm text-[#273414]/80 mb-4">Your face has been registered for identity verification.</p>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          className="border-[#273414] text-[#273414] hover:bg-[#273414] hover:text-white"
-                          onClick={() => setLocation('/authenticate')}
-                        >
-                          Update Face Data
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              
-              <TabsContent value="security" className="mt-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Security Settings</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-600 mb-4">
-                      Manage your security settings and authentication methods.
-                    </p>
-                    
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div>
-                          <h3 className="font-medium">Two-Factor Authentication</h3>
-                          <p className="text-sm text-gray-600">Adds an extra layer of security</p>
-                        </div>
-                        <Button variant="outline" size="sm">Enable</Button>
-                      </div>
-                      
-                      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div>
-                          <h3 className="font-medium">Recovery Options</h3>
-                          <p className="text-sm text-gray-600">Set up recovery methods</p>
-                        </div>
-                        <Button variant="outline" size="sm">Configure</Button>
-                      </div>
-                      
-                      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div>
-                          <h3 className="font-medium">Authorized Devices</h3>
-                          <p className="text-sm text-gray-600">Manage devices that can access your account</p>
-                        </div>
-                        <Button variant="outline" size="sm">Manage</Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              
-              <TabsContent value="activity" className="mt-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Recent Activity</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="p-3 border-l-4 border-green-500 bg-green-50 rounded-r-lg">
-                        <div className="flex justify-between">
-                          <h4 className="font-medium">Successful Login</h4>
-                          <span className="text-sm text-gray-500">Just now</span>
-                        </div>
-                        <p className="text-sm text-gray-600">Using biometric authentication</p>
-                      </div>
-                      
-                      <div className="p-3 border-l-4 border-green-500 bg-green-50 rounded-r-lg">
-                        <div className="flex justify-between">
-                          <h4 className="font-medium">Face Verification</h4>
-                          <span className="text-sm text-gray-500">Just now</span>
-                        </div>
-                        <p className="text-sm text-gray-600">Face verified successfully</p>
-                      </div>
-                      
-                      <div className="p-3 border-l-4 border-green-500 bg-green-50 rounded-r-lg">
-                        <div className="flex justify-between">
-                          <h4 className="font-medium">Device Registration</h4>
-                          <span className="text-sm text-gray-500">Today</span>
-                        </div>
-                        <p className="text-sm text-gray-600">New device registered for biometric authentication</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
+          {/* Data Ownership */}
+          <div 
+            className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-start cursor-pointer"
+            onClick={() => navigate('/data-ownership')}
+          >
+            <div className="w-12 h-12 rounded-full bg-[#e9f0e6] flex items-center justify-center mr-4 flex-shrink-0">
+              <Lock className="w-6 h-6 text-[#273414]" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-[#273414] mb-1">Data Ownership</h3>
+              <p className="text-[#273414]/70 text-sm">
+                Manage how your data is stored and shared
+              </p>
+            </div>
+          </div>
+          
+          {/* AI Permissions */}
+          <div 
+            className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-start cursor-pointer"
+            onClick={() => navigate('/ai-permissions')}
+          >
+            <div className="w-12 h-12 rounded-full bg-[#e9f0e6] flex items-center justify-center mr-4 flex-shrink-0">
+              <Activity className="w-6 h-6 text-[#273414]" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-[#273414] mb-1">AI Permissions</h3>
+              <p className="text-[#273414]/70 text-sm">
+                Manage what data is shared with AI services
+              </p>
+            </div>
+          </div>
+          
+          {/* Settings */}
+          <div 
+            className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-start cursor-pointer"
+            onClick={() => {}}
+          >
+            <div className="w-12 h-12 rounded-full bg-[#e9f0e6] flex items-center justify-center mr-4 flex-shrink-0">
+              <Settings className="w-6 h-6 text-[#273414]" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-[#273414] mb-1">Settings</h3>
+              <p className="text-[#273414]/70 text-sm">
+                Configure your identity preferences
+              </p>
+            </div>
           </div>
         </div>
-      </main>
-
-      {/* Footer */}
-      <footer className="bg-gray-100 mt-10 py-6 border-t">
-        <div className="container mx-auto px-4 text-center text-gray-600 text-sm">
-          <p>© 2025 Heirloom Identity Platform. All rights reserved.</p>
+        
+        {/* Activity Section */}
+        <div className="mt-8">
+          <h3 className="text-lg font-semibold text-[#273414] mb-4">Recent Activity</h3>
+          
+          <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+            <div className="border-l-4 border-[#273414] pl-3 py-1 mb-3">
+              <h4 className="font-medium text-[#273414]">Identity Verified</h4>
+              <p className="text-xs text-[#273414]/70">Today, 10:23 AM</p>
+            </div>
+            
+            <div className="border-l-4 border-[#273414]/70 pl-3 py-1 mb-3">
+              <h4 className="font-medium text-[#273414]">Device Registered</h4>
+              <p className="text-xs text-[#273414]/70">Today, 10:22 AM</p>
+            </div>
+            
+            <div className="border-l-4 border-[#273414]/50 pl-3 py-1">
+              <h4 className="font-medium text-[#273414]">Account Created</h4>
+              <p className="text-xs text-[#273414]/70">Today, 10:20 AM</p>
+            </div>
+          </div>
         </div>
-      </footer>
+      </div>
     </div>
   );
 };
