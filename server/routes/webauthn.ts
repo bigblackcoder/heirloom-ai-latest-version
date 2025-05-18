@@ -1,29 +1,16 @@
-/**
- * WebAuthn API routes for device-based biometric authentication
- */
-
 import { Router } from 'express';
-import {
-  generateRegistrationOptions,
-  verifyRegistration,
-  generateAuthenticationOptions,
-  verifyAuthentication,
-  registerHybridVerification,
-  verifyHybridAuthentication
-} from '../webauthn-controller';
+import * as WebAuthnController from '../webauthn-controller';
 
 const router = Router();
 
-// Registration endpoints
-router.post('/register/options', generateRegistrationOptions);
-router.post('/register/verify', verifyRegistration);
+// Registration routes
+router.post('/register/start', WebAuthnController.startRegistration);
+router.post('/register/complete', WebAuthnController.completeRegistration);
+router.post('/register/status', WebAuthnController.getRegistrationStatus);
 
-// Authentication endpoints
-router.post('/authenticate/options', generateAuthenticationOptions);
-router.post('/authenticate/verify', verifyAuthentication);
-
-// Hybrid verification endpoints (WebAuthn + DeepFace)
-router.post('/hybrid/register', registerHybridVerification);
-router.post('/hybrid/verify', verifyHybridAuthentication);
+// Authentication routes
+router.post('/authenticate/start', WebAuthnController.startAuthentication);
+router.post('/authenticate/complete', WebAuthnController.completeAuthentication);
+router.post('/authenticate/status', WebAuthnController.getAuthenticationStatus);
 
 export default router;

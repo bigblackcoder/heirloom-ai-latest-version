@@ -25,6 +25,8 @@ export default function Verification() {
       gender?: string;
       dominant_race?: string;
       dominant_emotion?: string;
+      device_verified?: boolean;
+      [key: string]: any; // Allow additional properties
     };
   } | null>(null);
 
@@ -188,53 +190,111 @@ export default function Verification() {
           </svg>
         </button>
         
-        <div className="text-lg font-medium">Face Verification</div>
+        <div className="text-lg font-medium">Identity Verification</div>
         
         <div className="w-10 h-10 opacity-0">
           {/* Empty placeholder for alignment */}
         </div>
       </div>
 
-      {/* Face Scanner Component */}
-      <div className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6">
-        {/* Verification info card */}
-        <div className="w-full max-w-xs bg-white/10 backdrop-blur-sm rounded-2xl px-4 py-3 sm:px-5 sm:py-4 mb-6 sm:mb-8">
-          <div className="flex items-center mb-2 sm:mb-3">
-            <div className="w-7 h-7 sm:w-8 sm:h-8 bg-[#2a5414] rounded-full flex items-center justify-center mr-3">
-              <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#4caf50]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+      {/* Verification Options Tabs */}
+      <div className="px-4 sm:px-6 pt-2">
+        <Tabs 
+          defaultValue="face" 
+          value={verificationMethod}
+          onValueChange={(value) => setVerificationMethod(value as 'face' | 'device')}
+          className="w-full"
+        >
+          <TabsList className="grid grid-cols-2 bg-[#2a5414]/40 rounded-xl h-12 p-1">
+            <TabsTrigger 
+              value="face" 
+              className="rounded-lg data-[state=active]:bg-[#7c9861] data-[state=active]:text-white"
+            >
+              <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M9 10a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z" />
+                <path d="M15 10a1 1 0 1 1 2 0 1 1 0 0 1-2 0Z" />
+                <path d="M9.5 15a4.5 4.5 0 0 0 5 0" />
+                <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10Z" />
               </svg>
-            </div>
-            <div>
-              <h3 className="text-white font-medium text-sm">Secure Biometric Scan</h3>
-              <p className="text-white/60 text-xs">All data stays on your device</p>
+              Face Scan
+            </TabsTrigger>
+            <TabsTrigger 
+              value="device" 
+              className="rounded-lg data-[state=active]:bg-[#7c9861] data-[state=active]:text-white"
+            >
+              <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M6.5 14.5v-5A2.5 2.5 0 0 1 9 7h6a2.5 2.5 0 0 1 2.5 2.5v5A2.5 2.5 0 0 1 15 17H9a2.5 2.5 0 0 1-2.5-2.5Z" />
+                <path d="M12 7V4" />
+                <path d="M8 21h8" />
+                <path d="M12 17v4" />
+              </svg>
+              Device Biometrics
+            </TabsTrigger>
+          </TabsList>
+          
+          <div className="pt-6">
+            {/* Verification info card */}
+            <div className="w-full max-w-md mx-auto bg-white/10 backdrop-blur-sm rounded-2xl px-4 py-3 sm:px-5 sm:py-4 mb-6">
+              <div className="flex items-center mb-2 sm:mb-3">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 bg-[#2a5414] rounded-full flex items-center justify-center mr-3">
+                  <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#4caf50]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-white font-medium text-sm">
+                    {verificationMethod === 'face' ? 'Secure Face Scan' : 'Device Biometrics'}
+                  </h3>
+                  <p className="text-white/60 text-xs">Your biometric data stays on your device</p>
+                </div>
+              </div>
+              
+              <p className="text-white/80 text-xs leading-relaxed">
+                {verificationMethod === 'face' 
+                  ? "This scan verifies you're a real person and creates your secure identity record. Your face data is processed privately and securely."
+                  : "Use your device's built-in security features like Face ID, Touch ID or fingerprint scanner to verify your identity quickly and securely."
+                }
+              </p>
             </div>
           </div>
           
-          <p className="text-white/80 text-xs leading-relaxed">
-            This scan verifies you're a real person and creates your secure identity record. Data is never stored on our servers.
-          </p>
-        </div>
-        
-        <AppleFaceScanner 
-          onProgress={handleVerificationProgress} 
-          onComplete={handleVerificationComplete}
-          isComplete={isVerificationComplete}
-        />
-        
-        <div className="text-[#d4a166] text-2xl sm:text-3xl font-bold mt-4 sm:mt-6">
-          {verificationProgress.toFixed(0)}%
-        </div>
-        <p className="text-white/80 text-center text-sm sm:text-base mt-1 mb-3 max-w-[280px] sm:max-w-xs">
-          Follow the guidance and move your head slowly to complete the verification.
-        </p>
-        
-        {/* Step indicators */}
-        <div className="flex justify-center items-center gap-2 mt-2 sm:mt-3 mb-4 sm:mb-6">
-          <div className="w-10 sm:w-12 h-1.5 rounded-full bg-[#d4a166]"></div>
-          <div className="w-2.5 sm:w-3 h-1.5 rounded-full bg-white/30"></div>
-          <div className="w-2.5 sm:w-3 h-1.5 rounded-full bg-white/30"></div>
-        </div>
+          <TabsContent value="face" className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6">
+            <AppleFaceScanner 
+              onProgress={handleVerificationProgress} 
+              onComplete={handleVerificationComplete}
+              isComplete={isVerificationComplete}
+            />
+            
+            <div className="text-[#d4a166] text-2xl sm:text-3xl font-bold mt-4 sm:mt-6">
+              {verificationProgress.toFixed(0)}%
+            </div>
+            <p className="text-white/80 text-center text-sm sm:text-base mt-1 mb-3 max-w-[280px] sm:max-w-xs">
+              Follow the guidance and move your head slowly to complete the verification.
+            </p>
+            
+            {/* Step indicators */}
+            <div className="flex justify-center items-center gap-2 mt-2 sm:mt-3 mb-4 sm:mb-6">
+              <div className="w-10 sm:w-12 h-1.5 rounded-full bg-[#d4a166]"></div>
+              <div className="w-2.5 sm:w-3 h-1.5 rounded-full bg-white/30"></div>
+              <div className="w-2.5 sm:w-3 h-1.5 rounded-full bg-white/30"></div>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="device" className="flex-1 flex flex-col items-center justify-center pt-2 pb-6">
+            <BiometricAuth 
+              userId={user?.id?.toString() || '1'} 
+              username={user?.username}
+              mode={user?.isVerified ? 'authenticate' : 'register'}
+              onSuccess={handleBiometricSuccess}
+              onError={handleBiometricError}
+              onCancel={() => setVerificationMethod('face')}
+            />
+            
+            <p className="text-white/80 text-center text-sm mt-6 max-w-xs">
+              You can use your device's built-in biometric authentication for quick and secure verification.
+            </p>
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Progress Bar */}
