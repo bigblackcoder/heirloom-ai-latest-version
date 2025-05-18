@@ -23,7 +23,7 @@ import CapsulePage from './pages/capsule';
 import Home from './pages/Home';
 
 // Import providers and hooks
-import { AuthProvider } from './providers/auth-provider';
+import { AuthProvider } from './hooks/use-auth';
 
 // Import styles
 import './index.css';
