@@ -29,7 +29,7 @@ def download_sample_faces(output_dir="."):
         try:
             # Download file
             print(f"Downloading {filename} from {url}")
-            response = requests.get(url, verify=False)
+            response = requests.get(url)
             
             if response.status_code == 200:
                 # Save file
