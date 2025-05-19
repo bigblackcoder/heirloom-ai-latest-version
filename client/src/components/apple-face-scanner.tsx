@@ -74,18 +74,39 @@ export default function AppleFaceScanner({ onProgress, onComplete, isComplete }:
   useEffect(() => {
     const checkPermission = async () => {
       try {
-        // Request camera permission
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        // First make sure the API is available
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          console.error('MediaDevices API not supported in this browser');
+          setHasPermission(false);
+          return;
+        }
+
+        // Request camera permission with specific constraints for better compatibility
+        const constraints = { 
+          video: { 
+            facingMode: 'user',
+            width: { ideal: 640 },
+            height: { ideal: 480 }
+          } 
+        };
+        
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
         
         // Permission granted
         setHasPermission(true);
+        console.log('Camera permission granted successfully');
         
         // Clean up the stream
         stream.getTracks().forEach(track => track.stop());
       } catch (err) {
-        // Permission denied
-        console.log('Camera permission denied:', err);
+        // Permission denied or other error
+        console.error('Camera permission denied or error:', err);
         setHasPermission(false);
+        
+        // Show more user-friendly error in development
+        if (process.env.NODE_ENV === 'development') {
+          alert('Camera access is required for face verification. Please allow camera access and try again.');
+        }
       }
     };
     
@@ -468,11 +489,20 @@ export default function AppleFaceScanner({ onProgress, onComplete, isComplete }:
                 ref={webcamRef}
                 screenshotFormat="image/jpeg"
                 videoConstraints={{
-                  width: 720,
-                  height: 720,
-                  facingMode: "user"
+                  width: { ideal: 720 },
+                  height: { ideal: 720 },
+                  facingMode: "user",
+                  aspectRatio: 1
                 }}
                 className="min-w-full min-h-full object-cover"
+                onUserMediaError={(error) => {
+                  console.error("Webcam error:", error);
+                  setHasPermission(false);
+                }}
+                onUserMedia={() => {
+                  console.log("Camera connected successfully");
+                  setHasPermission(true);
+                }}
               />
             )}
           </div>
