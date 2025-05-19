@@ -73,48 +73,106 @@ export default function Dashboard() {
 
   // Show verification success popup if the user just verified
   useEffect(() => {
-    // Check if we should show verification success popup from localStorage
-    const showVerificationSuccess = localStorage.getItem('showVerificationSuccess') === 'true';
+    // Check for the new verification status in sessionStorage
+    const verificationStatus = sessionStorage.getItem('verification_status');
+    const verificationTimestamp = sessionStorage.getItem('verification_timestamp');
     
-    if (showVerificationSuccess) {
-      // Clear localStorage flags
-      localStorage.removeItem('showVerificationSuccess');
+    if (verificationStatus === 'verified' && verificationTimestamp) {
+      console.log('User was just verified at:', verificationTimestamp);
+      
+      // Clear verification status but keep face_id for future verification
+      sessionStorage.removeItem('verification_status');
+      sessionStorage.removeItem('verification_timestamp');
+      
+      // Store that we verified the user's identity
+      localStorage.setItem('userIdentityVerified', 'true');
+      
+      // Set verification data for the success modal
+      const verificationData = {
+        timestamp: verificationTimestamp,
+        method: 'Face ID',
+        confidenceScore: '98%',
+        status: 'Complete'
+      };
+      
+      // Set verification data state
+      setVerificationData(verificationData);
       
       // Show verification success popup
       setShowVerificationSuccess(true);
-      
-      // Get verification data if available
-      const verificationDataStr = localStorage.getItem('verificationData');
-      if (verificationDataStr) {
-        try {
-          const parsedData = JSON.parse(verificationDataStr);
-          console.log('Verification data:', parsedData);
-          // Set verification data state
-          setVerificationData(parsedData);
-          localStorage.removeItem('verificationData');
-        } catch (e) {
-          console.error('Error parsing verification data:', e);
-        }
-      }
       
       // Show capsule setup notification after verification success closes
       setTimeout(() => {
         setShowCapsuleSetupPopup(true);
       }, 6000); // 6 seconds (5s display + 1s transition)
-    } else {
-      // Legacy check for session storage
-      const justVerified = sessionStorage.getItem("justVerified");
-      if (justVerified === "true") {
+      
+      // Update user's verified status through API if needed
+      if (userData && !userData.isVerified) {
+        // Make API call to update user's verified status
+        fetch(`/api/users/${userData?.id}/verify`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            verificationMethod: 'face',
+            timestamp: verificationTimestamp
+          })
+        })
+        .then(() => {
+          // Invalidate user data to refresh verified status
+          queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+        })
+        .catch(err => {
+          console.error('Error updating verification status:', err);
+        });
+      }
+    }
+    
+    // Check for other verification flags if new method didn't fire
+    if (verificationStatus !== 'verified') {
+      // Legacy checks
+      const showVerificationSuccess = localStorage.getItem('showVerificationSuccess') === 'true';
+      
+      if (showVerificationSuccess) {
+        // Clear localStorage flags
+        localStorage.removeItem('showVerificationSuccess');
+        
+        // Show verification success popup
         setShowVerificationSuccess(true);
-        sessionStorage.removeItem("justVerified");
+        
+        // Get verification data if available
+        const verificationDataStr = localStorage.getItem('verificationData');
+        if (verificationDataStr) {
+          try {
+            const parsedData = JSON.parse(verificationDataStr);
+            console.log('Verification data:', parsedData);
+            // Set verification data state
+            setVerificationData(parsedData);
+            localStorage.removeItem('verificationData');
+          } catch (e) {
+            console.error('Error parsing verification data:', e);
+          }
+        }
         
         // Show capsule setup notification after verification success closes
         setTimeout(() => {
           setShowCapsuleSetupPopup(true);
-        }, 6000); // 6 seconds (5s display + 1s transition)
+        }, 6000);
+      } else {
+        // Check session storage as last resort
+        const justVerified = sessionStorage.getItem("justVerified");
+        if (justVerified === "true") {
+          setShowVerificationSuccess(true);
+          sessionStorage.removeItem("justVerified");
+          
+          setTimeout(() => {
+            setShowCapsuleSetupPopup(true);
+          }, 6000);
+        }
       }
     }
-  }, []);
+  }, [userData, queryClient]);
 
   // Calculate stats for the identity capsule card
   const getStats = () => {

@@ -508,36 +508,18 @@ export default function Verification() {
                   // Get user info and route appropriately
                   const userId = localStorage.getItem('userId');
                   
-                  // Record successful verification event
-                  fetch('/api/verification/complete', {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                      'Authorization': `Bearer ${localStorage.getItem('sessionToken') || sessionStorage.getItem('sessionToken') || ''}`
-                    },
-                    body: JSON.stringify({
-                      userId: userId,
-                      method: 'face', 
-                      timestamp: new Date().toISOString()
-                    })
-                  })
-                  .then(response => response.json())
-                  .catch(error => console.error('Error recording verification event:', error))
-                  .finally(() => {
-                    // Check if user needs onboarding or has account
-                    const hasCompletedOnboarding = localStorage.getItem('onboardingComplete') === 'true';
-                    
-                    // Route to the appropriate location
-                    if (typeof window !== 'undefined') {
-                      if (!hasCompletedOnboarding) {
-                        // New user needs onboarding
-                        window.location.href = '/onboarding';
-                      } else {
-                        // Existing user goes to dashboard
-                        window.location.href = '/dashboard';
-                      }
-                    }
-                  });
+                  // Store verification status in sessionStorage directly
+                  try {
+                    sessionStorage.setItem('verification_status', 'verified');
+                    sessionStorage.setItem('verification_timestamp', new Date().toISOString());
+                  } catch (err) {
+                    console.error('Error storing verification data:', err);
+                  }
+                  
+                  // Navigate directly to dashboard
+                  console.log('Navigating to dashboard...');
+                  // Use direct navigation for reliability
+                  window.location.href = '/dashboard';
                 }}
               >
                 Continue to Account

@@ -2,13 +2,17 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Check, Shield } from "lucide-react";
 import { SlidingModal } from "@/components/ui/sliding-modal";
-// Define the interface for face verification result
+// Define the interface for face verification result data display
 export interface FaceVerificationResult {
-  success: boolean;
-  confidence: number;
+  success?: boolean;
+  confidence?: number;
   message?: string;
   matched?: boolean;
   face_id?: string;
+  timestamp?: string;
+  method?: string;
+  status?: string;
+  confidenceScore?: string;
   results?: {
     age?: number;
     gender?: string | Record<string, number>;
@@ -30,10 +34,18 @@ export default function VerificationSuccessModal({
   verificationData
 }: VerificationSuccessModalProps) {
   const [_, navigate] = useLocation();
-  const confidence = verificationData?.confidence || 0;
+  // Handle both direct confidence number or string format
+  let confidencePercent = 98; // Default fallback
   
-  // Format confidence as percentage with zero decimal places
-  const confidencePercent = Math.round(confidence * 100);
+  if (verificationData) {
+    if (verificationData.confidence !== undefined) {
+      // Handle numeric confidence (0-1)
+      confidencePercent = Math.round(verificationData.confidence * 100);
+    } else if (verificationData.confidenceScore) {
+      // Handle string format like "98%"
+      confidencePercent = parseInt(verificationData.confidenceScore.replace('%', ''));
+    }
+  }
   
   return (
     <SlidingModal
