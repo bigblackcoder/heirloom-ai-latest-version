@@ -187,26 +187,62 @@ export function useFaceVerification() {
   }, [toast, navigate]);
   
   // Start face detection
-  const startDetection = useCallback((videoElement: HTMLVideoElement) => {
-    // Store the video element reference
-    videoRef.current = videoElement;
+  const startDetection = useCallback((imageData: string) => {
+    // Reset verification state if not already verifying
+    if (!isVerifying) {
+      setIsVerifying(true);
+      setVerificationResult(null);
+      setProgress(0);
+    }
     
-    // Reset verification state
-    setIsVerifying(true);
-    setVerificationResult(null);
+    // Start simulating progress if not already started
+    if (!progressTimerRef.current) {
+      progressTimerRef.current = setInterval(() => {
+        setProgress(prev => {
+          // Increase progress gradually up to 95% (the last 5% will be when face is verified)
+          const newProgress = prev + (Math.random() * 2);
+          return newProgress > 95 ? 95 : newProgress;
+        });
+      }, 200);
+    }
     
-    // Reset progress
-    setProgress(0);
+    // Process the captured frame
+    const processFrame = async () => {
+      try {
+        // Only verify if progress is under 95%
+        if (progress < 95) {
+          const result = await verifyFace(imageData);
+          
+          // Store the verification result for debugging purposes
+          setVerificationResult(result);
+          
+          // If successful with high confidence, complete the process
+          if (result?.success && result?.confidence > 85) {
+            setProgress(99); // Almost complete
+            
+            // Show success toast
+            toast({
+              title: "Face Verified",
+              description: "Your face has been successfully verified.",
+              variant: "default",
+            });
+          }
+        }
+      } catch (err) {
+        console.error("Error verifying frame:", err);
+        
+        // Set error in verification result for debugging
+        setVerificationResult({
+          success: false,
+          confidence: 0,
+          error: err instanceof Error ? err.message : String(err),
+          debugSession: `error-${Date.now()}`
+        });
+      }
+    };
     
-    // Start simulating progress
-    if (progressTimerRef.current) clearInterval(progressTimerRef.current);
-    progressTimerRef.current = setInterval(() => {
-      setProgress(prev => {
-        // Increase progress gradually up to 95% (the last 5% will be when face is verified)
-        const newProgress = prev + (Math.random() * 2);
-        return newProgress > 95 ? 95 : newProgress;
-      });
-    }, 200);
+    // Execute the frame processing
+    processFrame();
 
     // Set up detection interval - captures frames periodically for server verification
     if (detectionIntervalRef.current) clearInterval(detectionIntervalRef.current);
