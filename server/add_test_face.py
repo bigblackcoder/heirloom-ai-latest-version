@@ -10,6 +10,7 @@ import json
 import uuid
 import datetime
 import base64
+import subprocess
 from pathlib import Path
 
 def add_test_face(image_path, user_id):
@@ -71,4 +72,5 @@ if __name__ == "__main__":
     print(f"Added test face with ID: {face_id} for user ID: {user_id}")
     
     # Run list_face_db.py to show the updated database
-    os.system(f"{sys.executable} {os.path.join(os.path.dirname(__file__), 'list_face_db.py')}")
+    list_script_path = os.path.join(os.path.dirname(__file__), 'list_face_db.py')
+    subprocess.run([sys.executable, list_script_path], check=True)
