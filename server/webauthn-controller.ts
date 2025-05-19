@@ -344,6 +344,25 @@ export async function completeAuthentication(req: Request, res: Response) {
     // Clean up challenge
     challengeMap.delete(challengeId);
     
+    // Record verification on blockchain
+    const deviceInfo = req.headers['user-agent'] || '';
+    const confidenceScore = faceVerificationResult?.confidence || 0.99; // High confidence for device auth
+    
+    // Record on blockchain with device type info
+    const blockchainResult = await recordVerificationOnBlockchain(
+      userId, 
+      'device', 
+      confidenceScore,
+      {
+        type: 'WebAuthn',
+        platform: deviceInfo.includes('iPhone') || deviceInfo.includes('iPad') ? 'iOS' : 
+                 deviceInfo.includes('Android') ? 'Android' : 
+                 deviceInfo.includes('Windows') ? 'Windows' : 
+                 deviceInfo.includes('Mac') ? 'Mac' : 'Other',
+        browser: deviceInfo
+      }
+    );
+    
     return res.status(200).json({ 
       success: true, 
       message: 'Authentication successful',
@@ -355,7 +374,9 @@ export async function completeAuthentication(req: Request, res: Response) {
       verification: {
         device_verified: true,
         face_verified: faceVerificationResult?.success || false,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        blockchain_verified: blockchainResult.verified,
+        blockchain_data: blockchainResult.metadata || null
       }
     });
   } catch (error) {
