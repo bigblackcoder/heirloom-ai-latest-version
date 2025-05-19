@@ -14,9 +14,14 @@
  *   node scripts/extract-secure-images.js [directory]
  */
 
-const fs = require('fs');
-const path = require('path');
-const crypto = require('crypto');
+import fs from 'fs';
+import path from 'path';
+import crypto from 'crypto';
+import { fileURLToPath } from 'url';
+
+// Get the current file's directory in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Default directory to scan
 const DEFAULT_SCAN_DIR = path.resolve(__dirname, '..');
