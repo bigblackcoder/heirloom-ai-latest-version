@@ -101,7 +101,7 @@ export function useFaceVerification() {
       }
       
       return result;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error during verification:', error);
       
       // Show error toast with debugging information
@@ -122,7 +122,7 @@ export function useFaceVerification() {
         debugSession: `face-error-client-${Date.now()}`
       };
     }
-  }, []);
+  }, [toast]);
 
   // Simulate verification process for demo purposes
   const simulateVerification = useCallback(() => {
@@ -228,14 +228,14 @@ export function useFaceVerification() {
             });
           }
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error("Error verifying frame:", err);
         
         // Set error in verification result for debugging
         setVerificationResult({
           success: false,
           confidence: 0,
-          error: err instanceof Error ? err.message : String(err),
+          error: err?.message || String(err),
           debugSession: `error-${Date.now()}`
         });
       }
@@ -244,67 +244,12 @@ export function useFaceVerification() {
     // Execute the frame processing
     processFrame();
 
-    // Set up detection interval - captures frames periodically for server verification
-    if (detectionIntervalRef.current) clearInterval(detectionIntervalRef.current);
-    detectionIntervalRef.current = setInterval(() => {
-      // Create a canvas to capture the current video frame
-      const canvas = document.createElement('canvas');
-      canvas.width = videoElement.videoWidth;
-      canvas.height = videoElement.videoHeight;
-      
-      // Draw the current video frame to the canvas
-      const ctx = canvas.getContext('2d');
-      if (ctx && videoElement.videoWidth > 0) {
-        ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-        
-        // Convert to base64 for transmission to server
-        try {
-          const imgData = canvas.toDataURL('image/jpeg', 0.8);
-          
-          // Process the captured frame
-          const processFrame = async () => {
-            try {
-              // Only verify if progress is under 95%
-              if (progress < 95) {
-                const result = await verifyFace(imgData);
-                
-                // Store the verification result for debugging purposes
-                setVerificationResult(result);
-                
-                // If successful with high confidence, complete the process
-                if (result?.success && result?.confidence > 85) {
-                  setProgress(99); // Almost complete
-                  
-                  // Show success toast
-                  toast({
-                    title: "Face Verified",
-                    description: "Your face has been successfully verified.",
-                    variant: "default",
-                  });
-                }
-              }
-            } catch (err) {
-              console.error("Error verifying frame:", err);
-              
-              // Set error in verification result for debugging
-              setVerificationResult({
-                success: false,
-                confidence: 0,
-                error: err instanceof Error ? err.message : String(err),
-                debugSession: `error-${Date.now()}`
-              });
-            }
-          };
-          
-          // Execute the frame processing
-          processFrame();
-          
-          console.log('Frame captured for detection');
-        } catch (err) {
-          console.error('Error capturing frame:', err);
-        }
-      }
-    }, 1500); // Capture frame every 1.5 seconds
+    // The interval is no longer needed since we're now processing frames one by one
+    // from the apple-face-scanner.tsx component
+    if (detectionIntervalRef.current) {
+      clearInterval(detectionIntervalRef.current);
+      detectionIntervalRef.current = null;
+    }
 
     console.log('Face detection started');
   }, [verifyFace, progress, toast]);
@@ -498,14 +443,14 @@ export function useFaceVerification() {
       URL.revokeObjectURL(videoData.url);
       setIsVerifying(false);
       
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error processing video verification:", error);
       
       setVerificationResult({
         success: false,
         confidence: 0,
         message: "Error processing video",
-        error: error?.message || String(error),
+        error: error?.message ? error.message : String(error),
         debugSession: `video-error-${Date.now()}`
       });
       
@@ -515,7 +460,7 @@ export function useFaceVerification() {
       // Show error toast
       toast({
         title: "Verification Error",
-        description: `Error: ${error?.message || String(error)}`,
+        description: `Error: ${error?.message ? error.message : String(error)}`,
         variant: "destructive",
       });
       

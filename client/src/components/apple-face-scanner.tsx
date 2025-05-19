@@ -232,10 +232,15 @@ export default function AppleFaceScanner({ onProgress, onComplete, isComplete }:
         if (webcamRef.current?.video?.readyState === 4) {
           const screenshot = webcamRef.current.getScreenshot();
           if (screenshot) {
-            startDetection(screenshot);
+            // Make sure we're passing a proper base64 image
+            if (screenshot.startsWith('data:image')) {
+              startDetection(screenshot);
+            } else {
+              console.error("Invalid screenshot format", screenshot.substring(0, 20));
+            }
           }
         }
-      }, 500); // Less frequent checks to reduce server load
+      }, 1000); // Less frequent checks to reduce server load
       
       return () => {
         if (frameId !== null) cancelAnimationFrame(frameId);
