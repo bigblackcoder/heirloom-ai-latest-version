@@ -31,6 +31,20 @@ export interface FaceVerificationResult {
     dominant_emotion?: string;
   };
   details?: string;
+  blockchain_data?: {
+    verified: boolean;
+    hitToken?: string;
+    metadata?: {
+      verificationMethod: string;
+      verificationTimestamp: string;
+      confidence: number;
+      blockchainInfo?: {
+        chainId: number;
+        contractAddress: string;
+        tokenId: string;
+      };
+    };
+  };
 }
 
 /**

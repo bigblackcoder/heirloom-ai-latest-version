@@ -16,6 +16,20 @@ interface SuccessModalProps {
       dominant_race?: string;
       dominant_emotion?: string;
     };
+    blockchain_data?: {
+      verified: boolean;
+      hitToken?: string;
+      metadata?: {
+        verificationMethod: string;
+        verificationTimestamp: string;
+        confidence: number;
+        blockchainInfo?: {
+          chainId: number;
+          contractAddress: string;
+          tokenId: string;
+        };
+      };
+    };
   } | null;
 }
 
@@ -166,8 +180,57 @@ export default function SuccessModal({
               </div>
             )}
             
+            {/* Blockchain Verification Data */}
+            {verificationData?.blockchain_data && verificationData.blockchain_data.verified && (
+              <div className="mt-2 bg-[#4caf50]/10 rounded-lg p-3">
+                <div className="flex items-center mb-2">
+                  <svg className="w-5 h-5 text-[#4caf50] mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                  </svg>
+                  <span className="text-white/90 text-sm font-medium">Blockchain Verification</span>
+                </div>
+                
+                <div className="text-white/80 text-xs space-y-1">
+                  <div className="flex justify-between">
+                    <span>Method:</span>
+                    <span className="font-medium capitalize">{verificationData.blockchain_data.metadata?.verificationMethod || 'Biometric'}</span>
+                  </div>
+                  
+                  <div className="flex justify-between">
+                    <span>Timestamp:</span>
+                    <span className="font-medium">
+                      {verificationData.blockchain_data.metadata?.verificationTimestamp ? 
+                        new Date(verificationData.blockchain_data.metadata.verificationTimestamp).toLocaleString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        }) : 'Just now'}
+                    </span>
+                  </div>
+                  
+                  {verificationData.blockchain_data.metadata?.blockchainInfo && (
+                    <>
+                      <div className="flex justify-between">
+                        <span>Chain ID:</span>
+                        <span className="font-medium">{verificationData.blockchain_data.metadata.blockchainInfo.chainId}</span>
+                      </div>
+                      
+                      <div className="flex justify-between">
+                        <span>Token ID:</span>
+                        <span className="font-medium">
+                          {verificationData.blockchain_data.metadata.blockchainInfo.tokenId.substring(0, 8)}...
+                        </span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+            
             {/* Action buttons */}
-            <div className="flex justify-end gap-2 pt-1">
+            <div className="flex justify-end gap-2 pt-3">
               <div className="w-9 h-9 bg-white/20 rounded-full flex items-center justify-center text-white p-2">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M12 5v14M5 12h14" />
