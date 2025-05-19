@@ -27,7 +27,7 @@ Example:
 const apiKey = process.env.AWS_ACCESS_KEY_ID;
 
 // BAD - Hard-coding a secret
-const apiKey = "AKIAIOSFODNN7EXAMPLE"; // Never do this!
+const apiKey = "YOUR_API_KEY_HERE"; // Never do this!
 ```
 
 ### Environment Variable Setup
