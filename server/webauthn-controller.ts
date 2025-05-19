@@ -1,7 +1,7 @@
 /**
  * WebAuthn Controller
  * Handles WebAuthn registration and authentication, integrating with face verification
- * when available.
+ * when available and recording identity verifications on the blockchain.
  */
 import { Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
@@ -10,6 +10,7 @@ import { users, credentials } from '../shared/schema';
 import { eq } from 'drizzle-orm';
 import * as crypto from 'crypto';
 import { verifyFace } from './deepface';
+import { recordVerificationOnBlockchain } from './blockchain-verification';
 
 // In-memory challenge storage (replace with database in production)
 const challengeMap = new Map<string, {
