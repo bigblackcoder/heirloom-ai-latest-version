@@ -94,8 +94,8 @@ app.use((req, res, next) => {
     log("Production static file serving setup complete");
   }
 
-  // Use port 3000 in production, 5000 in development
-  const port = process.env.NODE_ENV === 'production' ? 3000 : 5000;
+  // Always use port 5000 to match port forwarding config
+  const port = process.env.PORT || 5000;
   server.listen({
     port,
     host: "0.0.0.0",
