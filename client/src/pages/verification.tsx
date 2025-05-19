@@ -500,30 +500,24 @@ export default function Verification() {
               </div>
             )}
             
-            {/* Complete button - only show when verification is complete */}
+            {/* Continue to Account link */}
             {isVerificationComplete && (
-              <button 
-                className="mt-4 px-6 py-3.5 bg-gradient-to-r from-[#2a5414] to-[#3d7520] text-white font-medium rounded-xl shadow-lg transition-all transform active:scale-95 hover:shadow-xl"
-                onClick={() => {
-                  // Get user info and route appropriately
-                  const userId = localStorage.getItem('userId');
+              <a 
+                href="/dashboard"
+                className="mt-4 px-6 py-3.5 bg-gradient-to-r from-[#2a5414] to-[#3d7520] text-white font-medium rounded-xl shadow-lg transition-all transform active:scale-95 hover:shadow-xl text-center inline-block"
+                onClick={(e) => {
+                  e.preventDefault(); // Prevent default navigation
                   
-                  // Store verification status in sessionStorage directly
-                  try {
-                    sessionStorage.setItem('verification_status', 'verified');
-                    sessionStorage.setItem('verification_timestamp', new Date().toISOString());
-                  } catch (err) {
-                    console.error('Error storing verification data:', err);
-                  }
+                  // Store verification status
+                  sessionStorage.setItem('verification_status', 'verified');
+                  sessionStorage.setItem('verification_timestamp', new Date().toISOString());
                   
-                  // Navigate directly to dashboard
-                  console.log('Navigating to dashboard...');
-                  // Use direct navigation for reliability
+                  // Direct navigation to dashboard
                   window.location.href = '/dashboard';
                 }}
               >
                 Continue to Account
-              </button>
+              </a>
             )}
           </TabsContent>
           
