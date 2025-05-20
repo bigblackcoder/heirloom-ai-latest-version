@@ -314,9 +314,26 @@ export default function Verification() {
         
         <div className="text-lg font-medium">Identity Verification</div>
         
-        <div className="w-10 h-10 opacity-0">
-          {/* Empty placeholder for alignment */}
-        </div>
+        <button 
+          onClick={() => navigate('/verification-test')}
+          className="w-10 h-10 rounded-full bg-[#2a5414]/40 backdrop-blur-sm flex items-center justify-center"
+          title="Test Verification System"
+        >
+          <svg
+            className="w-5 h-5"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M19.9 11a7.5 7.5 0 0 0-7.4-7 7.5 7.5 0 0 0-7.4 7" />
+            <path d="M9 15h6" />
+            <path d="M11 17v-6" />
+            <path d="M15 17v-2" />
+          </svg>
+        </button>
       </div>
 
       {/* Verification Options Tabs */}
