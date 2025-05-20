@@ -267,19 +267,37 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Authenticate with biometrics function
   const authenticateBiometric = async (userId: string) => {
     try {
-      // First check if the user has biometrics registered
-      const statusResult = await authenticateBiometricMutation.mutateAsync({ userId });
-      
-      // If successful, update the user's verification status
-      if (statusResult.success) {
-        toast({
-          title: 'Identity Verified',
-          description: 'Your identity has been successfully verified'
+      // Fall back to direct API call if mutation fails
+      try {
+        // First check if the user has biometrics registered using the mutation
+        const statusResult = await authenticateBiometricMutation.mutateAsync({ userId });
+        
+        // If successful, update the user's verification status
+        if (statusResult.success) {
+          toast({
+            title: 'Identity Verified',
+            description: 'Your identity has been successfully verified'
+          });
+        }
+        
+        // Return the result which can be used by the BiometricAuth component
+        return statusResult;
+      } catch (mutationError) {
+        // If mutation fails, try direct API call
+        console.log('Falling back to direct API call for biometric authentication');
+        const response = await fetch('/api/webauthn/authentication/status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId })
         });
+        
+        if (!response.ok) {
+          throw new Error('Failed to authenticate with biometrics');
+        }
+        
+        const result = await response.json();
+        return result;
       }
-      
-      // Return the result which can be used by the BiometricAuth component
-      return statusResult;
     } catch (error) {
       console.error('Biometric authentication error:', error);
       toast({
