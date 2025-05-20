@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/use-auth";
 import AppleFaceScanner from "@/components/apple-face-scanner";
 import { BiometricAuth } from "@/components/biometric-auth";
 import SuccessModal from "@/components/success-modal";
+import RealTimeClock from "@/components/real-time-clock";
 import { ShieldCheck, Monitor, Fingerprint } from "lucide-react";
 
 export default function Verification() {
@@ -278,7 +279,7 @@ export default function Verification() {
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-[#143404] to-[#1e3c0d] text-white">
       {/* Status bar area - iOS style */}
       <div className="w-full px-4 pt-6 pb-2 flex items-center">
-        <div className="text-sm opacity-70">9:41</div>
+        <RealTimeClock />
         <div className="flex-1"></div>
         <div className="flex items-center gap-1">
           <svg className="w-4 h-4 opacity-70" viewBox="0 0 24 24" fill="none">
