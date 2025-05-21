@@ -483,6 +483,17 @@ export default function Verification() {
                     })
                     .then(response => {
                       if (!response.ok) {
+                        // Check if response is HTML (error page)
+                        const contentType = response.headers.get('content-type');
+                        if (contentType && contentType.includes('text/html')) {
+                          console.error('Server returned HTML instead of JSON');
+                          // Return a formatted error response instead of throwing
+                          return {
+                            success: false,
+                            message: `Server error: ${response.status}`,
+                            confidence: 0
+                          };
+                        }
                         throw new Error(`Verification failed: ${response.status}`);
                       }
                       return response.json();
