@@ -36,6 +36,121 @@ const mockGoogleBiometricVerification = async (): Promise<boolean> => {
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Hybrid Authentication Routes
+
+  app.post("/api/auth/hybrid/faceid", async (req: Request, res: Response) => {
+    try {
+      const { image } = req.body;
+
+      if (!image) {
+        return res.status(400).json({ message: "Image is required" });
+      }
+
+      // 1. Verify face using DeepFace
+      const deepFaceResult = await verifyFace(image, undefined, false); // Do not save to DB initially
+
+      if (!deepFaceResult.success) {
+        return res.status(400).json({ message: "DeepFace verification failed", details: deepFaceResult.message });
+      }
+
+      // 2. Mock Apple FaceID verification
+      const faceIdResult = await mockAppleFaceIdVerification();
+
+      if (!faceIdResult) {
+        return res.status(400).json({ message: "Apple FaceID verification failed" });
+      }
+
+      // If both verifications pass, register/login user
+      // Here, you'd typically create a new user or log in an existing user
+      // For simplicity, let's assume we create a new user with a generated username
+
+      const username = `user_${Date.now()}`;
+      const userData = { username, password: "defaultPassword" }; // Replace 'defaultPassword' with a secure method
+
+      const newUser = await storage.createUser(userData);
+
+      // Don't return the password
+      const { password, ...userResponse } = newUser;
+
+      // Create initial identity capsule
+      const capsule = await storage.createCapsule({
+        userId: newUser.id,
+        name: "Primary",
+        description: "Your primary identity capsule"
+      });
+
+      // Log activity
+      await storage.createActivity({
+        userId: newUser.id,
+        type: "account-created",
+        description: "Account created successfully via Hybrid Auth",
+        metadata: { capsuleId: capsule.id }
+      });
+
+      // Create session
+      req.session.userId = newUser.id;
+      req.session.isVerified = true;
+
+      res.status(201).json({ message: "User registered/logged in successfully via Hybrid Auth", user: userResponse });
+    } catch (error) {
+      console.error("Hybrid Auth (FaceID) error:", error);
+      res.status(500).json({ message: "Error during Hybrid Auth (FaceID)" });
+    }
+  });
+
+  app.post("/api/auth/hybrid/googlebio", async (req: Request, res: Response) => {
+    try {
+      const { biometricData } = req.body;
+
+      if (!biometricData) {
+        return res.status(400).json({ message: "Biometric data is required" });
+      }
+
+      // 1. Verify biometric data using Google Biometric Auth
+      const googleBioResult = await mockGoogleBiometricVerification();
+
+      if (!googleBioResult) {
+        return res.status(400).json({ message: "Google Biometric verification failed" });
+      }
+
+      // If verification passes, register/login user
+      // Here, you'd typically create a new user or log in an existing user
+      // For simplicity, let's assume we create a new user with a generated username
+
+      const username = `user_${Date.now()}`;
+      const userData = { username, password: "defaultPassword" }; // Replace 'defaultPassword' with a secure method
+
+      const newUser = await storage.createUser(userData);
+
+      // Don't return the password
+      const { password, ...userResponse } = newUser;
+
+      // Create initial identity capsule
+      const capsule = await storage.createCapsule({
+        userId: newUser.id,
+        name: "Primary",
+        description: "Your primary identity capsule"
+      });
+
+      // Log activity
+      await storage.createActivity({
+        userId: newUser.id,
+        type: "account-created",
+        description: "Account created successfully via Hybrid Auth",
+        metadata: { capsuleId: capsule.id }
+      });
+
+      // Create session
+      req.session.userId = newUser.id;
+      req.session.isVerified = true;
+
+      res.status(201).json({ message: "User registered/logged in successfully via Hybrid Auth", user: userResponse });
+    } catch (error) {
+      console.error("Hybrid Auth (Google Bio) error:", error);
+      res.status(500).json({ message: "Error during Hybrid Auth (Google Bio)" });
+    }
+  });
+  
   // User routes
   app.post("/api/auth/register", async (req: Request, res: Response) => {
     try {
@@ -73,84 +188,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid input", errors: error.errors });
       }
       res.status(500).json({ message: "Error registering user" });
-    }
-  });
-
-  app.post("/api/auth/login", async (req: Request, res: Response) => {
-    try {
-      const { username, password } = req.body;
-
-      // Validate input
-      if (!username || !password) {
-        return res.status(400).json({ message: "Username and password are required" });
-      }
-
-      const user = await storage.getUserByUsername(username);
-      if (!user || user.password !== password) {
-        return res.status(401).json({ message: "Invalid credentials" });
-      }
-
-      // Don't return the password
-      const { password: _, ...userResponse } = user;
-
-      // Create session
-      req.session.userId = user.id;
-      req.session.isVerified = user.isVerified;
-
-      // Log login activity
-      await storage.createActivity({
-        userId: user.id,
-        type: "login",
-        description: "User logged in",
-        metadata: { timestamp: new Date().toISOString() }
-      });
-
-      res.status(200).json({ message: "Login successful", user: userResponse });
-    } catch (error) {
-      console.error("Login error:", error);
-      res.status(500).json({ message: "Error during login" });
-    }
-  });
-
-  app.post("/api/auth/logout", (req: Request, res: Response) => {
-    // Get user ID before destroying session
-    const userId = req.session?.userId;
-
-    // Destroy session
-    req.session.destroy((err) => {
-      if (err) {
-        console.error("Error destroying session:", err);
-        return res.status(500).json({ message: "Error logging out" });
-      }
-
-      // Log activity if we have the user ID
-      if (userId) {
-        storage.createActivity({
-          userId: userId,
-          type: "logout",
-          description: "User logged out",
-          metadata: { timestamp: new Date().toISOString() }
-        }).catch(err => console.error("Error logging logout activity:", err));
-      }
-
-      res.status(200).json({ message: "Logged out successfully" });
-    });
-  });
-
-  app.get("/api/auth/me", requireAuth, async (req: Request, res: Response) => {
-    try {
-      const user = await storage.getUser(req.session.userId!);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      // Don't return the password
-      const { password, ...userResponse } = user;
-
-      res.status(200).json(userResponse);
-    } catch (error) {
-      console.error("Error fetching user profile:", error);
-      res.status(500).json({ message: "Error fetching user" });
     }
   });
 
