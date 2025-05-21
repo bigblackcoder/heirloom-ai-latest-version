@@ -153,3 +153,116 @@ function BiometricButton({ userId }) {
 4. **Cross-Platform Improvements**
    - Better support for desktop biometrics (Windows Hello)
    - Browser APIs as they mature and gain adoption
+# Hybrid Biometric Implementation
+
+This document outlines the implementation of the hybrid DeepFace and native biometric integration in the Heirloom Identity Platform.
+
+## Overview
+
+The hybrid biometric system combines multiple authentication methods:
+
+1. **DeepFace** - A deep learning facial recognition library that provides high-accuracy face verification
+2. **Native Biometrics** - Platform-specific biometric authentication (Apple FaceID, Google Biometric)
+3. **Blockchain Verification** - Recording authentication events on the blockchain for auditing
+
+## Components
+
+### Native Biometrics Hook (`use-native-biometrics-mobile.tsx`)
+
+This React hook provides an interface to the device's native biometric capabilities:
+
+- Checks for biometric hardware availability
+- Determines available biometric types (facial, fingerprint, iris)
+- Provides authentication methods
+- Combines native and DeepFace verification
+
+### Mobile Biometric Verification Component (`mobile-biometric-verification.tsx`)
+
+A React Native component that implements the UI for biometric verification:
+
+- Camera integration for face capture
+- Progress indicators and visual feedback
+- Toggleable verification methods (hybrid or DeepFace-only)
+- Session storage of verification results
+
+## Verification Flow
+
+1. **Camera Initialization**
+   - Request camera permissions
+   - Initialize front-facing camera
+   - Show scanning UI with progress indicator
+
+2. **Face Capture**
+   - Automatically capture image when progress reaches 100%
+   - Convert captured image to base64 format
+   - Optimize image size for better performance
+
+3. **Hybrid Verification**
+   - If available, attempt native biometric verification (FaceID/Google Biometric)
+   - In parallel, send image to server for DeepFace analysis
+   - Combine results (success if either method succeeds)
+
+4. **Server-Side Processing**
+   - Analyze face using DeepFace library
+   - Compare with stored face embeddings if available
+   - Record verification on blockchain (optional)
+   - Return verification result with confidence score
+
+5. **Result Handling**
+   - Store verification status in session storage
+   - Trigger success animation or error feedback
+   - Notify parent components of verification result
+
+## Configuration Options
+
+### Verification Methods
+
+The system supports three verification methods:
+
+- **Hybrid** - Uses both DeepFace and native biometrics for maximum security
+- **DeepFace Only** - Uses only the DeepFace library for verification
+- **Native Only** - Uses only the device's native biometric system (not implemented)
+
+### DeepFace Configuration
+
+DeepFace can be configured with different models:
+
+- VGG-Face (default)
+- Facenet
+- OpenFace
+- DeepFace
+- DeepID
+- ArcFace
+- Dlib
+- SFace
+- GhostFaceNet
+
+## Security Considerations
+
+1. **Data Privacy**
+   - Face images are processed locally when possible
+   - Only face embeddings are stored, not actual images
+   - Verification records on blockchain don't contain identifiable information
+
+2. **Anti-Spoofing**
+   - Liveness detection to prevent photo/video attacks
+   - Confidence thresholds to reject low-quality matches
+   - Multiple verification methods for stronger security
+
+3. **Fallback Mechanisms**
+   - Alternative verification methods if biometrics fail
+   - Password/PIN as last resort
+
+## Future Improvements
+
+1. **Enhanced Liveness Detection**
+   - Implement motion detection and eye tracking
+   - Require user to perform specific gestures
+
+2. **Multi-Factor Biometrics**
+   - Combine face recognition with voice or fingerprint
+   - Require multiple biometric factors for high-security operations
+
+3. **Offline Verification**
+   - Support offline verification with cached face embeddings
+   - Sync verification records when connection is restored
