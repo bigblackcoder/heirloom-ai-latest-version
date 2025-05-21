@@ -25,7 +25,7 @@ localPort = 8000
 externalPort = 8000
 
 [workflows]
-runButton = "Start application"
+runButton = "Restart Application"
 
 [[workflows.workflow]]
 name = "Project"
@@ -76,3 +76,12 @@ args = "npm run build"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "NODE_ENV=production node dist/index.js"
+
+[[workflows.workflow]]
+name = "Restart Application"
+author = 507196
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev"
