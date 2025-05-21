@@ -1,4 +1,3 @@
-
 # Hybrid Biometric Authentication Implementation
 
 This document outlines the implementation of our hybrid biometric authentication system, which combines DeepFace facial recognition with native device biometrics (Apple FaceID and Google Biometric).
@@ -38,16 +37,16 @@ The authentication system consists of three main components:
 
 ### Client-Side Components
 
-- `BiometricVerification.tsx` - React component for biometric verification UI
-- `use-native-biometrics.tsx` - React hook for handling biometric integration
+- `mobile-biometric-verification.tsx` - React component for biometric verification UI
+- `use-native-biometrics-mobile.tsx` - React hook for handling biometric integration
 - Adaptive UI based on device capabilities
 
 ### Server-Side API Endpoints
 
-- `/register` - Register a new face
 - `/verify` - Verify identity using DeepFace
 - `/verify_native` - Verify identity using native biometrics
-- `/users` - List registered users
+- `/hybrid_verify` - Verify using both methods concurrently
+- `/register` - Register a new face
 
 ### Blockchain Integration
 
@@ -74,10 +73,10 @@ The authentication system consists of three main components:
 
 ## Integration Examples
 
-### Basic Usage in React Component
+### Hybrid Verification in React Component
 
 ```tsx
-import BiometricVerification from '@/components/biometric-verification';
+import MobileBiometricVerification from '@/components/mobile-biometric-verification';
 
 function AuthenticationScreen() {
   const handleVerificationComplete = (result) => {
@@ -91,9 +90,10 @@ function AuthenticationScreen() {
   };
 
   return (
-    <BiometricVerification
+    <MobileBiometricVerification
       userId="12345"
       onVerificationComplete={handleVerificationComplete}
+      preferredMethod="hybrid" // Can be 'hybrid', 'native', or 'deepface'
     />
   );
 }
@@ -102,19 +102,24 @@ function AuthenticationScreen() {
 ### Native Biometrics Hook Usage
 
 ```tsx
-import { useNativeBiometrics } from '@/hooks/use-native-biometrics';
+import { useNativeBiometricsMobile } from '@/hooks/use-native-biometrics-mobile';
 
 function BiometricButton({ userId }) {
-  const { isSupported, authenticate, platform } = useNativeBiometrics();
+  const { 
+    isBiometricSupported, 
+    authenticateWithBiometrics, 
+    platform,
+    availableBiometrics
+  } = useNativeBiometricsMobile();
 
   const handleAuthenticate = async () => {
-    if (!isSupported) {
+    if (!isBiometricSupported) {
       alert("Biometric authentication not supported on this device");
       return;
     }
 
     try {
-      const result = await authenticate(userId);
+      const result = await authenticateWithBiometrics(userId);
       if (result.success && result.verified) {
         // Authentication successful
       } else {
@@ -128,62 +133,13 @@ function BiometricButton({ userId }) {
   return (
     <button 
       onClick={handleAuthenticate}
-      disabled={!isSupported}
+      disabled={!isBiometricSupported}
     >
       Authenticate with {platform === 'apple' ? 'FaceID' : 'Biometric'}
     </button>
   );
 }
 ```
-
-## Future Enhancements
-
-1. **Multi-Factor Authentication**
-   - Combine multiple biometric methods for enhanced security
-   - Add behavioral biometrics (typing patterns, movement)
-
-2. **Decentralized Identity Integration**
-   - Support for W3C DID standards
-   - Self-sovereign identity principles
-
-3. **Enhanced Privacy**
-   - Zero-knowledge proofs for verification
-   - Homomorphic encryption for secure face matching
-
-4. **Cross-Platform Improvements**
-   - Better support for desktop biometrics (Windows Hello)
-   - Browser APIs as they mature and gain adoption
-# Hybrid Biometric Implementation
-
-This document outlines the implementation of the hybrid DeepFace and native biometric integration in the Heirloom Identity Platform.
-
-## Overview
-
-The hybrid biometric system combines multiple authentication methods:
-
-1. **DeepFace** - A deep learning facial recognition library that provides high-accuracy face verification
-2. **Native Biometrics** - Platform-specific biometric authentication (Apple FaceID, Google Biometric)
-3. **Blockchain Verification** - Recording authentication events on the blockchain for auditing
-
-## Components
-
-### Native Biometrics Hook (`use-native-biometrics-mobile.tsx`)
-
-This React hook provides an interface to the device's native biometric capabilities:
-
-- Checks for biometric hardware availability
-- Determines available biometric types (facial, fingerprint, iris)
-- Provides authentication methods
-- Combines native and DeepFace verification
-
-### Mobile Biometric Verification Component (`mobile-biometric-verification.tsx`)
-
-A React Native component that implements the UI for biometric verification:
-
-- Camera integration for face capture
-- Progress indicators and visual feedback
-- Toggleable verification methods (hybrid or DeepFace-only)
-- Session storage of verification results
 
 ## Verification Flow
 
@@ -213,56 +169,20 @@ A React Native component that implements the UI for biometric verification:
    - Trigger success animation or error feedback
    - Notify parent components of verification result
 
-## Configuration Options
+## Future Enhancements
 
-### Verification Methods
+1. **Multi-Factor Authentication**
+   - Combine multiple biometric methods for enhanced security
+   - Add behavioral biometrics (typing patterns, movement)
 
-The system supports three verification methods:
+2. **Decentralized Identity Integration**
+   - Support for W3C DID standards
+   - Self-sovereign identity principles
 
-- **Hybrid** - Uses both DeepFace and native biometrics for maximum security
-- **DeepFace Only** - Uses only the DeepFace library for verification
-- **Native Only** - Uses only the device's native biometric system (not implemented)
+3. **Enhanced Privacy**
+   - Zero-knowledge proofs for verification
+   - Homomorphic encryption for secure face matching
 
-### DeepFace Configuration
-
-DeepFace can be configured with different models:
-
-- VGG-Face (default)
-- Facenet
-- OpenFace
-- DeepFace
-- DeepID
-- ArcFace
-- Dlib
-- SFace
-- GhostFaceNet
-
-## Security Considerations
-
-1. **Data Privacy**
-   - Face images are processed locally when possible
-   - Only face embeddings are stored, not actual images
-   - Verification records on blockchain don't contain identifiable information
-
-2. **Anti-Spoofing**
-   - Liveness detection to prevent photo/video attacks
-   - Confidence thresholds to reject low-quality matches
-   - Multiple verification methods for stronger security
-
-3. **Fallback Mechanisms**
-   - Alternative verification methods if biometrics fail
-   - Password/PIN as last resort
-
-## Future Improvements
-
-1. **Enhanced Liveness Detection**
-   - Implement motion detection and eye tracking
-   - Require user to perform specific gestures
-
-2. **Multi-Factor Biometrics**
-   - Combine face recognition with voice or fingerprint
-   - Require multiple biometric factors for high-security operations
-
-3. **Offline Verification**
-   - Support offline verification with cached face embeddings
-   - Sync verification records when connection is restored
+4. **Cross-Platform Improvements**
+   - Better support for desktop biometrics (Windows Hello)
+   - Browser APIs as they mature and gain adoption

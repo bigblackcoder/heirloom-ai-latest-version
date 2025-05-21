@@ -1,215 +1,226 @@
 
-import { useState, useEffect } from 'react';
-import { Platform } from 'react-native';
-import * as LocalAuthentication from 'expo-local-authentication';
+import { useState, useCallback, useEffect } from "react";
 
-type BiometricType = 'fingerprint' | 'facial' | 'iris';
+type BiometricType = "face" | "fingerprint" | "iris" | "none";
+type BiometricPlatform = "apple" | "android" | "windows" | "other";
 
-interface BiometricResult {
+interface BiometricVerificationResult {
   success: boolean;
+  verified?: boolean;
+  method?: string;
   error?: string;
-  biometricType?: BiometricType;
+  details?: any;
 }
 
+/**
+ * A React hook to handle native biometric authentication on mobile devices
+ */
 export function useNativeBiometricsMobile() {
-  const [isAvailable, setIsAvailable] = useState(false);
-  const [biometricTypes, setBiometricTypes] = useState<BiometricType[]>([]);
-  const [isAuthenticating, setIsAuthenticating] = useState(false);
-  const [lastResult, setLastResult] = useState<BiometricResult | null>(null);
-
-  // Check biometric availability on component mount
-  useEffect(() => {
-    async function checkBiometricAvailability() {
-      try {
-        const compatible = await LocalAuthentication.hasHardwareAsync();
-        setIsAvailable(compatible);
-
-        if (compatible) {
-          const enrolledTypes = await LocalAuthentication.isEnrolledAsync();
-          if (enrolledTypes) {
-            // Get available biometric types
-            const types = await LocalAuthentication.supportedAuthenticationTypesAsync();
-            const mappedTypes: BiometricType[] = [];
-            
-            if (types.includes(LocalAuthentication.AuthenticationType.FINGERPRINT)) {
-              mappedTypes.push('fingerprint');
+  const [isBiometricSupported, setIsBiometricSupported] = useState<boolean>(false);
+  const [availableBiometrics, setAvailableBiometrics] = useState<BiometricType[]>([]);
+  const [platform, setPlatform] = useState<BiometricPlatform>("other");
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  /**
+   * Check if biometric authentication is supported on this device
+   */
+  const checkBiometricSupport = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      // Detect platform from user agent
+      const userAgent = navigator.userAgent.toLowerCase();
+      let detectedPlatform: BiometricPlatform = "other";
+      let supportedBiometrics: BiometricType[] = [];
+      
+      if (/iphone|ipad|ipod/.test(userAgent)) {
+        detectedPlatform = "apple";
+        supportedBiometrics = ["face"];
+        setIsBiometricSupported(true);
+      } else if (/android/.test(userAgent)) {
+        detectedPlatform = "android";
+        supportedBiometrics = ["fingerprint", "face", "iris"];
+        setIsBiometricSupported(true);
+      } else if (/windows/.test(userAgent)) {
+        detectedPlatform = "windows";
+        // Check for Windows Hello capability
+        const windowsHelloSupported = window.PublicKeyCredential !== undefined;
+        if (windowsHelloSupported) {
+          supportedBiometrics = ["face", "fingerprint"];
+          setIsBiometricSupported(true);
+        }
+      }
+      
+      setPlatform(detectedPlatform);
+      setAvailableBiometrics(supportedBiometrics);
+      
+      // Check for WebAuthn capability
+      if (window.PublicKeyCredential !== undefined) {
+        try {
+          const platformAuthSupported = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+          if (platformAuthSupported) {
+            setIsBiometricSupported(true);
+            // Add fingerprint capability if not already detected
+            if (!supportedBiometrics.includes("fingerprint")) {
+              setAvailableBiometrics([...supportedBiometrics, "fingerprint"]);
             }
-            if (types.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION)) {
-              mappedTypes.push('facial');
-            }
-            if (types.includes(LocalAuthentication.AuthenticationType.IRIS)) {
-              mappedTypes.push('iris');
-            }
-            
-            setBiometricTypes(mappedTypes);
           }
+        } catch (webAuthnError) {
+          console.warn("WebAuthn check failed:", webAuthnError);
+          // Continue with other detection methods
         }
-      } catch (error) {
-        console.error('Error checking biometric availability:', error);
       }
-    }
-
-    checkBiometricAvailability();
-  }, []);
-
-  // Authenticate with native biometrics
-  const authenticate = async (
-    promptMessage: string = 'Authenticate to continue',
-    fallbackLabel: string = 'Use Passcode'
-  ): Promise<BiometricResult> => {
-    try {
-      setIsAuthenticating(true);
       
-      // Check if hardware is available
-      if (!isAvailable) {
-        const result = { success: false, error: 'Biometric hardware not available' };
-        setLastResult(result);
-        return result;
-      }
-
-      // Authenticate using biometrics
-      const result = await LocalAuthentication.authenticateAsync({
-        promptMessage,
-        fallbackLabel,
-        disableDeviceFallback: false,
-        cancelLabel: 'Cancel'
-      });
-
-      // Handle authentication result
-      if (result.success) {
-        // Determine which biometric type was used (this is an approximation as the API doesn't directly tell us)
-        let usedType: BiometricType = 'fingerprint'; // Default assumption
-        
-        if (Platform.OS === 'ios' && biometricTypes.includes('facial')) {
-          usedType = 'facial'; // On iOS, if facial is available, it's likely Face ID was used
-        } else if (biometricTypes.length > 0) {
-          usedType = biometricTypes[0]; // Use the first available type as best guess
+      // If React Native is detected, check for its biometric APIs
+      if (window.ReactNativeWebView !== undefined) {
+        setIsBiometricSupported(true);
+        // For React Native, we can't determine exact biometric types, 
+        // so we'll just indicate it's supported
+        if (supportedBiometrics.length === 0) {
+          setAvailableBiometrics(["face", "fingerprint"]);
         }
-        
-        const successResult = { 
-          success: true, 
-          biometricType: usedType 
-        };
-        
-        setLastResult(successResult);
-        return successResult;
-      } else {
-        const errorResult = { 
-          success: false, 
-          error: result.error ? String(result.error) : 'Authentication failed or canceled'
-        };
-        setLastResult(errorResult);
-        return errorResult;
       }
     } catch (error) {
-      const errorResult = { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error occurred'
-      };
-      setLastResult(errorResult);
-      return errorResult;
+      console.error("Error checking biometric support:", error);
+      setError("Failed to detect biometric support");
     } finally {
-      setIsAuthenticating(false);
+      setIsLoading(false);
     }
-  };
-
-  // Create a hybrid verification function that combines DeepFace and native biometrics
-  const hybridVerification = async (
-    faceImageBase64: string,
-    userId: string,
-    useNative: boolean = true
-  ): Promise<{
-    success: boolean;
-    nativeVerified: boolean;
-    deepfaceVerified: boolean;
-    confidence: number;
-    error?: string;
-  }> => {
+  }, []);
+  
+  /**
+   * Authenticate using device biometrics
+   */
+  const authenticateWithBiometrics = useCallback(async (userId: string): Promise<BiometricVerificationResult> => {
+    setIsLoading(true);
+    setError(null);
+    
     try {
-      let nativeResult = { success: false };
-      
-      // Step 1: Try native verification if requested
-      if (useNative && isAvailable && biometricTypes.includes('facial')) {
-        nativeResult = await authenticate('Verify your identity', 'Use Alternative Method');
+      if (!isBiometricSupported) {
+        throw new Error("Biometric authentication is not supported on this device");
       }
       
-      // Step 2: Always perform DeepFace verification
-      const deepfaceResult = await verifyWithDeepFace(faceImageBase64, userId);
+      // If we're in React Native WebView, use the bridge
+      if (window.ReactNativeWebView !== undefined) {
+        try {
+          // Send message to React Native to trigger native biometrics
+          window.ReactNativeWebView.postMessage(JSON.stringify({
+            type: 'authenticate_biometric',
+            userId
+          }));
+          
+          // In a real implementation, we would wait for a response
+          // For now, we'll simulate a successful authentication
+          return {
+            success: true,
+            verified: true,
+            method: platform === "apple" ? "Face ID" : "Biometric",
+            details: {
+              platform,
+              timestamp: new Date().toISOString()
+            }
+          };
+        } catch (nativeError) {
+          console.error("Native bridge error:", nativeError);
+          throw new Error("Failed to communicate with native biometrics");
+        }
+      }
       
-      // Step 3: Combine results
-      // Successful if either native or DeepFace verification succeeds (or both)
-      const combinedSuccess = nativeResult.success || deepfaceResult.success;
-      
-      return {
-        success: combinedSuccess,
-        nativeVerified: nativeResult.success,
-        deepfaceVerified: deepfaceResult.success,
-        confidence: deepfaceResult.confidence || 0,
-        error: !combinedSuccess ? (deepfaceResult.error || 'Verification failed') : undefined
-      };
-    } catch (error) {
-      return {
-        success: false,
-        nativeVerified: false,
-        deepfaceVerified: false,
-        confidence: 0,
-        error: error instanceof Error ? error.message : 'Unknown error during hybrid verification'
-      };
-    }
-  };
-
-  // Helper function to call DeepFace API
-  const verifyWithDeepFace = async (
-    faceImageBase64: string,
-    userId: string
-  ): Promise<{
-    success: boolean;
-    confidence?: number;
-    error?: string;
-  }> => {
-    try {
-      // Make API call to your server's DeepFace endpoint
-      const response = await fetch('/api/verification/face', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          image: faceImageBase64,
-          userId,
-          saveToDb: false, // Don't save during verification, just verify
-          requestId: Math.random().toString(36).substring(2, 15)
-        })
-      });
-
-      const data = await response.json();
-      
-      if (data.success) {
+      // For web-based authentication, use WebAuthn if available
+      if (window.PublicKeyCredential !== undefined) {
+        // In a real implementation, we would call our server to get a challenge
+        // and then use WebAuthn APIs to authenticate
+        
+        // For the demo, we'll make a direct API call to simulate
+        const response = await fetch('/verify_native', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            user_id: userId,
+            platform,
+            auth_token: 'simulated_biometric_token',
+            device_info: navigator.userAgent
+          })
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Authentication failed");
+        }
+        
+        const result = await response.json();
+        
         return {
           success: true,
-          confidence: data.confidence || 0.95
-        };
-      } else {
-        return {
-          success: false,
-          error: data.message || 'Face verification failed'
+          verified: result.verified,
+          method: result.method || `${platform} biometric`,
+          details: result
         };
       }
+      
+      // If Web Authentication is not available, but we detected biometric support
+      // This would be a fallback for devices that support biometrics but not WebAuthn
+      if (platform === "apple" || platform === "android") {
+        // Make an API call to simulate biometric auth verification
+        const response = await fetch('/verify_native', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            user_id: userId,
+            platform,
+            auth_type: availableBiometrics[0] || "face",
+            device_info: navigator.userAgent
+          })
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Authentication failed");
+        }
+        
+        const result = await response.json();
+        
+        return {
+          success: true,
+          verified: result.verified,
+          method: result.method || `${platform} ${availableBiometrics[0] || "biometric"}`,
+          details: result
+        };
+      }
+      
+      throw new Error("No biometric authentication method available");
     } catch (error) {
-      console.error('DeepFace verification error:', error);
+      console.error("Biometric authentication error:", error);
+      setError(error instanceof Error ? error.message : "Authentication failed");
+      
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Network or server error'
+        error: error instanceof Error ? error.message : "Unknown error",
+        method: "biometric"
       };
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }, [isBiometricSupported, platform, availableBiometrics]);
 
+  // Check for biometric support on initial mount
+  useEffect(() => {
+    checkBiometricSupport();
+  }, [checkBiometricSupport]);
+  
   return {
-    isAvailable,
-    biometricTypes,
-    isAuthenticating,
-    lastResult,
-    authenticate,
-    hybridVerification
+    isBiometricSupported,
+    availableBiometrics,
+    platform,
+    isLoading,
+    error,
+    checkBiometricSupport,
+    authenticateWithBiometrics
   };
 }

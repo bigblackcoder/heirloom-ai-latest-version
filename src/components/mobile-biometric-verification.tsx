@@ -1,494 +1,439 @@
-
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Platform, Alert } from 'react-native';
-import { Camera } from 'expo-camera';
-import * as ImageManipulator from 'expo-image-manipulator';
 import { useNativeBiometricsMobile } from '../hooks/use-native-biometrics-mobile';
+import { motion } from 'framer-motion';
 
 interface MobileBiometricVerificationProps {
   userId: string;
   onVerificationComplete: (result: {
     success: boolean;
     method: string;
-    confidence: number;
-    timestamp: string;
+    details?: any;
   }) => void;
-  onError: (error: string) => void;
+  preferredMethod?: 'hybrid' | 'native' | 'deepface';
 }
 
-export const MobileBiometricVerification: React.FC<MobileBiometricVerificationProps> = ({
+export default function MobileBiometricVerification({
   userId,
   onVerificationComplete,
-  onError
-}) => {
-  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
-  const [isCameraReady, setIsCameraReady] = useState(false);
-  const [isCapturing, setIsCapturing] = useState(false);
-  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  preferredMethod = 'hybrid'
+}: MobileBiometricVerificationProps) {
   const [progress, setProgress] = useState(0);
-  const [verificationMethod, setVerificationMethod] = useState<'hybrid' | 'deepface' | 'native'>('hybrid');
-  
-  const cameraRef = useRef<Camera>(null);
-  const progressTimerRef = useRef<NodeJS.Timeout | null>(null);
-  
-  const { 
-    isAvailable: isBiometricAvailable, 
-    biometricTypes,
-    hybridVerification 
-  } = useNativeBiometricsMobile();
-  
-  const hasFacialBiometrics = biometricTypes.includes('facial');
+  const [isComplete, setIsComplete] = useState(false);
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [verificationMethod, setVerificationMethod] = useState<'hybrid' | 'native' | 'deepface'>(preferredMethod);
+  const [error, setError] = useState<string | null>(null);
 
-  // Ask for camera permission on component mount
+  const cameraRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  const {
+    isBiometricSupported,
+    authenticateWithBiometrics,
+    checkBiometricSupport
+  } = useNativeBiometricsMobile();
+
+  // Check biometric support on component mount
   useEffect(() => {
-    (async () => {
-      const { status } = await Camera.requestCameraPermissionsAsync();
-      setHasCameraPermission(status === 'granted');
-      
-      // Set verification method based on device capabilities
-      if (isBiometricAvailable && hasFacialBiometrics) {
-        setVerificationMethod('hybrid');
-      } else {
-        setVerificationMethod('deepface');
-      }
-    })();
-    
+    checkBiometricSupport();
+
+    // Initialize camera when component mounts
+    initCamera();
+
     return () => {
-      // Clean up timer on unmount
-      if (progressTimerRef.current) {
-        clearInterval(progressTimerRef.current);
+      // Stop camera when component unmounts
+      if (cameraRef.current && cameraRef.current.srcObject) {
+        const tracks = (cameraRef.current.srcObject as MediaStream).getTracks();
+        tracks.forEach(track => track.stop());
       }
     };
-  }, [isBiometricAvailable, hasFacialBiometrics]);
+  }, [checkBiometricSupport]);
 
-  // Handle camera ready state
-  const handleCameraReady = () => {
-    setIsCameraReady(true);
-    startProgressTimer();
+  // Initialize camera
+  const initCamera = async () => {
+    try {
+      const constraints = {
+        video: { 
+          facingMode: 'user',
+          width: { ideal: 640 },
+          height: { ideal: 480 }
+        }
+      };
+
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+
+      if (cameraRef.current) {
+        cameraRef.current.srcObject = stream;
+      }
+
+      // Start progress animation
+      startProgressAnimation();
+
+    } catch (err) {
+      console.error('Camera initialization error:', err);
+      setError('Could not access camera. Please check permissions.');
+    }
   };
 
-  // Start progress timer for capturing image
-  const startProgressTimer = () => {
-    if (progressTimerRef.current) {
-      clearInterval(progressTimerRef.current);
-    }
-    
-    setProgress(0);
-    const interval = 50;
-    const incrementAmount = 2;
-    
-    progressTimerRef.current = setInterval(() => {
-      setProgress(prevProgress => {
-        const newProgress = prevProgress + incrementAmount;
-        
-        // Automatically capture when progress reaches 100%
-        if (newProgress >= 100 && !isCapturing) {
-          captureImage();
-        }
-        
-        return newProgress >= 100 ? 100 : newProgress;
-      });
-    }, interval);
+  // Start progress animation
+  const startProgressAnimation = () => {
+    let currentProgress = 0;
+    const interval = setInterval(() => {
+      currentProgress += 2;
+      setProgress(Math.min(currentProgress, 100));
+
+      // When progress reaches 100%, capture image
+      if (currentProgress >= 100) {
+        clearInterval(interval);
+        captureImage();
+      }
+    }, 100);
   };
 
   // Capture image from camera
-  const captureImage = async () => {
-    if (cameraRef.current && isCameraReady && !isCapturing) {
-      try {
-        setIsCapturing(true);
-        
-        // Stop progress timer
-        if (progressTimerRef.current) {
-          clearInterval(progressTimerRef.current);
-          progressTimerRef.current = null;
-        }
-        
-        // Take photo
-        const photo = await cameraRef.current.takePictureAsync({
-          quality: 0.8,
-          base64: true,
-          skipProcessing: false
-        });
-        
-        // Resize image to improve performance
-        const manipulatedImage = await ImageManipulator.manipulateAsync(
-          photo.uri,
-          [{ resize: { width: 640 } }],
-          { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG, base64: true }
-        );
-        
-        // Set captured image and start verification
-        setCapturedImage(manipulatedImage.uri);
-        
-        // Start verification with captured image
-        if (manipulatedImage.base64) {
-          verifyWithHybridMethod(manipulatedImage.base64);
-        } else {
-          onError('Failed to get base64 image data');
-        }
-      } catch (error) {
-        console.error('Error capturing image:', error);
-        onError(error instanceof Error ? error.message : 'Failed to capture image');
-        resetCamera();
+  const captureImage = () => {
+    if (cameraRef.current && canvasRef.current) {
+      const video = cameraRef.current;
+      const canvas = canvasRef.current;
+
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        // Convert to base64
+        const imageData = canvas.toDataURL('image/jpeg', 0.8);
+        setCapturedImage(imageData);
+
+        // Verify with selected method
+        verifyIdentity(imageData);
       }
     }
   };
 
-  // Reset camera for another attempt
-  const resetCamera = () => {
-    setIsCapturing(false);
-    setCapturedImage(null);
-    setProgress(0);
-    startProgressTimer();
-  };
-
-  // Verify with hybrid method (DeepFace + native)
-  const verifyWithHybridMethod = async (base64Image: string) => {
+  // Verify identity using selected method
+  const verifyIdentity = async (imageData: string) => {
     try {
-      const dataUrl = `data:image/jpeg;base64,${base64Image}`;
-      
-      // Determine which verification method to use
-      if (verificationMethod === 'hybrid') {
-        // Use hybrid verification (DeepFace + native biometrics)
-        const result = await hybridVerification(dataUrl, userId);
-        
-        if (result.success) {
-          const timestamp = new Date().toISOString();
-          const method = result.nativeVerified ? 
-            'Hybrid (FaceID + DeepFace)' : 
-            'DeepFace';
-            
-          onVerificationComplete({
-            success: true,
-            method,
-            confidence: result.confidence,
-            timestamp
-          });
-          
-          // Store verification data in session storage for dashboard to detect
-          if (typeof sessionStorage !== 'undefined') {
-            sessionStorage.setItem('verification_status', 'verified');
-            sessionStorage.setItem('verification_timestamp', timestamp);
-            sessionStorage.setItem('verification_method', method);
-            sessionStorage.setItem('verification_confidence', String(result.confidence));
-          }
-        } else {
-          onError(result.error || 'Verification failed');
-          resetCamera();
-        }
-      } else {
-        // Use DeepFace only
-        const response = await fetch('/api/verification/face', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            image: dataUrl,
-            userId,
-            saveToDb: false
-          })
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-          const timestamp = new Date().toISOString();
-          onVerificationComplete({
-            success: true,
-            method: 'DeepFace',
-            confidence: result.confidence || 0.95,
-            timestamp
-          });
-          
-          // Store verification data in session storage
-          if (typeof sessionStorage !== 'undefined') {
-            sessionStorage.setItem('verification_status', 'verified');
-            sessionStorage.setItem('verification_timestamp', timestamp);
-            sessionStorage.setItem('verification_method', 'DeepFace');
-            sessionStorage.setItem('verification_confidence', String(result.confidence || 0.95));
-          }
-        } else {
-          onError(result.message || 'Face verification failed');
-          resetCamera();
-        }
+      switch (verificationMethod) {
+        case 'hybrid':
+          await verifyWithHybridMethod(imageData);
+          break;
+        case 'native':
+          await verifyWithNativeBiometrics();
+          break;
+        case 'deepface':
+          await verifyWithDeepFace(imageData);
+          break;
       }
     } catch (error) {
       console.error('Verification error:', error);
-      onError(error instanceof Error ? error.message : 'Unknown verification error');
-      resetCamera();
+      setError(error instanceof Error ? error.message : 'Verification failed');
+
+      onVerificationComplete({
+        success: false,
+        method: verificationMethod,
+        details: { error: error instanceof Error ? error.message : 'Unknown error' }
+      });
     }
   };
 
-  // Switch verification method
-  const toggleVerificationMethod = () => {
-    if (verificationMethod === 'hybrid') {
-      setVerificationMethod('deepface');
-    } else if (verificationMethod === 'deepface') {
-      setVerificationMethod(isBiometricAvailable && hasFacialBiometrics ? 'hybrid' : 'deepface');
-    } else {
-      setVerificationMethod('hybrid');
+  // Verify with hybrid method (try both in parallel)
+  const verifyWithHybridMethod = async (imageData: string) => {
+    try {
+      // Start both verifications in parallel
+      const nativeBiometricPromise = isBiometricSupported 
+        ? verifyWithNativeBiometrics() 
+        : Promise.resolve({ success: false, method: 'native_biometrics', details: { error: 'Native biometrics not supported' } });
+
+      const deepFacePromise = verifyWithDeepFace(imageData);
+
+      // Wait for both to complete, but resolve as soon as one succeeds
+      const [nativeResult, deepFaceResult] = await Promise.allSettled([
+        nativeBiometricPromise,
+        deepFacePromise
+      ]);
+
+      // Process results
+      const nativeSuccess = nativeResult.status === 'fulfilled' && nativeResult.value.success;
+      const deepFaceSuccess = deepFaceResult.status === 'fulfilled' && deepFaceResult.value.success;
+
+      if (nativeSuccess || deepFaceSuccess) {
+        // Choose the successful method, preferring native if both succeeded
+        const successMethod = nativeSuccess ? 'native_biometrics' : 'deepface';
+        const successDetails = nativeSuccess 
+          ? (nativeResult as PromiseFulfilledResult<any>).value.details
+          : (deepFaceResult as PromiseFulfilledResult<any>).value.details;
+
+        setIsComplete(true);
+
+        // Save verification status to sessionStorage
+        sessionStorage.setItem('verification_status', 'verified');
+        sessionStorage.setItem('verification_timestamp', new Date().toISOString());
+
+        // Return success
+        onVerificationComplete({
+          success: true,
+          method: `hybrid (${successMethod})`,
+          details: {
+            ...successDetails,
+            hybrid: true,
+            nativeAttempted: isBiometricSupported,
+            deepfaceAttempted: true,
+            nativeSucceeded: nativeSuccess,
+            deepfaceSucceeded: deepFaceSuccess
+          }
+        });
+      } else {
+        // Both methods failed
+        throw new Error('Both verification methods failed');
+      }
+    } catch (error) {
+      console.error('Hybrid verification error:', error);
+      throw error;
     }
   };
 
-  // Render error message if no camera permission
-  if (hasCameraPermission === false) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.errorText}>No access to camera</Text>
-        <TouchableOpacity 
-          style={styles.button}
-          onPress={() => {
-            Alert.alert(
-              'Camera Permission Required',
-              'This feature requires camera permission to verify your identity.',
-              [{ text: 'OK' }]
-            );
-          }}
-        >
-          <Text style={styles.buttonText}>Request Permission</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
+  // Verify with native biometrics
+  const verifyWithNativeBiometrics = async () => {
+    try {
+      if (!isBiometricSupported) {
+        throw new Error('Native biometrics not supported on this device');
+      }
+
+      const result = await authenticateWithBiometrics(userId);
+
+      if (result.success && result.verified) {
+        setIsComplete(true);
+
+        // Save verification status to sessionStorage
+        sessionStorage.setItem('verification_status', 'verified');
+        sessionStorage.setItem('verification_timestamp', new Date().toISOString());
+
+        if (verificationMethod === 'native') {
+          onVerificationComplete({
+            success: true,
+            method: 'native_biometrics',
+            details: result
+          });
+        }
+
+        return {
+          success: true,
+          method: 'native_biometrics',
+          details: result
+        };
+      } else {
+        throw new Error('Native biometric verification failed');
+      }
+    } catch (error) {
+      console.error('Native biometric verification error:', error);
+
+      if (verificationMethod === 'native') {
+        setError(error instanceof Error ? error.message : 'Native biometric verification failed');
+        onVerificationComplete({
+          success: false,
+          method: 'native_biometrics',
+          details: { error: error instanceof Error ? error.message : 'Unknown error' }
+        });
+      }
+
+      throw error;
+    }
+  };
+
+  // Verify with DeepFace
+  const verifyWithDeepFace = async (imageData: string) => {
+    try {
+      // Remove data URL prefix if present
+      const base64Data = imageData.includes(',') 
+        ? imageData.split(',')[1] 
+        : imageData;
+
+      const formData = new FormData();
+      formData.append('user_id', userId);
+      formData.append('image_data', base64Data);
+
+      const response = await fetch('/verify', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error(`DeepFace verification failed: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+
+      if (result.success && result.verified) {
+        setIsComplete(true);
+
+        // Save verification status to sessionStorage
+        sessionStorage.setItem('verification_status', 'verified');
+        sessionStorage.setItem('verification_timestamp', new Date().toISOString());
+        sessionStorage.setItem('face_id', result.face_id || 'unknown');
+
+        if (verificationMethod === 'deepface') {
+          onVerificationComplete({
+            success: true,
+            method: 'DeepFace',
+            details: result
+          });
+        }
+
+        return {
+          success: true,
+          method: 'DeepFace',
+          details: result
+        };
+      } else {
+        throw new Error('DeepFace verification failed: Not verified');
+      }
+    } catch (error) {
+      console.error('DeepFace verification error:', error);
+
+      if (verificationMethod === 'deepface') {
+        setError(error instanceof Error ? error.message : 'DeepFace verification failed');
+        onVerificationComplete({
+          success: false,
+          method: 'DeepFace',
+          details: { error: error instanceof Error ? error.message : 'Unknown error' }
+        });
+      }
+
+      throw error;
+    }
+  };
 
   return (
-    <View style={styles.container}>
-      {!capturedImage ? (
-        <View style={styles.cameraContainer}>
-          <Camera
-            ref={cameraRef}
-            style={styles.camera}
-            type={Camera.Constants.Type.front}
-            onCameraReady={handleCameraReady}
-            ratio="16:9"
-          >
-            <View style={styles.overlayContainer}>
-              <View style={styles.progressBarContainer}>
-                <View 
-                  style={[
-                    styles.progressBar, 
-                    { width: `${progress}%` }
-                  ]} 
-                />
-              </View>
-              
-              <View style={styles.scanFrame}>
-                <View style={styles.scanLine} />
-              </View>
-              
-              <View style={styles.methodContainer}>
-                <TouchableOpacity 
-                  style={styles.methodButton}
-                  onPress={toggleVerificationMethod}
-                >
-                  <Text style={styles.methodText}>
-                    Method: {verificationMethod === 'hybrid' ? 'Hybrid' : 'DeepFace Only'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-              
-              <TouchableOpacity 
-                style={styles.captureButton}
-                onPress={captureImage}
-                disabled={!isCameraReady || isCapturing}
-              >
-                <View style={styles.captureInner} />
-              </TouchableOpacity>
-            </View>
-          </Camera>
-        </View>
-      ) : (
-        <View style={styles.resultContainer}>
-          <Image source={{ uri: capturedImage }} style={styles.capturedImage} />
-          <Text style={styles.verifyingText}>Verifying your identity...</Text>
-          <View style={styles.loadingIndicator}>
-            <View style={styles.loadingBar} />
-          </View>
-        </View>
-      )}
-      
-      <View style={styles.infoContainer}>
-        <Text style={styles.infoTitle}>
-          Hybrid Face Verification
-        </Text>
-        <Text style={styles.infoText}>
-          {verificationMethod === 'hybrid' 
-            ? 'This secure method combines DeepFace analysis with your device\'s native facial recognition for enhanced security.'
-            : 'Using advanced facial recognition algorithms to verify your identity.'}
-        </Text>
-      </View>
-    </View>
-  );
-};
+    <div className="relative w-full max-w-md mx-auto">
+      {/* Camera view */}
+      <div className="relative w-full aspect-square rounded-xl overflow-hidden bg-black shadow-lg">
+        {/* The actual video element */}
+        <video 
+          ref={cameraRef}
+          autoPlay
+          playsInline
+          muted
+          className={`w-full h-full object-cover ${isComplete ? 'opacity-0' : 'opacity-100'} transition-opacity duration-500`}
+        />
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f8f9fa',
-  },
-  cameraContainer: {
-    width: '100%',
-    aspectRatio: 3/4,
-    overflow: 'hidden',
-    borderRadius: 20,
-    backgroundColor: '#000',
-  },
-  camera: {
-    flex: 1,
-  },
-  overlayContainer: {
-    flex: 1,
-    backgroundColor: 'transparent',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    padding: 20,
-  },
-  scanFrame: {
-    position: 'absolute',
-    top: '20%',
-    width: 250,
-    height: 250,
-    borderWidth: 2,
-    borderColor: '#4CAF50',
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  scanLine: {
-    width: '100%',
-    height: 2,
-    backgroundColor: '#4CAF50',
-    opacity: 0.8,
-    position: 'absolute',
-    top: '50%',
-    shadowColor: '#4CAF50',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 10,
-  },
-  progressBarContainer: {
-    position: 'absolute',
-    top: 40,
-    left: 20,
-    right: 20,
-    height: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 2,
-  },
-  progressBar: {
-    height: '100%',
-    backgroundColor: '#4CAF50',
-    borderRadius: 2,
-  },
-  captureButton: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  captureInner: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#fff',
-  },
-  resultContainer: {
-    width: '100%',
-    aspectRatio: 3/4,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#000',
-    borderRadius: 20,
-  },
-  capturedImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 20,
-  },
-  verifyingText: {
-    position: 'absolute',
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    padding: 10,
-    borderRadius: 10,
-  },
-  loadingIndicator: {
-    position: 'absolute',
-    bottom: 40,
-    width: '80%',
-    height: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  loadingBar: {
-    width: '30%',
-    height: '100%',
-    backgroundColor: '#4CAF50',
-    borderRadius: 2,
-    position: 'absolute',
-    left: 0,
-    animation: 'loading 1.5s infinite',
-  },
-  infoContainer: {
-    padding: 20,
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    margin: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  infoTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    color: '#1E3B1E',
-  },
-  infoText: {
-    fontSize: 14,
-    color: '#666',
-    lineHeight: 20,
-  },
-  methodContainer: {
-    position: 'absolute',
-    top: 60,
-    right: 20,
-  },
-  methodButton: {
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-  },
-  methodText: {
-    color: '#fff',
-    fontSize: 12,
-  },
-  errorText: {
-    color: '#F44336',
-    fontSize: 16,
-    textAlign: 'center',
-    margin: 20,
-  },
-  button: {
-    backgroundColor: '#4CAF50',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 25,
-    alignSelf: 'center',
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-});
+        {/* Overlay for face detection guides */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className={`w-64 h-64 rounded-full border-2 ${isComplete ? 'border-green-500' : 'border-white'} opacity-60 ${isComplete ? 'scale-95' : 'scale-100'} transition-all duration-300`}></div>
+
+          {/* Face outline markers */}
+          <svg className="absolute inset-0 w-full h-full" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M160 100C160 100 180 80 200 80C220 80 240 100 240 100" stroke="white" strokeWidth="2" opacity="0.7" strokeLinecap="round"/>
+            <path d="M150 180C150 180 160 200 200 200C240 200 250 180 250 180" stroke="white" strokeWidth="2" opacity="0.7" strokeLinecap="round"/>
+            <circle cx="175" cy="140" r="10" stroke="white" strokeWidth="2" opacity="0.7"/>
+            <circle cx="225" cy="140" r="10" stroke="white" strokeWidth="2" opacity="0.7"/>
+          </svg>
+        </div>
+
+        {/* Display success animation when complete */}
+        {isComplete && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
+            <motion.div 
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.5 }}
+              className="bg-green-500 bg-opacity-20 w-32 h-32 rounded-full flex items-center justify-center"
+            >
+              <svg className="w-16 h-16 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M20 6L9 17l-5-5" />
+              </svg>
+            </motion.div>
+          </div>
+        )}
+
+        {/* Progress bar */}
+        <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-gray-800">
+          <motion.div
+            className="h-full bg-green-500"
+            initial={{ width: "0%" }}
+            animate={{ width: `${progress}%` }}
+            transition={{ ease: "linear" }}
+          />
+        </div>
+      </div>
+
+      {/* Canvas for capturing images (hidden) */}
+      <canvas ref={canvasRef} className="hidden" />
+
+      {/* Method selection tabs */}
+      <div className="mt-6">
+        <div className="flex justify-center space-x-4">
+          <button
+            onClick={() => !isComplete && setVerificationMethod('hybrid')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium ${
+              verificationMethod === 'hybrid' 
+                ? 'bg-green-600 text-white' 
+                : 'bg-gray-200 text-gray-700'
+            } ${isComplete ? 'opacity-50 cursor-not-allowed' : 'hover:bg-opacity-80'}`}
+            disabled={isComplete}
+          >
+            Hybrid
+          </button>
+
+          <button
+            onClick={() => !isComplete && setVerificationMethod('deepface')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium ${
+              verificationMethod === 'deepface' 
+                ? 'bg-green-600 text-white' 
+                : 'bg-gray-200 text-gray-700'
+            } ${isComplete ? 'opacity-50 cursor-not-allowed' : 'hover:bg-opacity-80'}`}
+            disabled={isComplete}
+          >
+            DeepFace
+          </button>
+
+          <button
+            onClick={() => !isComplete && setVerificationMethod('native')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium ${
+              verificationMethod === 'native' 
+                ? 'bg-green-600 text-white' 
+                : 'bg-gray-200 text-gray-700'
+            } ${!isBiometricSupported || isComplete ? 'opacity-50 cursor-not-allowed' : 'hover:bg-opacity-80'}`}
+            disabled={!isBiometricSupported || isComplete}
+          >
+            Native
+          </button>
+        </div>
+      </div>
+
+      {/* Status and error message */}
+      <div className="mt-4 text-center">
+        {error ? (
+          <div className="text-red-500 text-sm p-2 bg-red-50 rounded-lg">
+            {error}
+          </div>
+        ) : isComplete ? (
+          <div className="text-green-600 text-sm p-2 bg-green-50 rounded-lg">
+            Verification successful
+          </div>
+        ) : (
+          <div className="text-gray-600 text-sm">
+            {progress < 100 
+              ? "Position your face in the center of the frame" 
+              : "Processing verification..."}
+          </div>
+        )}
+      </div>
+
+      {/* Method information */}
+      <div className="mt-6 p-4 bg-gray-100 rounded-lg text-xs text-gray-600">
+        <div className="font-medium text-sm text-gray-800 mb-1">
+          {verificationMethod === 'hybrid' && "Hybrid Authentication"}
+          {verificationMethod === 'deepface' && "DeepFace Facial Recognition"}
+          {verificationMethod === 'native' && "Native Device Biometrics"}
+        </div>
+        <p>
+          {verificationMethod === 'hybrid' && "Combines both device biometrics and facial recognition for maximum security."}
+          {verificationMethod === 'deepface' && "Advanced AI-powered facial recognition that analyzes unique facial features."}
+          {verificationMethod === 'native' && "Uses your device's built-in biometric authentication system (FaceID/TouchID)."}
+        </p>
+      </div>
+    </div>
+  );
+}
