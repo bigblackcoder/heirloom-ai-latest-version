@@ -169,8 +169,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
   
   // Initialize auth
   useEffect(() => {
-    setIsInitialized(true);
-  }, []);
+    // Check for existing session on mount
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/api/auth/me');
+        if (response.ok) {
+          const userData = await response.json();
+          if (userData && userData.id) {
+            queryClient.setQueryData(['/api/auth/me'], userData);
+          }
+        }
+      } catch (error) {
+        console.error('Error checking auth status:', error);
+      } finally {
+        setIsInitialized(true);
+      }
+    };
+    
+    checkAuth();
+  }, [queryClient]);
   
   // Login function
   const login = async (username: string, password: string) => {

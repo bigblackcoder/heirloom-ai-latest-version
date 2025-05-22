@@ -35,12 +35,15 @@ export default function Login() {
     try {
       const response = await login(data.username, data.password);
       
-      // Use a short timeout to allow authentication state to update
-      setTimeout(() => {
-        // Navigate to dashboard after successful login
+      if (response?.success) {
         console.log("Login successful, redirecting to dashboard");
-        navigate("/dashboard");
-      }, 300);
+        // Use a slightly longer timeout to ensure auth state has properly updated
+        setTimeout(() => {
+          navigate("/dashboard");
+        }, 500);
+      } else {
+        console.error("Login failed:", response?.message || "Unknown error");
+      }
       
       return response;
     } catch (error) {

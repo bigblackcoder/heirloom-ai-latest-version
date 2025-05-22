@@ -1,62 +1,72 @@
-import { ReactNode, useEffect } from 'react';
+
+import { ReactNode, useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
 
 interface ProtectedRouteProps {
   children: ReactNode;
-  requireVerification?: boolean;
+  requireVerified?: boolean;
 }
 
-export function ProtectedRoute({ 
-  children, 
-  requireVerification = false 
-}: ProtectedRouteProps) {
-  const { user, isLoading, isAuthenticated } = useAuth();
-  const [location, navigate] = useLocation();
+export function ProtectedRoute({ children, requireVerified = false }: ProtectedRouteProps) {
+  const { user, isAuthenticated, isLoading } = useAuth();
+  const [, navigate] = useLocation();
+  const { toast } = useToast();
+  const [checkingAuth, setCheckingAuth] = useState(true);
 
   useEffect(() => {
-    console.log("Protected route auth state:", { isLoading, isAuthenticated, userVerified: user?.isVerified });
-    
-    // Only check after we've tried to load the user
-    if (!isLoading) {
-      // Not authenticated - redirect to login
-      if (!isAuthenticated) {
-        console.log("User not authenticated, redirecting to login");
-        navigate('/login');
-        return;
-      }
-      
-      // Authentication required but user not verified
-      if (requireVerification && !user?.isVerified) {
-        console.log("User not verified, redirecting to verification");
-        navigate('/verification');
-        return;
-      }
-      
-      console.log("User authenticated and verified (if required)");
-    }
-  }, [isLoading, isAuthenticated, user, navigate, requireVerification]);
+    // Set a timeout to prevent infinite loading state
+    const authTimeout = setTimeout(() => {
+      setCheckingAuth(false);
+    }, 2000);
 
-  // Show loading state while checking authentication
-  if (isLoading) {
+    // Check authentication status
+    if (!isLoading) {
+      clearTimeout(authTimeout);
+      setCheckingAuth(false);
+      
+      if (!isAuthenticated) {
+        console.log('ProtectedRoute: User not authenticated, redirecting to login');
+        toast({
+          title: "Authentication required",
+          description: "Please log in to access this page",
+          variant: "destructive"
+        });
+        
+        // Small delay before redirect to allow toast to be seen
+        setTimeout(() => navigate('/login'), 100);
+      } else if (requireVerified && user && !user.isVerified) {
+        console.log('ProtectedRoute: User not verified, redirecting to verification');
+        toast({
+          title: "Verification required",
+          description: "Please verify your identity to access this feature",
+          variant: "destructive"
+        });
+        
+        // Small delay before redirect
+        setTimeout(() => navigate('/verification'), 100);
+      }
+    }
+
+    return () => clearTimeout(authTimeout);
+  }, [isAuthenticated, isLoading, user, navigate, requireVerified, toast]);
+
+  // Show loading skeleton while checking auth state
+  if (isLoading || checkingAuth) {
     return (
-      <div className="flex flex-col space-y-3 p-6">
-        <Skeleton className="h-8 w-full" />
-        <Skeleton className="h-8 w-5/6" />
-        <Skeleton className="h-8 w-4/6" />
-        <div className="pt-6">
-          <Skeleton className="h-64 w-full" />
-        </div>
+      <div className="w-full max-w-md mx-auto p-4 mt-16">
+        <Skeleton className="h-12 w-full mb-4" />
+        <Skeleton className="h-32 w-full mb-4" />
+        <Skeleton className="h-4 w-3/4 mb-2" />
+        <Skeleton className="h-4 w-1/2 mb-2" />
+        <Skeleton className="h-4 w-5/6" />
       </div>
     );
   }
 
-  // If authenticated (and verified if required), render the children
-  if (isAuthenticated && (!requireVerification || user?.isVerified)) {
-    return <>{children}</>;
-  }
-
-  // This should not be visible as the useEffect should navigate away
-  return null;
+  // If we're still rendering after the checks, it means the user is authenticated
+  // (and verified if required)
+  return <>{children}</>;
 }
