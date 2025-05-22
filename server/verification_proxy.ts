@@ -175,22 +175,102 @@ export async function verifyFace(request: FaceVerificationRequest): Promise<Face
       throw new Error(`Verification service responded with status ${response.status}`);
     }
   } catch (error: any) {
+    const reqId = request.requestId || `error-${Date.now()}`;
+    console.error(`[${reqId}] Verification proxy error:`, error);
+    
     // If service is not available, fall back to local verification
     if (error?.code === 'ECONNREFUSED' || error?.code === 'ETIMEDOUT') {
-      console.error('Verification service not available, falling back to local verification');
-      // Use fallback method
-      return fallbackVerification(request);
+      console.error(`[${reqId}] Verification service not available, falling back to local verification`);
+      try {
+        // Use fallback method
+        return await fallbackVerification(request);
+      } catch (fallbackError: any) {
+        console.error(`[${reqId}] Fallback verification also failed:`, fallbackError);
+        return {
+          success: false,
+          confidence: 0,
+          message: 'Both verification services failed',
+          error_code: 'FALLBACK_FAILED',
+          error: fallbackError?.message || 'Unknown fallback error',
+          debug_session: reqId,
+          // Include both errors for debugging
+          errors: {
+            primary: error?.message || 'Unknown primary error',
+            fallback: fallbackError?.message || 'Unknown fallback error'
+          }
+        };
+      }
     }
     
     // If service returned an error response
     if (error?.response) {
       const errorData = error.response.data;
+      const statusCode = error.response.status;
+      
+      // Format error response based on status code
+      if (statusCode === 400) {
+        return {
+          success: false,
+          confidence: 0,
+          message: 'Invalid verification request',
+          error_code: 'BAD_REQUEST',
+          error: errorData?.message || 'Bad request parameters',
+          debug_session: reqId,
+          details: errorData
+        };
+      } else if (statusCode === 401 || statusCode === 403) {
+        return {
+          success: false,
+          confidence: 0,
+          message: 'Authentication required for verification',
+          error_code: 'AUTH_ERROR',
+          error: errorData?.message || 'Authentication error',
+          debug_session: reqId
+        };
+      } else if (statusCode >= 500) {
+        return {
+          success: false,
+          confidence: 0,
+          message: 'Verification service internal error',
+          error_code: 'SERVICE_ERROR',
+          error: errorData?.message || 'Service error',
+          debug_session: reqId,
+          details: errorData
+        };
+      }
+      
+      // Default error response for other status codes
       return {
         success: false,
         confidence: 0,
         message: errorData?.message || 'Verification service error',
+        error_code: `HTTP_${statusCode}`,
         error: JSON.stringify(errorData),
-        debug_session: request.requestId || `error-${Date.now()}`
+        debug_session: reqId
+      };
+    }
+    
+    // Check for specific error types
+    if (error instanceof TypeError) {
+      return {
+        success: false,
+        confidence: 0,
+        message: 'Type error in verification service',
+        error_code: 'TYPE_ERROR',
+        error: error.message,
+        debug_session: reqId
+      };
+    }
+    
+    if (error instanceof SyntaxError) {
+      return {
+        success: false,
+        confidence: 0,
+        message: 'Invalid response from verification service',
+        error_code: 'SYNTAX_ERROR',
+        error: 'The service returned an invalid response format',
+        debug_session: reqId,
+        details: error.message
       };
     }
     
@@ -199,8 +279,10 @@ export async function verifyFace(request: FaceVerificationRequest): Promise<Face
       success: false,
       confidence: 0,
       message: `Verification error: ${error?.message || 'Unknown error'}`,
+      error_code: 'UNKNOWN_ERROR',
       error: error?.message || 'Unknown error',
-      debug_session: request.requestId || `error-${Date.now()}`
+      debug_session: reqId,
+      timestamp: new Date().toISOString()
     };
   }
 }
