@@ -68,16 +68,21 @@ export function useNativeBiometric() {
         }
       }
       
-      // Record verification with blockchain
-      const result = await apiRequest('/api/verification/device-biometric', {
+      // Record verification with blockchain using fetch directly to avoid TypeScript errors
+      const response = await fetch('/api/verification/device-biometric', {
         method: 'POST',
-        data: {
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
           userId,
           biometricResult: true,
           biometricType: isMobilePlatform() ? 'face-id' : 'fingerprint',
           timestamp: new Date().toISOString()
-        }
+        })
       });
+      
+      const result = await response.json();
       
       if (result?.success) {
         toast({

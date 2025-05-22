@@ -175,11 +175,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Login function
   const login = async (username: string, password: string) => {
     try {
-      await loginMutation.mutateAsync({ username, password });
+      const response = await loginMutation.mutateAsync({ username, password });
+      
+      // Ensure user data is updated in the cache
+      if (response && response.user) {
+        queryClient.setQueryData(['/api/auth/me'], response.user);
+        
+        // Force a refetch to confirm we have the latest data
+        setTimeout(() => {
+          refetchUser();
+        }, 100);
+      }
+      
       toast({
         title: 'Login successful',
         description: 'Welcome back to Heirloom!'
       });
+      
+      // Return the response so the login component can handle redirection
+      return response;
     } catch (error) {
       console.error('Login error:', error);
       toast({
