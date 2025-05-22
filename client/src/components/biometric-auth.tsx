@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 // Importing WebAuthn utilities
 import { startRegistration, startAuthentication } from '../lib/webauthn';
 import { useToast } from "@/hooks/use-toast";
+import { useNativeBiometric } from '@/hooks/use-native-biometric';
 
 interface BiometricAuthProps {
   userId: string;
@@ -26,34 +27,48 @@ export function BiometricAuth({
   const [isProcessing, setIsProcessing] = useState(false);
   const [status, setStatus] = useState<string>('');
   const { toast } = useToast();
+  const { isSupported, checkBiometricSupport, authenticateWithBiometrics } = useNativeBiometric();
 
   useEffect(() => {
-    // Check if WebAuthn is supported
-    if (!window.PublicKeyCredential) {
-      setStatus('biometrics-unsupported');
-      onError('Your device does not support biometric authentication');
-      return;
-    }
+    // Check if any biometric methods are supported
+    const checkSupport = async () => {
+      // First check native biometric support
+      const nativeSupported = await checkBiometricSupport();
+      
+      if (nativeSupported) {
+        setStatus('ready');
+        return;
+      }
+      
+      // Fallback to WebAuthn check
+      if (!window.PublicKeyCredential) {
+        setStatus('biometrics-unsupported');
+        onError('Your device does not support biometric authentication');
+        return;
+      }
 
-    // Check if biometrics are available on this device
-    if (
-      window.PublicKeyCredential &&
-      typeof window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function'
-    ) {
-      window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().then(
-        (available) => {
-          if (!available) {
-            setStatus('biometrics-unavailable');
-            onError('Biometric authentication is not available on this device');
-          } else {
-            setStatus('ready');
+      // Check if WebAuthn biometrics are available
+      if (
+        window.PublicKeyCredential &&
+        typeof window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function'
+      ) {
+        window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().then(
+          (available) => {
+            if (!available) {
+              setStatus('biometrics-unavailable');
+              onError('Biometric authentication is not available on this device');
+            } else {
+              setStatus('ready');
+            }
           }
-        }
-      );
-    } else {
-      setStatus('ready');
-    }
-  }, [onError]);
+        );
+      } else {
+        setStatus('ready');
+      }
+    };
+    
+    checkSupport();
+  }, [onError, checkBiometricSupport]);
 
   const handleRegister = async () => {
     setIsProcessing(true);
@@ -98,6 +113,25 @@ export function BiometricAuth({
     setStatus('processing');
     
     try {
+      // First try using native device biometrics if supported
+      if (isSupported) {
+        console.log("Using native biometric authentication");
+        const nativeResult = await authenticateWithBiometrics(userId);
+        
+        if (nativeResult.success) {
+          setStatus('success');
+          toast({
+            title: "Authentication Successful",
+            description: "Your identity has been verified with device biometrics",
+            variant: "default"
+          });
+          onSuccess(nativeResult);
+          return;
+        }
+      }
+      
+      // Fallback to WebAuthn
+      console.log("Falling back to WebAuthn authentication");
       const result = await startAuthentication(userId);
       
       if (result.success) {

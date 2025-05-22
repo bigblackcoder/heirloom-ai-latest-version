@@ -90,26 +90,29 @@ export default function AppleFaceScanner({ onProgress, onComplete, isComplete }:
           } 
         };
         
+        console.log('Requesting camera permission...');
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
         
         // Permission granted
         setHasPermission(true);
         console.log('Camera permission granted successfully');
         
-        // Clean up the stream
-        stream.getTracks().forEach(track => track.stop());
+        // Keep the stream active for a moment to ensure camera initialization
+        setTimeout(() => {
+          // Clean up the stream after a short delay
+          stream.getTracks().forEach(track => track.stop());
+        }, 1000);
       } catch (err) {
         // Permission denied or other error
         console.error('Camera permission denied or error:', err);
         setHasPermission(false);
         
-        // Show more user-friendly error in development
-        if (process.env.NODE_ENV === 'development') {
-          alert('Camera access is required for face verification. Please allow camera access and try again.');
-        }
+        // Show more user-friendly error
+        alert('Camera access is required for face verification. Please allow camera access and try again.');
       }
     };
     
+    // Immediately request camera permission
     checkPermission();
   }, []);
 
