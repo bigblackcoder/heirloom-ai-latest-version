@@ -33,9 +33,16 @@ export default function Login() {
   // Handle form submission
   const onSubmit = async (data: LoginFormValues) => {
     try {
-      await login(data.username, data.password);
-      // Navigate to dashboard after successful login
-      navigate("/dashboard");
+      const response = await login(data.username, data.password);
+      
+      // Use a short timeout to allow authentication state to update
+      setTimeout(() => {
+        // Navigate to dashboard after successful login
+        console.log("Login successful, redirecting to dashboard");
+        navigate("/dashboard");
+      }, 300);
+      
+      return response;
     } catch (error) {
       // Error is handled by the login function
       console.error("Login submission error:", error);

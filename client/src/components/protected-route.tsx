@@ -16,14 +16,25 @@ export function ProtectedRoute({
   const [location, navigate] = useLocation();
 
   useEffect(() => {
-    // Check if the user is loaded (not loading) and not authenticated
-    if (!isLoading && !isAuthenticated) {
-      navigate('/login');
-    }
+    console.log("Protected route auth state:", { isLoading, isAuthenticated, userVerified: user?.isVerified });
     
-    // If verification is required, check if the user is verified
-    if (requireVerification && !isLoading && isAuthenticated && !user?.isVerified) {
-      navigate('/verification');
+    // Only check after we've tried to load the user
+    if (!isLoading) {
+      // Not authenticated - redirect to login
+      if (!isAuthenticated) {
+        console.log("User not authenticated, redirecting to login");
+        navigate('/login');
+        return;
+      }
+      
+      // Authentication required but user not verified
+      if (requireVerification && !user?.isVerified) {
+        console.log("User not verified, redirecting to verification");
+        navigate('/verification');
+        return;
+      }
+      
+      console.log("User authenticated and verified (if required)");
     }
   }, [isLoading, isAuthenticated, user, navigate, requireVerification]);
 

@@ -331,13 +331,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
     registerBiometricMutation.isPending || 
     authenticateBiometricMutation.isPending;
   
+  // Cast user to User | null to fix TypeScript error
+  const safeUser: User | null = user === undefined ? null : user;
+  
   // Provide auth context
   return (
     <AuthContext.Provider
       value={{
-        user,
+        user: safeUser,
         isLoading,
-        isAuthenticated: !!user,
+        isAuthenticated: !!safeUser,
         login,
         logout,
         signup,
