@@ -6,6 +6,9 @@ import { storage } from '../storage';
  */
 export const requireAuth = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    // Set content type to JSON explicitly
+    res.setHeader('Content-Type', 'application/json');
+    
     // Check if user session exists
     if (!req.session || !req.session.userId) {
       console.log('Auth middleware: No session or userId found');
@@ -31,6 +34,9 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
       });
     }
 
+    // Attach user to request object for later use
+    (req as any).user = user;
+    
     console.log(`Auth middleware: User authenticated: ${user.username}`);
     // Proceed to next middleware/route handler
     next();

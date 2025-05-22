@@ -155,6 +155,118 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+// Login route
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+
+    // Set content type to JSON explicitly
+    res.setHeader('Content-Type', 'application/json');
+
+    if (!username || !password) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Username and password are required' 
+      });
+    }
+
+    // Get user from database
+    const user = await storage.getUserByUsername(username);
+
+    if (!user) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Invalid username or password' 
+      });
+    }
+
+    // Check password
+    const passwordMatches = await storage.verifyPassword(user.id, password);
+
+    if (!passwordMatches) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Invalid username or password' 
+      });
+    }
+
+    // Set session
+    req.session.userId = user.id;
+    req.session.isAuthenticated = true;
+
+    // Return user data (excluding sensitive information)
+    return res.status(200).json({
+      success: true,
+      message: 'Login successful',
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        isVerified: user.isVerified,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+        memberSince: user.createdAt
+      }
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    return res.status(500).json({ 
+      success: false, 
+      message: 'Server error during login' 
+    });
+  }
+});
+
+// Get current user
+app.get('/api/auth/me', async (req, res) => {
+  try {
+    // Set content type to JSON explicitly
+    res.setHeader('Content-Type', 'application/json');
+
+    if (!req.session || !req.session.userId) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Not authenticated' 
+      });
+    }
+
+    const user = await storage.getUser(req.session.userId);
+
+    if (!user) {
+      // Invalid session, clear it
+      req.session.destroy(err => {
+        if (err) console.error('Error destroying session:', err);
+      });
+
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Invalid session' 
+      });
+    }
+
+    // Return user data (excluding password)
+    return res.json({
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      isVerified: user.isVerified,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+      memberSince: user.createdAt // Add memberSince for UI
+    });
+  } catch (error) {
+    console.error('Error fetching current user:', error);
+    return res.status(500).json({ 
+      success: false, 
+      message: 'Server error fetching user data' 
+    });
+  }
+});
+
   // Create an HTTP server
   const httpServer = createServer(app);
 
