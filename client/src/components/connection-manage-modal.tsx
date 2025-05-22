@@ -72,9 +72,10 @@ export default function ConnectionManageModal({
     }
   });
   
-  // Get active and inactive connections
-  const activeConnections = connections.filter(c => c.isActive);
-  const inactiveConnections = connections.filter(c => !c.isActive);
+  // Get active and inactive connections - make sure connections is an array
+  const connectionsArray = Array.isArray(connections) ? connections : [];
+  const activeConnections = connectionsArray.filter(c => c.isActive);
+  const inactiveConnections = connectionsArray.filter(c => !c.isActive);
   
   // Format date for display
   const formatDate = (dateString: string) => {
