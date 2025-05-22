@@ -176,10 +176,14 @@ export default function Dashboard() {
 
   // Calculate stats for the identity capsule card
   const getStats = () => {
+    // Ensure connections is an array before using filter
+    const connectionsArray = Array.isArray(connections) ? connections : [];
+    const capsuleArray = Array.isArray(capsules) ? capsules : [];
+    
     return {
-      llms: connections ? connections.filter((c: Connection) => c.isActive).length : 0,
-      agents: connections ? Math.floor(connections.length / 2) : 0, // Calculate from connections
-      verifiedAssets: capsules ? capsules.length : 0 // Use capsules count instead of hardcoded value
+      llms: connectionsArray.filter((c: Connection) => c.isActive).length,
+      agents: Math.floor(connectionsArray.length / 2), // Calculate from connections
+      verifiedAssets: capsuleArray.length // Use capsules count instead of hardcoded value
     };
   };
 
