@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Camera Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .camera-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            background-color: #f9f9f9;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #capturedImage {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+    <h1>Camera Capture Test</h1>
+    <p>This test verifies that the camera capture functionality works as implemented in the verification page.</p>
+    
+    <div class="camera-container">
+        <button id="captureBtn">Capture Photo</button>
+        <button id="testDeepfaceBtn">Test DeepFace with Sample</button>
+    </div>
+    
+    <div class="result" id="result" style="display: none;">
+        <h3>Result:</h3>
+        <p id="resultText"></p>
+        <img id="capturedImage" style="display: none;" />
+    </div>
+
+    <script>
+        const captureBtn = document.getElementById('captureBtn');
+        const testDeepfaceBtn = document.getElementById('testDeepfaceBtn');
+        const result = document.getElementById('result');
+        const resultText = document.getElementById('resultText');
+        const capturedImage = document.getElementById('capturedImage');
+
+        captureBtn.addEventListener('click', async () => {
+            try {
+                resultText.textContent = 'Requesting camera access...';
+                result.style.display = 'block';
+                
+                // This is the same code we implemented in the verification page
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                const video = document.createElement('video');
+                video.srcObject = stream;
+                video.play();
+                
+                resultText.textContent = 'Camera accessed, capturing frame...';
+                
+                // Wait for video to be ready
+                await new Promise(resolve => {
+                    video.onloadedmetadata = resolve;
+                });
+                
+                // Create canvas and capture frame
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0);
+                
+                // Stop the camera stream
+                stream.getTracks().forEach(track => track.stop());
+                
+                // Get base64 image data
+                const imageData = canvas.toDataURL('image/jpeg', 0.8);
+                
+                resultText.textContent = `Success! Captured image (${imageData.length} chars). Image size: ${canvas.width}x${canvas.height}`;
+                capturedImage.src = imageData;
+                capturedImage.style.display = 'block';
+                
+            } catch (error) {
+                resultText.textContent = `Error: ${error.message}`;
+                console.error('Camera capture error:', error);
+            }
+        });
+
+        testDeepfaceBtn.addEventListener('click', async () => {
+            try {
+                resultText.textContent = 'Testing Python service connection...';
+                result.style.display = 'block';
+                
+                // Test with a simple request to the Python service
+                const response = await fetch('http://localhost:8000/health');
+                
+                if (response.ok) {
+                    resultText.textContent = 'Python service is accessible!';
+                } else {
+                    resultText.textContent = `Python service returned status: ${response.status}`;
+                }
+                
+            } catch (error) {
+                resultText.textContent = `Python service connection failed: ${error.message}`;
+                console.error('Python service test error:', error);
+            }
+        });
+    </script>
+</body>
+</html>

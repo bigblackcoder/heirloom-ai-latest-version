@@ -21,6 +21,10 @@ export async function apiRequest({ url, method = 'GET', body }: {
   method?: string;
   body?: any;
 }) {
+  // For development, directly connect to server instead of using Vite proxy
+  const baseUrl = process.env.NODE_ENV === 'development' ? 'http://localhost:5001' : '';
+  const fullUrl = baseUrl + url;
+  
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
   };
@@ -36,7 +40,7 @@ export async function apiRequest({ url, method = 'GET', body }: {
   }
   
   try {
-    const response = await defaultFetchFunction(url, options);
+    const response = await defaultFetchFunction(fullUrl, options);
     
     // Check for redirects (especially for login/logout)
     if (response.redirected) {
@@ -52,7 +56,8 @@ export async function apiRequest({ url, method = 'GET', body }: {
     
     return await response.text();
   } catch (error) {
-    console.error(`API request failed for ${url}:`, error);
+    console.error(`API request failed for ${fullUrl}:`, error);
+    console.error('Request details:', { url, method, body, fullUrl });
     throw error;
   }
 }
@@ -65,7 +70,11 @@ export const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
       queryFn: async ({ queryKey }) => {
         if (typeof queryKey[0] === 'string') {
-          const response = await defaultFetchFunction(queryKey[0] as string, {
+          // For development, directly connect to server instead of using Vite proxy
+          const baseUrl = process.env.NODE_ENV === 'development' ? 'http://localhost:5001' : '';
+          const fullUrl = baseUrl + queryKey[0];
+          
+          const response = await defaultFetchFunction(fullUrl, {
             credentials: 'include'
           });
           

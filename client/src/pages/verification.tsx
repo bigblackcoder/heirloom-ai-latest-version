@@ -11,6 +11,7 @@ import { BiometricAuth } from "@/components/biometric-auth";
 import SuccessModal from "@/components/success-modal";
 import RealTimeClock from "@/components/real-time-clock";
 import { ShieldCheck, Monitor, Fingerprint } from "lucide-react";
+import { SecurityIndicators } from "@/components/ui/security-indicators";
 
 export default function Verification() {
   const [_, navigate] = useLocation();
@@ -277,21 +278,11 @@ export default function Verification() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-[#143404] to-[#1e3c0d] text-white">
-      {/* Status bar area - iOS style */}
+      {/* Status bar area with Security Indicators */}
       <div className="w-full px-4 pt-6 pb-2 flex items-center">
         <RealTimeClock />
         <div className="flex-1"></div>
-        <div className="flex items-center gap-1">
-          <svg className="w-4 h-4 opacity-70" viewBox="0 0 24 24" fill="none">
-            <path d="M1.5 6.5C1.5 4 3.5 2 6 2 8.5 2 10.5 4 10.5 6.5v11C10.5 20 8.5 22 6 22 3.5 22 1.5 20 1.5 17.5v-11Z" stroke="currentColor" strokeWidth="1.5"/>
-            <path d="M10.5 6c0-2.5 2-4.5 4.5-4.5s4.5 2 4.5 4.5v11c0 2.5-2 4.5-4.5 4.5S10.5 19.5 10.5 17V6Z" stroke="currentColor" strokeWidth="1.5"/>
-            <path d="M19.5 7a2.5 2.5 0 0 1 5 0v10a2.5 2.5 0 0 1-5 0V7Z" stroke="currentColor" strokeWidth="1.5"/>
-          </svg>
-          <svg className="w-4 h-4 opacity-70" viewBox="0 0 24 24" fill="none">
-            <path d="M3 7c0-1.1.9-2 2-2h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" stroke="currentColor" strokeWidth="1.5"/>
-            <path d="M21 16h2v-8h-2M1 16h2V8H1" stroke="currentColor" strokeWidth="1.5"/>
-          </svg>
-        </div>
+        <SecurityIndicators variant="compact" className="bg-[#2a5414]/30 backdrop-blur-sm rounded-full px-3 py-1.5 border border-[#3d7520]/40" />
       </div>
 
       {/* Header */}
@@ -454,51 +445,70 @@ export default function Verification() {
               {/* Take Photo Button */}
               {verificationProgress < 10 && (
                 <button 
-                  onClick={() => {
+                  onClick={async () => {
                     // Step 1: Start progress indicator to show activity
                     setVerificationProgress(10);
                     
-                    // Add encrypted session token to verification request
-                    const sessionToken = localStorage.getItem('sessionToken') || sessionStorage.getItem('sessionToken');
-                    
-                    // Step 2: Call the server with enhanced security
-                    fetch('/api/verification/face/basic', {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': sessionToken ? `Bearer ${sessionToken}` : '',
-                        'X-Security-Context': 'heirloom-identity-verification'
-                      },
-                      body: JSON.stringify({
-                        // Use the test sample data for reliable verification
-                        useTestData: true,
-                        saveToDb: true,
-                        // Get userId from session if available
-                        userId: localStorage.getItem('userId') || null,
-                        // Add timestamp for replay attack prevention
-                        timestamp: new Date().toISOString(),
-                        // Include verification purpose for audit trail
-                        purpose: 'identity_verification'
-                      }),
-                    })
-                    .then(response => {
+                    try {
+                      // Capture image from camera using getUserMedia
+                      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                      const video = document.createElement('video');
+                      video.srcObject = stream;
+                      video.play();
+                      
+                      // Wait for video to be ready
+                      await new Promise(resolve => {
+                        video.onloadedmetadata = resolve;
+                      });
+                      
+                      // Create canvas and capture frame
+                      const canvas = document.createElement('canvas');
+                      canvas.width = video.videoWidth;
+                      canvas.height = video.videoHeight;
+                      const ctx = canvas.getContext('2d');
+                      ctx?.drawImage(video, 0, 0);
+                      
+                      // Stop the camera stream
+                      stream.getTracks().forEach(track => track.stop());
+                      
+                      // Get base64 image data
+                      const imageData = canvas.toDataURL('image/jpeg', 0.8);
+                      
+                      // Add encrypted session token to verification request
+                      const sessionToken = localStorage.getItem('sessionToken') || sessionStorage.getItem('sessionToken');
+                      
+                      // Step 2: Call the Python verification service with real image data
+                      const response = await fetch('/api/verification/face/python', {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          'Authorization': sessionToken ? `Bearer ${sessionToken}` : '',
+                          'X-Security-Context': 'heirloom-identity-verification'
+                        },
+                        body: JSON.stringify({
+                          // Send captured image data from camera
+                          imageData,
+                          saveToDb: true,
+                          // Get userId from session if available
+                          userId: localStorage.getItem('userId') || null,
+                          // Add timestamp for replay attack prevention
+                          timestamp: new Date().toISOString(),
+                          // Include verification purpose for audit trail
+                          purpose: 'identity_verification'
+                        }),
+                      });
+                      
                       if (!response.ok) {
                         // Check if response is HTML (error page)
                         const contentType = response.headers.get('content-type');
                         if (contentType && contentType.includes('text/html')) {
                           console.error('Server returned HTML instead of JSON');
-                          // Return a formatted error response instead of throwing
-                          return {
-                            success: false,
-                            message: `Server error: ${response.status}`,
-                            confidence: 0
-                          };
+                          throw new Error(`Server error: ${response.status}`);
                         }
                         throw new Error(`Verification failed: ${response.status}`);
                       }
-                      return response.json();
-                    })
-                    .then(data => {
+                      
+                      const data = await response.json();
                       console.log('Verification successful');
                       
                       // Store verification status in secure session
@@ -528,16 +538,15 @@ export default function Verification() {
                         
                         if (progress >= 100) {
                           clearInterval(interval);
-                          handleVerificationComplete();
+                          handleVerificationComplete(imageData);
                         }
                       }, 300);
-                    })
-                    .catch(error => {
+                    } catch (error) {
                       console.error('Error during verification:', error);
                       // Reset progress and show error state
                       setVerificationProgress(0);
                       // Could add error display here
-                    });
+                    }
                   }}
                   className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 bg-[#2a5414] text-white px-6 py-3 rounded-full flex items-center justify-center shadow-lg hover:bg-[#3d7520] transition-colors"
                 >

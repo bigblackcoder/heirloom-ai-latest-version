@@ -17,6 +17,20 @@ import sys
 import traceback
 from datetime import datetime
 
+# Import face embedding functions
+try:
+    from face_embeddings import (
+        extract_face_embedding, 
+        verify_face_with_embeddings, 
+        get_available_models,
+        DEEPFACE_AVAILABLE as EMBEDDINGS_AVAILABLE
+    )
+    EMBEDDINGS_AVAILABLE = True
+    logger.info("Face embeddings module loaded successfully!")
+except ImportError:
+    logger.warning("Face embeddings module not available")
+    EMBEDDINGS_AVAILABLE = False
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -362,6 +376,15 @@ def read_root():
         "deepface_available": DEEPFACE_AVAILABLE
     }
 
+@app.get("/health")
+def health_check():
+    return {
+        "status": "healthy",
+        "service": "Face Verification API",
+        "deepface_available": DEEPFACE_AVAILABLE,
+        "version": "1.0.0"
+    }
+
 @app.get("/api/verification/status")
 def verification_status():
     return {
@@ -376,13 +399,14 @@ async def verify_face_image(
     request: Dict[str, Any]
 ):
     """
-    Verify a face from a base64 encoded image
+    Verify a face from a base64 encoded image using embeddings for better accuracy
     """
     try:
         image_data = request.get("image")
         user_id = request.get("userId")
         save_to_db = request.get("saveToDb", False)
         use_basic = request.get("useBasicDetection", False)
+        use_embeddings = request.get("useEmbeddings", True)
         request_id = request.get("requestId")
         
         if not image_data:
@@ -390,9 +414,27 @@ async def verify_face_image(
         
         # Log request with ID for debugging
         log_prefix = f"[{request_id}] " if request_id else ""
-        logger.info(f"{log_prefix}Face verification request received")
+        logger.info(f"{log_prefix}Face verification request received - embeddings: {use_embeddings}, basic: {use_basic}")
         
-        if use_basic or not DEEPFACE_AVAILABLE:
+        # Choose verification method based on capabilities and request
+        if use_embeddings and EMBEDDINGS_AVAILABLE and user_id:
+            logger.info(f"{log_prefix}Using embedding-based face verification")
+            
+            # Load stored embeddings for this user (placeholder for now)
+            stored_embeddings = []  # TODO: Load from database
+            
+            result = verify_face_with_embeddings(image_data, stored_embeddings)
+            
+            # If this is a new face and we should save it, extract and store the embedding
+            if save_to_db and result.get("success") and not result.get("matched"):
+                embedding = extract_face_embedding(image_data)
+                if embedding is not None:
+                    face_id = save_face_to_db(image_data, user_id)
+                    result["face_id"] = face_id
+                    result["embedding_saved"] = True
+                    logger.info(f"{log_prefix}Saved new face embedding for user {user_id}")
+                    
+        elif use_basic or not DEEPFACE_AVAILABLE:
             logger.info(f"{log_prefix}Using basic face detection")
             result = detect_faces_basic(image_data)
         else:
@@ -543,4 +585,4 @@ async def delete_face(user_id: str, face_id: str):
 # For testing/development only
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="127.0.0.1", port=8000, log_level="info")

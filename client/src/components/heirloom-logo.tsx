@@ -1,7 +1,7 @@
 import React from 'react';
 import { cn } from '../lib/utils';
-// Import directly from the asset path
-import HeirloomLogoImage from '../assets/images/logo-heirloom.png';
+// Use public asset path for better reliability
+// import HeirloomLogoImage from '../assets/images/logo-heirloom.png';
 
 interface HeirloomLogoProps {
   className?: string;
@@ -21,7 +21,7 @@ export function HeirloomLogo({
     <div className={cn("flex items-center", className)}>
       <div className="relative flex items-center justify-center w-full h-full">
         <img 
-          src={HeirloomLogoImage} 
+          src="/images/logo-heirloom.png" 
           alt="Heirloom Logo" 
           className="w-full h-full object-contain"
         />

@@ -7,7 +7,6 @@ import axios, { AxiosResponse } from 'axios';
 import { spawn, ChildProcess } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
-import { Blob } from 'buffer';
 
 // Interface for the verification request
 export interface FaceVerificationRequest {
@@ -35,10 +34,16 @@ export interface FaceVerificationResult {
   };
   details?: string;
   error?: string;
+  error_code?: string;
+  errors?: {
+    primary: string;
+    fallback: string;
+  };
+  timestamp?: string;
 }
 
 // Configuration for the verification service
-const VERIFICATION_SERVICE_URL = process.env.VERIFICATION_SERVICE_URL || 'http://localhost:8000';
+const VERIFICATION_SERVICE_URL = process.env.VERIFICATION_SERVICE_URL || 'http://127.0.0.1:8000';
 const VERIFICATION_PROCESS_TIMEOUT = 30000; // 30 seconds
 let verificationProcess: ChildProcess | null = null;
 
@@ -54,6 +59,26 @@ export async function startVerificationService(): Promise<void> {
       resolve();
       return;
     }
+    
+    // In development, try to connect to existing service first
+    if (process.env.NODE_ENV !== 'production') {
+      const checkUrl = 'http://127.0.0.1:8000/api/verification/status';
+      console.log(`Checking for existing service at ${checkUrl}`);
+      axios.get(checkUrl, { timeout: 2000 })
+        .then((response) => {
+          console.log('Found existing verification service running:', response.data);
+          resolve();
+          return;
+        })
+        .catch((error) => {
+          console.log('No existing verification service found:', error.message);
+          startNewService();
+        });
+    } else {
+      startNewService();
+    }
+    
+    function startNewService() {
 
     console.log('Starting Python-based face verification service...');
     
@@ -69,8 +94,9 @@ export async function startVerificationService(): Promise<void> {
     // Start the service
     verificationProcess = spawn(scriptPath, [], {
       stdio: 'inherit',
-      shell: false,
+      shell: true,
       env: { ...process.env },
+      cwd: path.join(process.cwd(), 'verification_service'),
     });
     
     // Handle process events
@@ -90,17 +116,17 @@ export async function startVerificationService(): Promise<void> {
       }
     });
     
-    // Wait for the service to start
+    // Wait for the service to start with improved timing
     let retries = 0;
-    const maxRetries = process.env.NODE_ENV === 'production' ? 30 : 10; // More retries in production
-    const checkInterval = process.env.NODE_ENV === 'production' ? 2000 : 1000; // Longer interval in production
+    const maxRetries = 15; // Reduced retries since service starts faster
+    const checkInterval = 1000; // Faster checks
     
     const checkServiceStatus = async () => {
       try {
         const response = await axios.get(`${VERIFICATION_SERVICE_URL}/api/verification/status`, {
-          timeout: 5000 // 5 second timeout for the request
+          timeout: 3000 // Shorter timeout for quicker failure detection
         });
-        if (response.status === 200) {
+        if (response.status === 200 && response.data?.status) {
           console.log('Verification service started successfully');
           resolve();
           return;
@@ -109,25 +135,21 @@ export async function startVerificationService(): Promise<void> {
         // Service not ready yet
         if (retries < maxRetries) {
           retries++;
-          console.log(`Verification service not ready yet, retrying (${retries}/${maxRetries})...`);
+          if (retries % 3 === 0) { // Only log every 3rd attempt to reduce noise
+            console.log(`Verification service not ready yet, retrying (${retries}/${maxRetries})...`);
+          }
           setTimeout(checkServiceStatus, checkInterval);
         } else {
-          const err = new Error(`Verification service failed to start within timeout period after ${maxRetries} attempts`);
-          console.error(err);
-          
-          // In production, resolve anyway to prevent blocking app startup
-          if (process.env.NODE_ENV === 'production') {
-            console.warn('Continuing application startup without verification service in production');
-            resolve();
-          } else {
-            reject(err);
-          }
+          console.warn(`Verification service failed to start after ${maxRetries} attempts. Continuing without verification service.`);
+          // Always resolve to prevent blocking the main application
+          resolve();
         }
       }
     };
     
-    // Give the service a moment to start, then check status
+    // Start checking status immediately after process starts
     setTimeout(checkServiceStatus, 2000);
+    }
   });
 }
 
@@ -148,6 +170,20 @@ export function stopVerificationService(): void {
  * @returns Promise with verification result
  */
 export async function verifyFace(request: FaceVerificationRequest): Promise<FaceVerificationResult> {
+  // First check if we can reach the verification service
+  try {
+    const healthCheck = await axios.get(`${VERIFICATION_SERVICE_URL}/api/verification/status`, {
+      timeout: 2000
+    });
+    
+    if (healthCheck.status !== 200) {
+      throw new Error('Verification service not available');
+    }
+  } catch (healthError) {
+    console.warn('Verification service not available, falling back to basic detection');
+    return await fallbackVerification(request);
+  }
+
   try {
     // Try to reach the verification service
     const serviceUrl = `${VERIFICATION_SERVICE_URL}/api/verification/face`;
@@ -165,7 +201,7 @@ export async function verifyFace(request: FaceVerificationRequest): Promise<Face
     // Make request to the service
     const response: AxiosResponse = await axios.post(serviceUrl, requestBody, {
       headers: { 'Content-Type': 'application/json' },
-      timeout: VERIFICATION_PROCESS_TIMEOUT
+      timeout: 15000 // Shorter timeout for faster failure
     });
     
     // Process the response
@@ -341,9 +377,12 @@ export async function verifyVideo(
     // Read the file and convert to Buffer
     const fileBuffer = fs.readFileSync(videoFile);
     
-    // Create a Blob from the buffer and append to form
-    const blob = new Blob([fileBuffer]);
-    formData.append('file', blob, path.basename(videoFile));
+    // Use Uint8Array for better compatibility with FormData in Node.js
+    const uint8Array = new Uint8Array(fileBuffer);
+    const file = new File([uint8Array], path.basename(videoFile), {
+      type: 'video/webm'
+    });
+    formData.append('file', file);
     
     if (userId) {
       formData.append('user_id', userId.toString());
@@ -380,9 +419,10 @@ export async function verifyVideo(
 }
 
 // Start the verification service on module load
-startVerificationService().catch(error => {
-  console.error('Failed to start verification service:', error);
-});
+// Temporarily disabled for debugging auth issues
+// startVerificationService().catch(error => {
+//   console.error('Failed to start verification service:', error);
+// });
 
 // Handle process exit
 process.on('exit', () => {

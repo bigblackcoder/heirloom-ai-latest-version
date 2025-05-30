@@ -3,5 +3,5 @@
 cd "$(dirname "$0")"
 echo "Starting Face Verification Service..."
 
-# Use the correct Python executable (system Python or the one in the environment)
-python main.py
+# Use the virtual environment Python with all dependencies
+./venv_deepface/bin/python main.py

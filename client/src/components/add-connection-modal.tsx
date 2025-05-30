@@ -77,14 +77,12 @@ const aiServices = [
   }
 ];
 
-// Form schema
+// Form schema for OAuth consent
 const formSchema = z.object({
   serviceName: z.string().min(1, {
     message: "Service name is required"
   }),
-  connectionCode: z.string().min(6, {
-    message: "Connection code must be at least 6 characters"
-  }),
+  scopes: z.array(z.string()).optional(),
 });
 
 export default function AddConnectionModal({ isOpen, onClose }: AddConnectionModalProps) {
@@ -97,36 +95,35 @@ export default function AddConnectionModal({ isOpen, onClose }: AddConnectionMod
     resolver: zodResolver(formSchema),
     defaultValues: {
       serviceName: "",
-      connectionCode: "",
+      scopes: [],
     },
   });
   
-  // Mutation for adding a connection
-  const addConnectionMutation = useMutation({
-    mutationFn: (values: z.infer<typeof formSchema>) => {
+  // Mutation for initiating OAuth flow
+  const initiateOAuthMutation = useMutation({
+    mutationFn: async (values: z.infer<typeof formSchema>) => {
+      const serviceId = aiServices.find(s => s.name === values.serviceName)?.id;
+      if (!serviceId) {
+        throw new Error('Service not found');
+      }
+
       return apiRequest({
-        url: "/api/connections",
+        url: "/api/oauth/authorize",
         method: "POST",
         body: {
-          aiServiceName: values.serviceName,
-          connectionCode: values.connectionCode
+          serviceId,
+          scopes: values.scopes
         }
       });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/connections"] });
-      toast({
-        title: "Connection Added",
-        description: "You've successfully connected with the AI service.",
-      });
-      form.reset();
-      setSelectedService(null);
-      onClose();
+    onSuccess: (data) => {
+      // Redirect to OAuth provider
+      window.location.href = data.authUrl;
     },
     onError: (error) => {
       toast({
-        title: "Connection Failed",
-        description: "Failed to connect to the AI service. Please check your connection code and try again.",
+        title: "Authorization Failed",
+        description: "Failed to initiate OAuth flow. Please try again.",
         variant: "destructive"
       });
     }
@@ -134,7 +131,7 @@ export default function AddConnectionModal({ isOpen, onClose }: AddConnectionMod
   
   // Handle form submission
   const onSubmit = (values: z.infer<typeof formSchema>) => {
-    addConnectionMutation.mutate(values);
+    initiateOAuthMutation.mutate(values);
   };
   
   // Handle service selection
@@ -152,6 +149,37 @@ export default function AddConnectionModal({ isOpen, onClose }: AddConnectionMod
     if (!service) return "#333333";
     return service.color;
   };
+
+  // Get default scopes for a service
+  const getDefaultScopes = (serviceId: string) => {
+    const scopeMap = {
+      'claude': ['identity', 'conversations:read', 'conversations:write'],
+      'gpt': ['identity', 'chat:read', 'chat:write'],
+      'gemini': ['profile', 'gemini.conversations'],
+      'perplexity': ['identity', 'search:read'],
+      'mcp': ['identity', 'credential:read'],
+      'bing': ['identity', 'copilot:read', 'copilot:write']
+    };
+    return scopeMap[serviceId as keyof typeof scopeMap] || ['identity'];
+  };
+
+  // Get human-readable scope description
+  const getScopeDescription = (scope: string) => {
+    const descriptions = {
+      'identity': 'Access to your verified identity information',
+      'conversations:read': 'Read your conversation history',
+      'conversations:write': 'Create new conversations on your behalf',
+      'chat:read': 'Read your chat history',
+      'chat:write': 'Send messages on your behalf',
+      'profile': 'Access to your basic profile information',
+      'gemini.conversations': 'Access to Gemini conversations',
+      'search:read': 'Perform searches using your identity',
+      'credential:read': 'Access managed credentials',
+      'copilot:read': 'Read Copilot interactions',
+      'copilot:write': 'Create Copilot requests'
+    };
+    return descriptions[scope as keyof typeof descriptions] || scope;
+  };
   
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -159,10 +187,10 @@ export default function AddConnectionModal({ isOpen, onClose }: AddConnectionMod
         <DialogHeader>
           <DialogTitle className="flex items-center text-xl">
             <Shield className="w-5 h-5 mr-2 text-[#1e3c0d]" />
-            Add New AI Connection
+            Connect AI Service
           </DialogTitle>
           <DialogDescription>
-            Connect your identity to an AI service for secure verification.
+            Authorize an AI service to access your verified identity using OAuth 2.0.
           </DialogDescription>
         </DialogHeader>
         
@@ -222,36 +250,37 @@ export default function AddConnectionModal({ isOpen, onClose }: AddConnectionMod
               )}
             />
             
-            {/* Connection Code */}
+            {/* Permissions/Scopes */}
             {selectedService && (
-              <FormField
-                control={form.control}
-                name="connectionCode"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Connection Code</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="Enter the code from your AI service" 
-                        {...field} 
-                        className="font-mono"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                    <div className="text-xs text-muted-foreground mt-1.5">
-                      This code is provided by the AI service when requesting identity verification.
-                    </div>
-                  </FormItem>
-                )}
-              />
+              <div className="space-y-4">
+                <div className="text-sm font-medium">Permissions Requested</div>
+                <div className="text-xs text-gray-600">
+                  The AI service will have access to the following information:
+                </div>
+                
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <div className="space-y-2">
+                    {getDefaultScopes(selectedService).map((scope, index) => (
+                      <div key={index} className="flex items-center">
+                        <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                        <span className="text-sm">{getScopeDescription(scope)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                <div className="text-xs text-gray-500">
+                  You can revoke these permissions at any time from your dashboard.
+                </div>
+              </div>
             )}
             
-            <div className="p-3 bg-amber-50 rounded-lg text-sm text-amber-800">
+            <div className="p-3 bg-blue-50 rounded-lg text-sm text-blue-800">
               <p className="flex items-start">
                 <ShieldAlert className="w-4 h-4 mr-1.5 mt-0.5 flex-shrink-0" />
                 <span>
-                  Only connect to trusted AI services. Connections give services access to 
-                  your verified identity information.
+                  You'll be redirected to the AI service's authorization page. After granting permission, 
+                  you'll be redirected back to complete the connection.
                 </span>
               </p>
             </div>
@@ -267,9 +296,9 @@ export default function AddConnectionModal({ isOpen, onClose }: AddConnectionMod
               <Button 
                 type="submit"
                 className="bg-[#1e3c0d] hover:bg-[#273414]"
-                disabled={!selectedService || addConnectionMutation.isPending}
+                disabled={!selectedService || initiateOAuthMutation.isPending}
               >
-                {addConnectionMutation.isPending ? "Connecting..." : "Connect"}
+                {initiateOAuthMutation.isPending ? "Redirecting..." : "Authorize Connection"}
               </Button>
             </DialogFooter>
           </form>

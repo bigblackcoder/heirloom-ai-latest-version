@@ -48,12 +48,14 @@ export function useFaceVerification() {
       // Generate a unique identifier for this verification attempt
       const requestId = `verify_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
       
-      // Make API request to verify face
-      const response = await fetch('/api/verification/face', {
+      // Make API request to verify face (use direct server connection in development)
+      const baseUrl = process.env.NODE_ENV === 'development' ? 'http://localhost:5001' : '';
+      const response = await fetch(baseUrl + '/api/verification/face', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({
           image: base64Image,
           userId: userId,
@@ -209,24 +211,38 @@ export function useFaceVerification() {
     // Process the captured frame
     const processFrame = async () => {
       try {
-        // Only verify if progress is under 95%
-        if (progress < 95) {
-          const result = await verifyFace(imageData);
-          
-          // Store the verification result for debugging purposes
-          setVerificationResult(result);
-          
-          // If successful with high confidence, complete the process
-          if (result?.success && result?.confidence > 85) {
-            setProgress(99); // Almost complete
-            
-            // Show success toast
-            toast({
-              title: "Face Verified",
-              description: "Your face has been successfully verified.",
-              variant: "default",
-            });
+        // Verify the face regardless of progress
+        const result = await verifyFace(imageData);
+        
+        // Store the verification result for debugging purposes
+        setVerificationResult(result);
+        
+        // If successful with high confidence, complete the process
+        if (result?.success && result?.confidence > 85) {
+          // Clear the progress timer first
+          if (progressTimerRef.current) {
+            clearInterval(progressTimerRef.current);
+            progressTimerRef.current = null;
           }
+          
+          setProgress(100); // Complete!
+          
+          // Show success toast
+          toast({
+            title: "Face Verified",
+            description: "Your face has been successfully verified.",
+            variant: "default",
+          });
+        } else {
+          // If verification failed, show error and reset
+          console.log("Verification failed:", result);
+          setProgress(0);
+          
+          toast({
+            title: "Verification Failed",
+            description: result?.message || "Could not verify your face. Please try again.",
+            variant: "destructive",
+          });
         }
       } catch (err: any) {
         console.error("Error verifying frame:", err);

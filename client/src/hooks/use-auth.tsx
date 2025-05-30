@@ -22,7 +22,7 @@ type AuthContextType = {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (username: string, password: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<any>;
   logout: () => Promise<void>;
   signup: (username: string, email: string, password: string) => Promise<void>;
   registerBiometric: (userId: string, username?: string) => Promise<any>;
@@ -55,11 +55,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
     refetchOnWindowFocus: true,
     refetchInterval: 1000 * 60 * 30, // 30 minutes,
     select: (data): User | null => {
-      // Handle when the data is null or not a user
+      // Handle when the data is null or not a valid response
       if (!data || typeof data !== 'object') return null;
       
-      // Try to map the response to our User type
-      const userData = data as any;
+      // Handle the new response format with success/user structure
+      const response = data as any;
+      const userData = response.user || response; // Handle both new and old formats
+      
+      // If no user data, return null
+      if (!userData || !userData.id) return null;
+      
       return {
         id: userData.id,
         username: userData.username,
@@ -172,11 +177,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // Check for existing session on mount
     const checkAuth = async () => {
       try {
-        const response = await fetch('/api/auth/me');
+        // For development, directly connect to server instead of using Vite proxy
+        const baseUrl = process.env.NODE_ENV === 'development' ? 'http://localhost:5001' : '';
+        const response = await fetch(baseUrl + '/api/auth/me', {
+          credentials: 'include'
+        });
         if (response.ok) {
-          const userData = await response.json();
+          const responseData = await response.json();
+          // Handle both new and old response formats
+          const userData = responseData.user || responseData;
           if (userData && userData.id) {
-            queryClient.setQueryData(['/api/auth/me'], userData);
+            queryClient.setQueryData(['/api/auth/me'], responseData);
           }
         }
       } catch (error) {

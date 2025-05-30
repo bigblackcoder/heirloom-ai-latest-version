@@ -54,8 +54,8 @@ export default function ActiveConnections({ connections, isLoading }: ActiveConn
     }
   });
   
-  // Get active connections
-  const activeConnections = Array.isArray(connections) ? connections.filter(c => c.isActive) : [];
+  // Get active connections with extra safety checks
+  const activeConnections = Array.isArray(connections) ? connections.filter(c => c && c.isActive) : [];
   
   // Format date for display
   const formatDate = (dateString?: string) => {

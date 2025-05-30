@@ -5,18 +5,30 @@ import {
   aiConnections, type AiConnection, type InsertAiConnection,
   activities, type Activity, type InsertActivity,
   faceRecords, type FaceRecord, type InsertFaceRecord,
-  achievements, type Achievement, type InsertAchievement
+  achievements, type Achievement, type InsertAchievement,
+  emailVerifications, type EmailVerification, type InsertEmailVerification
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc } from "drizzle-orm";
+import bcrypt from "bcryptjs";
+import crypto from "crypto";
 
 // Interface for storage operations
 export interface IStorage {
   // User operations
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, updates: Partial<User>): Promise<User | undefined>;
+  hashPassword(password: string): Promise<string>;
+  verifyPassword(userId: number, password: string): Promise<boolean>;
+
+  // Email verification operations
+  createEmailVerification(verification: InsertEmailVerification): Promise<EmailVerification>;
+  getEmailVerification(token: string): Promise<EmailVerification | undefined>;
+  markEmailAsVerified(token: string): Promise<boolean>;
+  getUserByVerificationToken(token: string): Promise<User | undefined>;
 
   // Identity Capsule operations
   getCapsule(id: number): Promise<IdentityCapsule | undefined>;
@@ -63,18 +75,108 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
+  }
+
   async createUser(user: InsertUser): Promise<User> {
-    const [newUser] = await db.insert(users).values(user).returning();
+    // Hash password before storing
+    const hashedPassword = await this.hashPassword(user.password);
+    const now = Math.floor(Date.now() / 1000);
+    
+    // Only include non-null/non-undefined fields
+    const userData: any = {
+      username: user.username,
+      password: hashedPassword,
+      createdAt: now,
+      updatedAt: now
+    };
+    
+    // Only add optional fields if they exist
+    if (user.email) userData.email = user.email;
+    if (user.firstName) userData.firstName = user.firstName;
+    if (user.lastName) userData.lastName = user.lastName;
+    if (user.avatar) userData.avatar = user.avatar;
+    
+    console.log('Creating user with data:', JSON.stringify(userData, null, 2));
+    const [newUser] = await db.insert(users).values(userData).returning();
     return newUser;
   }
 
   async updateUser(id: number, updates: Partial<User>): Promise<User | undefined> {
     const [updatedUser] = await db
       .update(users)
-      .set({ ...updates, updatedAt: new Date() })
+      .set({ ...updates, updatedAt: Math.floor(Date.now() / 1000) })
       .where(eq(users.id, id))
       .returning();
     return updatedUser;
+  }
+
+  async hashPassword(password: string): Promise<string> {
+    const saltRounds = 12;
+    return await bcrypt.hash(password, saltRounds);
+  }
+
+  async verifyPassword(userId: number, password: string): Promise<boolean> {
+    const user = await this.getUser(userId);
+    if (!user) return false;
+    
+    return await bcrypt.compare(password, user.password);
+  }
+
+  // Email verification operations
+  async createEmailVerification(verification: InsertEmailVerification): Promise<EmailVerification> {
+    const now = Math.floor(Date.now() / 1000);
+    const [newVerification] = await db.insert(emailVerifications).values({
+      ...verification,
+      createdAt: now
+    }).returning();
+    return newVerification;
+  }
+
+  async getEmailVerification(token: string): Promise<EmailVerification | undefined> {
+    const [verification] = await db.select().from(emailVerifications).where(eq(emailVerifications.token, token));
+    return verification;
+  }
+
+  async markEmailAsVerified(token: string): Promise<boolean> {
+    try {
+      const verification = await this.getEmailVerification(token);
+      if (!verification || verification.isVerified || verification.expiresAt < Math.floor(Date.now() / 1000)) {
+        return false;
+      }
+
+      // Mark verification as complete
+      await db
+        .update(emailVerifications)
+        .set({ 
+          isVerified: true, 
+          verifiedAt: Math.floor(Date.now() / 1000) 
+        })
+        .where(eq(emailVerifications.token, token));
+
+      // Update user's email verification status
+      await db
+        .update(users)
+        .set({ 
+          isVerified: true,
+          email: verification.email 
+        })
+        .where(eq(users.id, verification.userId));
+
+      return true;
+    } catch (error) {
+      console.error('Error marking email as verified:', error);
+      return false;
+    }
+  }
+
+  async getUserByVerificationToken(token: string): Promise<User | undefined> {
+    const verification = await this.getEmailVerification(token);
+    if (!verification) return undefined;
+    
+    return await this.getUser(verification.userId);
   }
 
   // Identity Capsule operations
@@ -125,7 +227,7 @@ export class DatabaseStorage implements IStorage {
   async updateAiConnection(id: number, updates: Partial<AiConnection>): Promise<AiConnection | undefined> {
     const [updatedConnection] = await db
       .update(aiConnections)
-      .set({ ...updates, updatedAt: new Date() })
+      .set({ ...updates, updatedAt: Math.floor(Date.now() / 1000) })
       .where(eq(aiConnections.id, id))
       .returning();
     return updatedConnection;

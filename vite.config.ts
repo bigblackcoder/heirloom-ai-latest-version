@@ -13,22 +13,6 @@ export default defineConfig({
     react(),
     runtimeErrorOverlay(),
     themePlugin(),
-    ...(process.env.NODE_ENV !== "production" &&
-    process.env.REPL_ID !== undefined
-      ? [
-          // Conditionally import cartographer in a way that doesn't use top-level await
-          // This will be processed at runtime rather than at module load time
-          {
-            name: 'conditional-cartographer',
-            async configResolved() {
-              if (process.env.NODE_ENV !== "production" && process.env.REPL_ID) {
-                const cartographer = await import("@replit/vite-plugin-cartographer");
-                return cartographer.cartographer();
-              }
-            }
-          }
-        ]
-      : []),
   ],
   resolve: {
     alias: {
@@ -37,6 +21,16 @@ export default defineConfig({
     },
   },
   root: path.resolve(__dirname, "client"),
+  publicDir: path.resolve(__dirname, "public"),
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5001',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
+  },
   build: {
     outDir: path.resolve(__dirname, "dist/client"),
     emptyOutDir: true,

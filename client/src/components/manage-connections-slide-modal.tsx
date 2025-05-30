@@ -44,7 +44,8 @@ export default function ManageConnectionsSlideModal({
   // Mutation to revoke a connection
   const revokeConnectionMutation = useMutation({
     mutationFn: (connectionId: number) => {
-      return apiRequest(`/api/connections/${connectionId}/revoke`, {
+      return apiRequest({
+        url: `/api/connections/${connectionId}/revoke`,
         method: "PATCH",
       });
     },
@@ -69,9 +70,9 @@ export default function ManageConnectionsSlideModal({
     },
   });
   
-  // Filter connections by active status
-  const activeConnections = connections.filter(conn => conn.isActive);
-  const inactiveConnections = connections.filter(conn => !conn.isActive);
+  // Filter connections by active status with safety checks
+  const activeConnections = Array.isArray(connections) ? connections.filter(conn => conn && conn.isActive) : [];
+  const inactiveConnections = Array.isArray(connections) ? connections.filter(conn => conn && !conn.isActive) : [];
   
   // Format date
   const formatDate = (dateString: string) => {

@@ -82,18 +82,14 @@ export const useNativeBiometrics = () => {
         throw new Error("Biometric authentication not supported on this device");
       }
       
-      // In a real implementation, this would use the Web Authentication API
-      // For demo purposes, we'll make an API call to simulate the authentication
-      
-      const response = await fetch('/verify_native', {
+      // Use the WebAuthn API for real biometric authentication
+      const response = await fetch('/api/webauthn/authentication/start', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          user_id: userId,
-          platform: platform,
-          auth_token: 'simulated_biometric_token'
+          userId: userId
         })
       });
       

@@ -117,11 +117,14 @@ export default function FaceScanner({ onProgress, onComplete, isComplete }: Face
   
   // Start detection when webcam is ready and permission is granted
   useEffect(() => {
-    if (hasPermission && webcamRef.current && webcamRef.current.video) {
-      const videoElement = webcamRef.current.video;
-      startDetection(videoElement);
+    if (hasPermission && webcamRef.current) {
+      // Capture initial frame for detection
+      const imageData = captureFrame();
+      if (imageData) {
+        startDetection(imageData);
+      }
     }
-  }, [hasPermission, startDetection]);
+  }, [hasPermission, startDetection, captureFrame]);
   
   // Update progress separately from the render cycle
   useEffect(() => {

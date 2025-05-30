@@ -1,39 +1,15 @@
 import session from 'express-session';
-import connectPgSimple from 'connect-pg-simple';
-import { pool } from './db';
 
-// Create a PostgreSQL session store
-const PgStore = connectPgSimple(session);
-
-// Generate a random session secret if none is provided
-const SESSION_SECRET = process.env.SESSION_SECRET || Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-
-// Configure session options
-export const sessionConfig = {
-  store: new PgStore({
-    pool,
-    tableName: 'sessions', // Uses the 'sessions' table from our schema
-    createTableIfMissing: false, // Table is already created by our schema
-  }),
-  name: 'heirloom.sid',
-  secret: SESSION_SECRET,
+// Use memory store for development with SQLite
+export const sessionMiddleware = session({
+  secret: process.env.SESSION_SECRET || 'dev-session-secret',
   resave: false,
   saveUninitialized: false,
   cookie: {
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 1 week
+    secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
-    sameSite: 'lax' as const,
-    secure: false // Allow non-HTTPS for development
-  }
-};
-
-// Export session middleware
-export const sessionMiddleware = session(sessionConfig);
-
-// Types for session data
-declare module 'express-session' {
-  interface SessionData {
-    userId?: number;
-    isVerified?: boolean;
-  }
-}
+    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+    sameSite: 'lax'
+  },
+  name: 'sessionId'
+});
